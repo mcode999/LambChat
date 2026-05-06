@@ -286,9 +286,20 @@ export function ToolResultContent({
     );
   }
 
-  // Plain object that wasn't handled by special formats above — render as JSON
+  // Plain object or JSON-parseable string — render as JSON
   if (typeof result === "object" && result !== null) {
     return <JsonFallback data={result} />;
+  }
+
+  if (textContent && typeof result === "string") {
+    try {
+      const parsed = JSON.parse(textContent);
+      if (typeof parsed === "object" && parsed !== null) {
+        return <JsonFallback data={parsed} />;
+      }
+    } catch {
+      // not JSON, fall through
+    }
   }
 
   if (textContent) {
