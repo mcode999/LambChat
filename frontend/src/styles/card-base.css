@@ -236,6 +236,10 @@
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
+.dark .scb__status-pill {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+}
+
 .scb__status-pill--installed {
   background: rgba(255, 255, 255, 0.85);
   color: #166534;
@@ -267,13 +271,13 @@
 }
 
 .scb__status-pill--disabled {
-  background: rgba(255, 255, 255, 0.5);
-  color: #a8a29e;
+  background: rgba(255, 255, 255, 0.7);
+  color: #78716c;
 }
 
 .dark .scb__status-pill--disabled {
-  background: rgba(0, 0, 0, 0.3);
-  color: #78716c;
+  background: rgba(0, 0, 0, 0.35);
+  color: #a8a29e;
 }
 
 /* --- Category Tag --- */
@@ -496,6 +500,15 @@
   transition: transform 0.6s ease;
 }
 
+.dark .mp-card__banner::after {
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 60%
+  );
+}
+
 .mp-card:hover .mp-card__banner::after {
   transform: translateX(100%);
 }
@@ -565,6 +578,10 @@
   border-radius: 9999px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+}
+
+.dark .mp-card__status-pill {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
 }
 
 .mp-card__status-pill--installed {

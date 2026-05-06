@@ -194,4 +194,28 @@
   html[data-mobile-keyboard="true"] .welcome-icon {
     animation: none;
   }
+
+  /* When mention popup is active on mobile with keyboard:
+     - hide suggestions to free up space
+     - show popup below input instead of above (stays visible) */
+  html[data-mobile-keyboard="true"]
+    .welcome-input:has([data-mention-active])
+    ~ .welcome-suggestions {
+    display: none;
+  }
+
+  html[data-mobile-keyboard="true"]
+    .welcome-input:has([data-mention-active])
+    .mention-popup-anchor {
+    bottom: auto;
+    top: 100%;
+    margin-bottom: 0;
+    margin-top: 6px;
+  }
+
+  html[data-mobile-keyboard="true"]
+    .welcome-input:has([data-mention-active])
+    .mention-popup {
+    animation: none;
+  }
 }

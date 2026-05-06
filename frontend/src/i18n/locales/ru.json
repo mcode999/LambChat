@@ -575,6 +575,8 @@
     "error": "Не удалось загрузить файл",
     "excelParseError": "Не удалось обработать Excel файл",
     "excelPreviewError": "Ошибка предпросмотра Excel",
+    "excelReady": "Готово",
+    "excelRowsAndCols": "{{rows}} строк × {{cols}} столбцов",
     "exitFullscreen": "Выйти из полноэкранного режима",
     "failedToLoadFromS3": "Не удалось загрузить файл из хранилища",
     "failedToLoadPresentation": "Не удалось загрузить презентацию",

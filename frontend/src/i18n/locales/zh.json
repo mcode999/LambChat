@@ -572,6 +572,8 @@
     "error": "加载文件失败",
     "excelParseError": "Excel 文件解析失败",
     "excelPreviewError": "Excel 预览错误",
+    "excelReady": "就绪",
+    "excelRowsAndCols": "{{rows}} 行 × {{cols}} 列",
     "exitFullscreen": "退出全屏",
     "failedToLoadFromS3": "从存储加载文件失败",
     "failedToLoadPresentation": "加载演示文稿失败",

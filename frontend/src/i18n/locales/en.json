@@ -572,6 +572,8 @@
     "error": "Failed to load file",
     "excelParseError": "Failed to parse Excel file",
     "excelPreviewError": "Excel preview error",
+    "excelReady": "Ready",
+    "excelRowsAndCols": "{{rows}} rows × {{cols}} columns",
     "exitFullscreen": "Exit Fullscreen",
     "failedToLoadFromS3": "Failed to load file from storage",
     "failedToLoadPresentation": "Failed to load presentation",

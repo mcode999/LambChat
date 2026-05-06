@@ -429,7 +429,7 @@ export default function DocumentPreview({
   const isSidebar = viewMode === "sidebar";
 
   // Compute panel class for center mode
-  const centerPanelClass = `overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out w-full flex flex-col bg-white dark:bg-[#1e1e1e] pointer-events-auto relative ${
+  const centerPanelClass = `overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out w-full flex flex-col bg-[var(--theme-bg-card)] pointer-events-auto relative ${
     isFullscreen
       ? "h-full sm:h-full sm:max-w-none sm:rounded-none"
       : "sm:max-w-3xl lg:max-w-4xl h-full sm:h-[80vh] sm:rounded-2xl"
@@ -448,13 +448,13 @@ export default function DocumentPreview({
       panelClass={isSidebar ? undefined : centerPanelClass}
       onUserInteraction={onUserInteraction}
       footer={
-        <div className="px-3 sm:px-5 py-2 sm:py-3 border-t border-stone-200 dark:border-[#333] bg-stone-50 dark:bg-[#252526]">
-          <div className="flex items-center justify-between text-xs sm:text-xs text-stone-400 dark:text-stone-500">
+        <div className="px-3 sm:px-5 py-2 sm:py-3 border-t border-[var(--theme-border)] bg-[var(--theme-primary-light)]">
+          <div className="flex items-center justify-between text-xs sm:text-xs text-[var(--theme-text-secondary)]">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-              <span className="font-medium text-stone-500 dark:text-stone-400 hidden xs:inline">
+              <span className="font-medium text-[var(--theme-text-secondary)] hidden xs:inline">
                 {t("documents.path")}:
               </span>
-              <span className="font-mono text-stone-600 dark:text-stone-300 truncate text-xs sm:text-xs">
+              <span className="font-mono text-[var(--theme-text)] truncate text-xs sm:text-xs">
                 {path}
               </span>
             </div>
@@ -467,18 +467,18 @@ export default function DocumentPreview({
         </div>
       }
       customHeader={
-        <div className="flex items-center gap-2.5 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-stone-200 dark:border-[#333] whitespace-nowrap overflow-hidden">
+        <div className="flex items-center gap-2.5 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[var(--theme-border)] whitespace-nowrap overflow-hidden">
           <FileIcon icon={Icon} bg={fileInfo.bg} color={fileInfo.color} />
           <div className="flex-1 min-w-0 overflow-hidden">
             <h3
-              className="text-[13px] sm:text-sm font-medium text-stone-800 dark:text-stone-100 truncate"
+              className="text-[13px] sm:text-sm font-medium text-[var(--theme-text)] truncate"
               title={fileName}
             >
               {fileName}
             </h3>
-            <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-stone-400 dark:text-stone-500 mt-0.5">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-[var(--theme-text-secondary)] mt-0.5">
               {codeFile && (
-                <span className="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-[#2d2d30] font-mono text-xs sm:text-xs shrink-0">
+                <span className="px-1.5 py-0.5 rounded bg-[var(--theme-primary-light)] font-mono text-xs sm:text-xs shrink-0">
                   {language}
                 </span>
               )}

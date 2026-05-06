@@ -30,7 +30,7 @@ const PlainTextViewer = memo(function PlainTextViewer({
           : "2rem";
 
   return (
-    <div className="h-full overflow-auto bg-[#fafafa] dark:bg-[#1e1e1e]">
+    <div className="h-full overflow-auto bg-[var(--theme-bg)]">
       <pre
         className="text-xs sm:text-[13px] leading-[1.65] font-mono m-0 select-text"
         style={{
@@ -42,22 +42,22 @@ const PlainTextViewer = memo(function PlainTextViewer({
           <div
             key={i}
             className={`flex ${
-              i % 2 === 1 ? "bg-[#f5f5f5] dark:bg-[#252526]" : ""
+              i % 2 === 1 ? "bg-[var(--theme-primary-light)]" : ""
             }`}
           >
             <span
-              className="select-none shrink-0 text-right pr-4 text-[11px] leading-[1.65] border-r border-stone-200 dark:border-stone-700/60 text-stone-400 dark:text-stone-600"
+              className="select-none shrink-0 text-right pr-4 text-[11px] leading-[1.65] border-r border-[var(--theme-border)] text-[var(--theme-text-secondary)]"
               style={{ width: lineNumberWidth, minWidth: lineNumberWidth }}
             >
               {i + 1}
             </span>
-            <span className="whitespace-pre text-stone-700 dark:text-stone-300 pl-4">
+            <span className="whitespace-pre text-[var(--theme-text)] pl-4">
               {line || " "}
             </span>
           </div>
         ))}
         {isTruncated && (
-          <div className="mt-2 pl-4 text-stone-400 dark:text-stone-500 text-xs">
+          <div className="mt-2 pl-4 text-[var(--theme-text-secondary)] text-xs">
             ... ({MAX_LINES} lines shown)
           </div>
         )}

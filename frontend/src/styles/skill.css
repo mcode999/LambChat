@@ -148,8 +148,8 @@
 }
 
 .skill-status-pill--disabled {
-  opacity: 0.45;
   background: color-mix(in srgb, var(--theme-bg-card) 50%, var(--theme-bg));
+  color: var(--theme-text-secondary);
 }
 
 .skill-meta-pill {
@@ -786,8 +786,8 @@
 }
 
 .dark .skill-status-pill--disabled {
-  opacity: 0.4;
   background: color-mix(in srgb, var(--theme-bg) 60%, var(--theme-bg-card) 40%);
+  color: var(--theme-text-secondary);
 }
 
 .dark .skill-meta-pill {

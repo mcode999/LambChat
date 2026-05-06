@@ -598,6 +598,7 @@ export const ChatInput = memo(function ChatInput({
           className={`chat-input-container flex flex-col relative w-full rounded-3xl px-1 border transition-all duration-300 ${
             isDraggingOver ? "border-dashed shadow-lg border-2" : ""
           }`}
+          data-mention-active={mention.isActive || undefined}
           style={{
             backgroundColor: "var(--theme-bg-card)",
             borderColor: isDraggingOver

@@ -71,7 +71,38 @@ export function SkillBaseCard({
           : onClick
       }
     >
-      {selectionMode && onSelect && (
+      {gradient && (
+        <div
+          className="scb__banner relative h-12 shrink-0"
+          style={{
+            background: `linear-gradient(45deg, ${gradient[0]}, ${gradient[1]}, ${gradient[2]})`,
+          }}
+        >
+          <div className="absolute inset-0 flex items-center justify-between px-2 z-[3]">
+            {selectionMode && onSelect && (
+              <div
+                className={`transition-all duration-200 ${
+                  selected
+                    ? "scale-110"
+                    : "sm:scale-90 sm:group-hover:scale-100"
+                }`}
+              >
+                <Checkbox
+                  size="lg"
+                  checked={selected}
+                  onChange={() => onSelect()}
+                  className="shadow-sm sm:opacity-0 sm:group-hover:opacity-100"
+                />
+              </div>
+            )}
+            {bannerOverlay && (
+              <div className="flex gap-1.5 ml-auto">{bannerOverlay}</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!gradient && selectionMode && onSelect && (
         <div
           className={`absolute top-3 right-3 z-10 transition-all duration-200 ${
             selected ? "scale-110" : "sm:scale-90 sm:group-hover:scale-100"
@@ -83,21 +114,6 @@ export function SkillBaseCard({
             onChange={() => onSelect()}
             className="shadow-sm sm:opacity-0 sm:group-hover:opacity-100"
           />
-        </div>
-      )}
-
-      {gradient && (
-        <div
-          className="scb__banner relative h-12 shrink-0"
-          style={{
-            background: `linear-gradient(45deg, ${gradient[0]}, ${gradient[1]}, ${gradient[2]})`,
-          }}
-        >
-          {bannerOverlay && (
-            <div className="absolute top-2 right-2 flex gap-1.5">
-              {bannerOverlay}
-            </div>
-          )}
         </div>
       )}
 

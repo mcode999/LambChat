@@ -1,11 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useLayoutEffect,
-} from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -20,15 +14,14 @@ import {
 import { useTranslation } from "react-i18next";
 import { LoadingSpinner } from "../../../common";
 
-import { useSwipeToClose } from "../../../../hooks/useSwipeToClose";
+import { useSidebarPanel } from "../../../../hooks/useSidebarPanel";
 import type { CollapsibleStatus } from "../../../common/CollapsiblePill";
 import { registerToolPanel } from "./toolPanelRegistry";
 export { closeCurrentToolPanel } from "./toolPanelRegistry";
 
-// Reference counter so that the old panel's cleanup cannot remove the attribute
-// while the new panel is still open (useLayoutEffect cleanup fires in a later
-// render cycle than the new panel's setup).
-let _compressionCount = 0;
+const WIDTH_STORAGE_KEY = "sidebar-preview-width";
+const WIDTH_CSS_VAR = "--sidebar-preview-width";
+const DEFAULT_WIDTH_PCT = 35;
 
 interface ToolResultPanelProps {
   open: boolean;
@@ -117,8 +110,6 @@ export function ToolResultPanel({
   hideViewToggle = false,
 }: ToolResultPanelProps) {
   const { t } = useTranslation();
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
-  const [animateIn, setAnimateIn] = useState(false);
   const [internalViewMode, setInternalViewMode] = useState<
     "sidebar" | "center"
   >("sidebar");
@@ -135,7 +126,6 @@ export function ToolResultPanel({
     if (externalViewMode) return; // externally controlled
     setInternalViewMode((v) => {
       if (v === "center") {
-        // Switching to sidebar: auto-exit fullscreen
         if (isFullscreen) {
           if (onFullscreenChange) onFullscreenChange(false);
           else if (externalIsFullscreen === undefined)
@@ -160,7 +150,6 @@ export function ToolResultPanel({
     } else if (externalIsFullscreen === undefined) {
       setInternalIsFullscreen(next);
     }
-    // Auto-switch to center when entering fullscreen from sidebar
     if (next && viewMode === "sidebar" && !externalViewMode) {
       setInternalViewMode("center");
     }
@@ -173,112 +162,35 @@ export function ToolResultPanel({
     externalViewMode,
   ]);
 
-  // Double-rAF: first frame paints the panel off-screen (translate-y-full),
-  // second frame kicks off the slide-in animation.  This guarantees zero
-  // white flash on all browsers — a single rAF can still leak one painted
-  // frame on mobile WebKit.
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    requestAnimationFrame(() => {
-      if (cancelled) return;
-      requestAnimationFrame(() => {
-        if (cancelled) return;
-        setAnimateIn(true);
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
   const panelOwnerRef = useRef(
     Symbol(`tool-result-panel:${title || "untitled"}`),
   );
   const latestOnCloseRef = useRef(onClose);
-  const [sidebarWidth, setSidebarWidth] = useState(
-    () =>
-      parseInt(localStorage.getItem("sidebar-preview-width") || "35", 10) || 35,
-  );
-  const panelRef = useRef<HTMLDivElement>(null);
-  const indicatorRef = useRef<HTMLDivElement>(null);
-  const mobileDragHandleRef = useRef<HTMLDivElement>(null);
-  const isResizing = useRef(false);
-  const justResized = useRef(false);
-  const resizeCaptureRef = useRef<HTMLDivElement | null>(null);
-  const resizeListenersRef = useRef<{
-    move: (ev: MouseEvent) => void;
-    up: (ev: MouseEvent) => void;
-  } | null>(null);
 
-  // Track viewport size
+  const {
+    isMobile,
+    animateIn,
+    sidebarWidth,
+    panelRef,
+    indicatorRef,
+    dragHandleRef,
+    swipeElementRef,
+    isResizing,
+    justResized,
+    handleResizeStart,
+  } = useSidebarPanel({
+    open,
+    onClose,
+    widthStorageKey: WIDTH_STORAGE_KEY,
+    widthCssVar: WIDTH_CSS_VAR,
+    defaultWidthPct: DEFAULT_WIDTH_PCT,
+    dataAttr: "data-sidebar-preview",
+  });
+
+  // Track latest onClose for registry
   useEffect(() => {
     latestOnCloseRef.current = onClose;
   }, [onClose]);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 639px)");
-    setIsMobile(mq.matches); // set initial value immediately
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-
-  // Persist sidebar width
-  useEffect(() => {
-    document.documentElement.style.setProperty(
-      "--sidebar-preview-width",
-      `${sidebarWidth}%`,
-    );
-    localStorage.setItem("sidebar-preview-width", String(sidebarWidth));
-  }, [sidebarWidth]);
-
-  // Layout-level side-effects (run synchronously before paint to prevent flash).
-  // Combined into a single useLayoutEffect to avoid multiple layout flushes.
-  useLayoutEffect(() => {
-    if (!open) return;
-
-    // Desktop sidebar: signal main layout compression
-    if (!isMobile && viewMode !== "center") {
-      _compressionCount++;
-      if (_compressionCount === 1) {
-        document.documentElement.setAttribute("data-sidebar-preview", "open");
-      }
-    }
-
-    // Mobile bottom-sheet / center fullscreen: lock body scroll
-    if (isMobile || viewMode === "center") {
-      const scrollbarWidth =
-        window.innerWidth - document.documentElement.clientWidth;
-      document.body.style.overflow = "hidden";
-      if (scrollbarWidth > 0) {
-        document.body.style.paddingRight = `${scrollbarWidth}px`;
-      }
-    }
-
-    return () => {
-      if (!isMobile && viewMode !== "center") {
-        _compressionCount--;
-        if (_compressionCount === 0) {
-          document.documentElement.removeAttribute("data-sidebar-preview");
-        }
-      }
-      if (isMobile || viewMode === "center") {
-        document.body.style.overflow = "";
-        document.body.style.paddingRight = "";
-      }
-    };
-  }, [open, isMobile, viewMode]);
-
-  // ESC key
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (document.fullscreenElement) return;
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [open, onClose]);
 
   // Register as the active panel (singleton — closes any previous panel)
   useEffect(() => {
@@ -290,91 +202,14 @@ export function ToolResultPanel({
     );
   }, [open, registryKey]);
 
-  // Cleanup drag resize resources (used on mouseup and on unmount)
-  const cleanupResize = useCallback((indicator: HTMLDivElement | null) => {
-    isResizing.current = false;
-    if (indicator) indicator.style.display = "none";
-    const capture = resizeCaptureRef.current;
-    if (capture) {
-      capture.remove();
-      resizeCaptureRef.current = null;
-    }
-    const listeners = resizeListenersRef.current;
-    if (listeners) {
-      window.removeEventListener("mousemove", listeners.move);
-      window.removeEventListener("mouseup", listeners.up);
-      resizeListenersRef.current = null;
-    }
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
-  }, []);
-
-  // Cleanup resize on unmount to prevent leaked DOM/listeners
-  useEffect(() => {
-    const indicator = indicatorRef.current;
-    return () => {
-      if (isResizing.current) cleanupResize(indicator);
-    };
-  }, [cleanupResize]);
-
-  // Desktop drag resize
-  const handleResizeStart = useCallback(
+  // Override handleResizeStart to call onUserInteraction
+  const handleResize = useCallback(
     (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
       onUserInteraction?.();
-      isResizing.current = true;
-      const startX = e.clientX;
-      const root = document.documentElement;
-      const startWidth = parseInt(
-        root.style.getPropertyValue("--sidebar-preview-width") ||
-          String(sidebarWidth),
-        10,
-      );
-      const indicator = indicatorRef.current;
-
-      const capture = document.createElement("div");
-      capture.style.cssText =
-        "position:fixed;inset:0;z-index:999999;cursor:col-resize;";
-      document.body.appendChild(capture);
-      resizeCaptureRef.current = capture;
-
-      const onMove = (ev: MouseEvent) => {
-        if (!isResizing.current) return;
-        if (indicator) {
-          indicator.style.left = `${ev.clientX}px`;
-          indicator.style.display = "block";
-        }
-      };
-      const onUp = (ev: MouseEvent) => {
-        if (!isResizing.current) return;
-        cleanupResize(indicator);
-        const delta = ((startX - ev.clientX) / window.innerWidth) * 100;
-        const val = Math.round(Math.min(Math.max(startWidth + delta, 25), 75));
-        root.style.setProperty("--sidebar-preview-width", `${val}%`);
-        setSidebarWidth(val);
-        if (panelRef.current) panelRef.current.style.maxWidth = `${val}%`;
-        localStorage.setItem("sidebar-preview-width", String(val));
-        justResized.current = true;
-        setTimeout(() => {
-          justResized.current = false;
-        }, 100);
-      };
-      resizeListenersRef.current = { move: onMove, up: onUp };
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
+      handleResizeStart(e);
     },
-    [sidebarWidth, cleanupResize, onUserInteraction],
+    [onUserInteraction, handleResizeStart],
   );
-
-  // Mobile swipe to close
-  const sheetRef = useSwipeToClose({
-    onClose,
-    enabled: open && isMobile,
-    dragHandleRef: mobileDragHandleRef,
-  });
 
   if (!open) return null;
 
@@ -408,12 +243,18 @@ export function ToolResultPanel({
       }`}
       ref={(el) => {
         // Merge refs
-        if (isMobile && !isCenter && sheetRef) {
-          (sheetRef as React.MutableRefObject<HTMLElement | null>).current = el;
+        if (isMobile && !isCenter) {
+          (panelRef as React.MutableRefObject<HTMLDivElement | null>).current =
+            el;
         }
         if (!isMobile && isSidebar && !panelClass) {
           (panelRef as React.MutableRefObject<HTMLDivElement | null>).current =
             el;
+        }
+        if (isMobile) {
+          (
+            swipeElementRef as React.MutableRefObject<HTMLElement | null>
+          ).current = el;
         }
         if (typeof panelElementRef === "function") {
           panelElementRef(el);
@@ -455,7 +296,7 @@ export function ToolResultPanel({
           />
           <div
             className="hidden sm:block absolute left-0 top-0 bottom-0 -translate-x-1/2 z-10 cursor-col-resize pointer-events-auto group"
-            onMouseDown={handleResizeStart}
+            onMouseDown={handleResize}
           >
             <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-1 rounded-full bg-transparent group-hover:bg-[var(--theme-primary)]/50 transition-colors duration-200" />
           </div>
@@ -469,7 +310,7 @@ export function ToolResultPanel({
           {isMobile && isSidebar && (
             <div className="flex justify-center pt-2 pb-1">
               <div
-                ref={mobileDragHandleRef}
+                ref={dragHandleRef}
                 className="w-9 h-1 rounded-full bg-stone-300 dark:bg-stone-600"
               />
             </div>

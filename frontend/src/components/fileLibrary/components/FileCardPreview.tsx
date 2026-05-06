@@ -113,12 +113,12 @@ function CoverLayout({
       {/* Footer */}
       <div className="relative z-10 mt-auto px-3 pb-3">
         {title && (
-          <p className="truncate text-[13px] font-semibold leading-tight tracking-tight">
+          <p className="truncate text-[13px] font-semibold leading-tight tracking-tight text-white">
             {title}
           </p>
         )}
         {subtitle && (
-          <p className="mt-0.5 truncate text-[10px] leading-3 opacity-40">
+          <p className="mt-0.5 truncate text-[10px] leading-3 text-white opacity-40">
             {subtitle}
           </p>
         )}

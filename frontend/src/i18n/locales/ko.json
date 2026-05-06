@@ -573,6 +573,8 @@
     "error": "파일 로드 실패",
     "excelParseError": "Excel 파일 분석 실패",
     "excelPreviewError": "Excel 미리보기 오류",
+    "excelReady": "준비 완료",
+    "excelRowsAndCols": "{{rows}}행 × {{cols}}열",
     "exitFullscreen": "전체 화면 종료",
     "failedToLoadFromS3": "스토리지에서 파일 로드 실패",
     "failedToLoadPresentation": "프레젠테이션 로드 실패",

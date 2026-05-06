@@ -573,6 +573,8 @@
     "error": "ファイルの読み込みに失敗しました",
     "excelParseError": "Excelファイルの解析に失敗しました",
     "excelPreviewError": "Excelプレビューエラー",
+    "excelReady": "準備完了",
+    "excelRowsAndCols": "{{rows}} 行 × {{cols}} 列",
     "exitFullscreen": "全画面を終了",
     "failedToLoadFromS3": "ストレージからファイルの読み込みに失敗しました",
     "failedToLoadPresentation": "プレゼンテーションの読み込みに失敗しました",

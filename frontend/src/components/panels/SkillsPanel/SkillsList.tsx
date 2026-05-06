@@ -203,22 +203,24 @@ export function SkillsList({
     <>
       {embedded && (
         <div className="skill-panel-header">
-          <div className="mt-2 flex items-center gap-2 sm:mt-3">
-            <div className="relative min-w-0 flex-1">
-              <Search
-                size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500"
-              />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="panel-search h-10"
-                placeholder={t("skills.searchPlaceholder")}
-              />
+          <div className="mt-2 flex flex-col gap-2 sm:mt-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Search
+                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500"
+                />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="panel-search h-10"
+                  placeholder={t("skills.searchPlaceholder")}
+                />
+              </div>
+              {filterMenu}
             </div>
-            {filterMenu}
-            <div className="flex flex-nowrap shrink-0 items-center gap-1.5 sm:gap-2 ml-2">
+            <div className="flex flex-nowrap shrink-0 items-center gap-1.5 sm:gap-2">
               {headerActions}
             </div>
           </div>
@@ -286,7 +288,7 @@ export function SkillsList({
             )}
           </div>
         ) : (
-          <div className="skill-grid grid auto-grid-cols gap-4 justify-items-start">
+          <div className="skill-grid grid auto-grid-cols gap-4">
             {paginatedSkills.map((skill) => (
               <SkillCard
                 key={skill.name}
