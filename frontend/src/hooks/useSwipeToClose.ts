@@ -1,9 +1,7 @@
 /**
  * Hook for swipe-to-close gesture on mobile bottom sheets.
  *
- * Supports two swipe zones:
- * 1. Drag handle — always triggers swipe-to-close regardless of scroll position
- * 2. Everywhere else — only triggers when the scroll container is at its top
+ * Only triggers from the drag handle — swiping on content area never closes the panel.
  */
 
 import { useEffect, useRef, useCallback, type RefObject } from "react";
@@ -14,8 +12,6 @@ interface UseSwipeToCloseOptions {
   threshold?: number;
   velocityThreshold?: number;
   dragHandleRef?: RefObject<HTMLElement | null>;
-  /** Scrollable body ref — swipe from anywhere works only when scrollTop ≤ 0 */
-  scrollContainerRef?: RefObject<HTMLElement | null>;
 }
 
 export function useSwipeToClose({
@@ -24,7 +20,6 @@ export function useSwipeToClose({
   threshold = 100,
   velocityThreshold = 0.5,
   dragHandleRef,
-  scrollContainerRef,
 }: UseSwipeToCloseOptions) {
   const startY = useRef<number>(0);
   const currentY = useRef<number>(0);
@@ -39,30 +34,19 @@ export function useSwipeToClose({
     (e: TouchEvent) => {
       if (!elementRef.current) return;
 
+      if (!dragHandleRef?.current) return;
+
+      const target = e.target;
+      if (!(target instanceof Node && dragHandleRef.current.contains(target)))
+        return;
+
       const touch = e.touches[0];
-
-      // Check if touch is on the drag handle — always allow
-      if (dragHandleRef?.current) {
-        const target = e.target;
-        if (target instanceof Node && dragHandleRef.current.contains(target)) {
-          startY.current = touch.clientY;
-          currentY.current = touch.clientY;
-          startTime.current = Date.now();
-          isDragging.current = true;
-          return;
-        }
-      }
-
-      // For non-drag-handle touches, only allow when scrolled to top
-      const scrollEl = scrollContainerRef?.current;
-      if (scrollEl && scrollEl.scrollTop > 0) return;
-
       startY.current = touch.clientY;
       currentY.current = touch.clientY;
       startTime.current = Date.now();
       isDragging.current = true;
     },
-    [dragHandleRef, scrollContainerRef],
+    [dragHandleRef],
   );
 
   const handleTouchMove = useCallback((e: TouchEvent) => {

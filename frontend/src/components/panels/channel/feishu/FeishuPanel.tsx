@@ -483,9 +483,7 @@ export function FeishuPanel({
           <button
             onClick={() => setEnabled(!enabled)}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-              enabled
-                ? "bg-[var(--theme-primary)]"
-                : "bg-stone-200 dark:bg-stone-600"
+              enabled ? "bg-[var(--theme-primary)]" : "bg-theme-primary-light"
             }`}
           >
             <span
@@ -586,7 +584,7 @@ export function FeishuPanel({
               className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
                 useCustomEmoji
                   ? "bg-[var(--theme-primary)] text-white"
-                  : "bg-[var(--glass-bg-subtle)] text-stone-600 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-stone-700"
+                  : "bg-[var(--glass-bg-subtle)] text-theme-text-secondary hover:bg-theme-primary-light"
               }`}
             >
               <Sparkles size={12} />

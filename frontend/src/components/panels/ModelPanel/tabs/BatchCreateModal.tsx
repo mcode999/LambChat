@@ -239,8 +239,8 @@ export const BatchCreateModal = ({
             }}
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               batchActiveTab === "addOneByOne"
-                ? "border-stone-900 dark:border-stone-100 text-stone-900 dark:text-stone-100"
-                : "border-transparent text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+                ? "border-theme-border text-theme-text"
+                : "border-transparent text-theme-text-secondary hover:text-theme-text"
             }`}
           >
             {t("agentConfig.batchTabAddOneByOne")}
@@ -252,8 +252,8 @@ export const BatchCreateModal = ({
             }}
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               batchActiveTab === "jsonImport"
-                ? "border-stone-900 dark:border-stone-100 text-stone-900 dark:text-stone-100"
-                : "border-transparent text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+                ? "border-theme-border text-theme-text"
+                : "border-transparent text-theme-text-secondary hover:text-theme-text"
             }`}
           >
             {t("agentConfig.batchTabJsonImport")}
@@ -265,7 +265,7 @@ export const BatchCreateModal = ({
           {batchActiveTab === "addOneByOne" && (
             <div className="es-section">
               <div className="flex items-center gap-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-500">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-theme-text-secondary">
                   {t("agentConfig.sharedConfig")}
                 </h4>
                 <span className="es-chip">
@@ -306,7 +306,7 @@ export const BatchCreateModal = ({
                     <button
                       type="button"
                       onClick={() => setShowBatchApiKey(!showBatchApiKey)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-stone-500 hover:text-stone-700 rounded-md dark:text-stone-400"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-theme-text-secondary hover:text-theme-text rounded-md"
                     >
                       {showBatchApiKey ? (
                         <svg
@@ -354,10 +354,10 @@ export const BatchCreateModal = ({
           {batchActiveTab === "addOneByOne" && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-stone-500 dark:text-stone-500">
+                <p className="text-xs text-theme-text-secondary">
                   {t("agentConfig.batchModelListHint", "* 值 和标签为必填项")}
                 </p>
-                <span className="text-xs text-stone-400 dark:text-stone-400">
+                <span className="text-xs text-theme-text-secondary">
                   {validBatchRows.length > 0 &&
                     `${validBatchRows.length}/${batchRows.length}`}
                 </span>
@@ -368,13 +368,13 @@ export const BatchCreateModal = ({
                   className="glass-card-subtle rounded-xl p-3 sm:p-4 space-y-2"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-stone-400 font-mono">
+                    <span className="text-[11px] text-theme-text-secondary font-mono">
                       #{index + 1}
                     </span>
                     {batchRows.length > 1 && (
                       <button
                         onClick={() => removeBatchRow(row.id)}
-                        className="p-1.5 text-stone-400 hover:text-red-500 rounded-lg transition-colors"
+                        className="p-1.5 text-theme-text-secondary hover:text-red-500 rounded-lg transition-colors"
                         title={t("common.delete")}
                       >
                         <Trash2 size={14} />
@@ -414,7 +414,7 @@ export const BatchCreateModal = ({
                     </div>
                   </div>
                   <details className="group">
-                    <summary className="text-xs text-stone-500 dark:text-stone-500 cursor-pointer select-none hover:text-stone-700 dark:hover:text-stone-300 transition-colors">
+                    <summary className="text-xs text-theme-text-secondary cursor-pointer select-none hover:text-theme-text transition-colors">
                       {t("agentConfig.advancedConfig", "高级配置")}
                     </summary>
                     <div
@@ -521,7 +521,7 @@ export const BatchCreateModal = ({
               ))}
               <button
                 onClick={addBatchRow}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm text-stone-500 hover:text-stone-700 border border-dashed border-stone-300 dark:border-stone-600 hover:border-stone-400 dark:hover:border-stone-500 rounded-xl transition-colors dark:text-stone-400 dark:hover:text-stone-200"
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm text-theme-text-secondary hover:text-theme-text border border-dashed border-theme-border hover:border-theme-text-secondary rounded-xl transition-colors"
               >
                 <Plus size={16} />
                 {t("agentConfig.batchAddRow")}

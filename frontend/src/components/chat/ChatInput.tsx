@@ -1,19 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import toast from "react-hot-toast";
-import {
-  ArrowUp,
-  Square,
-  Ban,
-  Lock,
-  FileText,
-  X,
-  ChevronDown,
-} from "lucide-react";
+import { Ban } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
-import { ToolSelector } from "../selectors/ToolSelector";
-import { SkillSelector } from "../selectors/SkillSelector";
-import { AgentModeSelector } from "../selectors/AgentModeSelector";
 import { uploadApi, getFullUrl } from "../../services/api";
 import { AttachmentCard } from "../common/AttachmentCard";
 import { ImageViewer } from "../common";
@@ -22,21 +10,14 @@ import { ContactAdminDialog } from "../common/ContactAdminDialog";
 import { useFileUpload } from "../../hooks/useFileUpload";
 import { useMentionState } from "../../hooks/useMentionState";
 import { useMentionSearch } from "../../hooks/useMentionSearch";
+import { useInputHistory } from "../../hooks/useInputHistory";
+import { useTextareaResize } from "../../hooks/useTextareaResize";
+import { usePasteHandler } from "../../hooks/usePasteHandler";
 import { openAttachmentPreview } from "./attachmentPreviewStore";
-import {
-  getTextareaMaxHeightPx,
-  resizeTextareaForContent,
-} from "./chatInputViewport";
-import { AgentOptionButton } from "./AgentOptionButton";
-import { turndown, cleanPastedHtml } from "./chatInputTurndown";
-import { PASTE_TEXT_THRESHOLD } from "./chatInputConstants";
-import { FeatureMenu, type FeaturePanel } from "../selectors/FeatureMenu";
-import { PersonaPresetSelector } from "../persona/PersonaPresetSelector";
 import { MentionPopup } from "./MentionPopup";
-import {
-  PersonaAvatarIcon,
-  PersonaAvatarImage,
-} from "../persona/PersonaAvatarIcon";
+import { ChatInputToolbar } from "./ChatInputToolbar";
+import { ChatInputSelectors } from "./ChatInputSelectors";
+import type { FeaturePanel } from "../selectors/FeatureMenu";
 import type {
   ToolState,
   ToolCategory,
@@ -58,13 +39,6 @@ const FILE_CATEGORY_PERMISSIONS: Record<FileCategory, Permission> = {
   document: Permission.FILE_UPLOAD_DOCUMENT,
 };
 
-const FILE_CATEGORY_ACCEPT: Record<FileCategory, string> = {
-  image: "image/*",
-  video: "video/*",
-  audio: "audio/*",
-  document: ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv",
-};
-
 export interface ChatInputProps {
   onSend: (
     message: string,
@@ -82,7 +56,6 @@ export interface ChatInputProps {
   toolsLoading?: boolean;
   enabledToolsCount?: number;
   totalToolsCount?: number;
-  // Skills
   skills?: SkillResponse[];
   onToggleSkill?: (name: string) => Promise<boolean>;
   onToggleSkillCategory?: (
@@ -96,7 +69,6 @@ export interface ChatInputProps {
   enabledSkillsCount?: number;
   totalSkillsCount?: number;
   enableSkills?: boolean;
-  // Persona presets
   personaPresets?: PersonaPreset[];
   selectedPersonaPresetId?: string | null;
   selectedPersonaName?: string | null;
@@ -119,15 +91,12 @@ export interface ChatInputProps {
   ) => Promise<void>;
   onClearPersonaPreset?: () => void;
   canManagePersonaPresets?: boolean;
-  // Agent options
   agentOptions?: Record<string, AgentOption>;
   agentOptionValues?: Record<string, boolean | string | number>;
   onToggleAgentOption?: (key: string, value: boolean | string | number) => void;
-  // Agent mode selector
   agents?: { id: string; name: string; description: string }[];
   currentAgent?: string;
   onSelectAgent?: (id: string) => void;
-  // External attachments (for page-level drag and drop)
   attachments?: MessageAttachment[];
   onAttachmentsChange?: (
     attachments:
@@ -150,7 +119,6 @@ export const ChatInput = memo(function ChatInput({
   toolsLoading: _toolsLoading,
   enabledToolsCount = 0,
   totalToolsCount = 0,
-  // Skills
   skills = [],
   onToggleSkill,
   onToggleSkillCategory,
@@ -171,11 +139,9 @@ export const ChatInput = memo(function ChatInput({
   onCopyPersonaPreset,
   onClearPersonaPreset,
   canManagePersonaPresets = false,
-  // Agent options
   agentOptions,
   agentOptionValues = {},
   onToggleAgentOption,
-  // Agent mode selector
   agents = [],
   currentAgent,
   onSelectAgent,
@@ -184,7 +150,6 @@ export const ChatInput = memo(function ChatInput({
   className,
 }: ChatInputProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [input, setInput] = useState("");
   const [activePanel, setActivePanel] = useState<FeaturePanel>(null);
   const [internalAttachments, setInternalAttachments] = useState<
@@ -195,26 +160,34 @@ export const ChatInput = memo(function ChatInput({
   const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
   const [contactAdminOpen, setContactAdminOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFileCategory, setSelectedFileCategory] =
-    useState<FileCategory | null>(null);
-  const resizeRafRef = useRef<number>(0);
+  const [cursorPosition, setCursorPosition] = useState(0);
   const { hasPermission } = useAuth();
 
   const uploadCategories = (
     Object.keys(FILE_CATEGORY_PERMISSIONS) as FileCategory[]
   ).filter((cat) => hasPermission(FILE_CATEGORY_PERMISSIONS[cat]));
-  const [history, setHistory] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem("chatInputHistory");
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+
+  const attachments = externalAttachments ?? internalAttachments;
+  const setAttachments = externalOnAttachmentsChange ?? setInternalAttachments;
+
+  const { uploadFiles, uploadLimits, validateCount, cancelUpload } =
+    useFileUpload({
+      attachments,
+      onAttachmentsChange: setAttachments,
+    });
+
+  const { history, pushHistory, navigateUp, navigateDown } = useInputHistory();
+
+  const { scheduleTextareaResize } = useTextareaResize(textareaRef, input);
+
+  const { handlePaste } = usePasteHandler({
+    textareaRef,
+    input,
+    setInput,
+    uploadFiles,
+    validateCount,
+    scheduleTextareaResize,
   });
-  const historyIndexRef = useRef(-1);
-  const draftRef = useRef("");
-  const [cursorPosition, setCursorPosition] = useState(0);
 
   const mentionPresets = onUsePersonaPreset ? personaPresets : [];
   const {
@@ -238,124 +211,11 @@ export const ChatInput = memo(function ChatInput({
     if (!selectedPersonaPresetId) return null;
     const preset = personaPresets.find((p) => p.id === selectedPersonaPresetId);
     if (!preset) return null;
-    return { avatar: preset.avatar, primaryTag: preset.tags[0] || "" };
+    return {
+      avatar: preset.avatar ?? undefined,
+      primaryTag: preset.tags[0] || "",
+    };
   }, [selectedPersonaPresetId, personaPresets]);
-
-  const attachments = externalAttachments ?? internalAttachments;
-  const setAttachments = externalOnAttachmentsChange ?? setInternalAttachments;
-
-  const { uploadFiles, uploadLimits, validateCount, cancelUpload } =
-    useFileUpload({
-      attachments,
-      onAttachmentsChange: setAttachments,
-    });
-
-  const handleFileCategorySelect = useCallback((category: FileCategory) => {
-    setSelectedFileCategory(category);
-    if (fileInputRef.current) {
-      fileInputRef.current.accept = FILE_CATEGORY_ACCEPT[category];
-      fileInputRef.current.click();
-    }
-  }, []);
-
-  const handleFileInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (!files || files.length === 0) return;
-      uploadFiles(files, selectedFileCategory || undefined);
-      e.target.value = "";
-    },
-    [uploadFiles, selectedFileCategory],
-  );
-
-  const resizeTextareaHeightNow = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    resizeTextareaForContent(
-      el,
-      getTextareaMaxHeightPx({
-        isMobile:
-          typeof window !== "undefined" ? window.innerWidth < 640 : false,
-        viewportHeight:
-          typeof window !== "undefined"
-            ? window.visualViewport?.height ?? window.innerHeight
-            : null,
-      }),
-    );
-  }, []);
-
-  const scheduleTextareaResize = useCallback(() => {
-    if (typeof window === "undefined") return;
-    cancelAnimationFrame(resizeRafRef.current);
-    resizeRafRef.current = requestAnimationFrame(resizeTextareaHeightNow);
-  }, [resizeTextareaHeightNow]);
-
-  const resetTextareaHeight = useCallback(() => {
-    resizeTextareaHeightNow();
-  }, [resizeTextareaHeightNow]);
-
-  useEffect(() => {
-    requestAnimationFrame(resetTextareaHeight);
-  }, [input, resetTextareaHeight]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return undefined;
-
-    const updateTextareaSize = () => {
-      scheduleTextareaResize();
-    };
-
-    updateTextareaSize();
-    window.visualViewport?.addEventListener("resize", updateTextareaSize);
-    window.addEventListener("resize", updateTextareaSize);
-    window.addEventListener("orientationchange", updateTextareaSize);
-
-    return () => {
-      window.visualViewport?.removeEventListener("resize", updateTextareaSize);
-      window.removeEventListener("resize", updateTextareaSize);
-      window.removeEventListener("orientationchange", updateTextareaSize);
-    };
-  }, [scheduleTextareaResize]);
-
-  useEffect(() => {
-    return () => {
-      cancelAnimationFrame(resizeRafRef.current);
-    };
-  }, []);
-
-  const textAsFile = useCallback(
-    (text: string, mimeType: string, ext: string) => {
-      if (!validateCount(1)) return;
-      const now = new Date();
-      const ts = [
-        now.getFullYear(),
-        String(now.getMonth() + 1).padStart(2, "0"),
-        String(now.getDate()).padStart(2, "0"),
-        String(now.getHours()).padStart(2, "0"),
-        String(now.getMinutes()).padStart(2, "0"),
-        String(now.getSeconds()).padStart(2, "0"),
-      ].join("");
-      const name = `clipboard-${ts}.${ext}`;
-      const file = new File([text], name, { type: mimeType });
-      uploadFiles([file], "document");
-      toast.custom(() => (
-        <div
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
-          style={{
-            background:
-              "color-mix(in srgb, var(--theme-primary) 10%, transparent)",
-            border:
-              "1px solid color-mix(in srgb, var(--theme-primary) 20%, transparent)",
-            color: "var(--theme-primary)",
-          }}
-        >
-          <FileText size={16} className="shrink-0" />
-          <span>{t("chat.textAutoUploaded", "长文本已自动转为文件上传")}</span>
-        </div>
-      ));
-    },
-    [validateCount, uploadFiles, t],
-  );
 
   const applyMentionSelection = useCallback(
     (preset: PersonaPreset) => {
@@ -379,77 +239,13 @@ export const ChatInput = memo(function ChatInput({
     [input, mention, onUsePersonaPreset, resetMention, scheduleTextareaResize],
   );
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const clipboardData = e.clipboardData;
-    if (!clipboardData) return;
-
-    if (clipboardData.files && clipboardData.files.length > 0) {
-      e.preventDefault();
-      if (!validateCount(clipboardData.files.length)) return;
-
-      uploadFiles(clipboardData.files);
-      return;
-    }
-
-    const htmlText = clipboardData.getData("text/html");
-
-    if (htmlText) {
-      e.preventDefault();
-
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = htmlText;
-
-      cleanPastedHtml(tempDiv);
-
-      const markdownText = turndown.turndown(tempDiv);
-
-      if (markdownText.length > PASTE_TEXT_THRESHOLD) {
-        textAsFile(markdownText, "text/markdown", "md");
-        return;
-      }
-
-      const textarea = textareaRef.current;
-      if (textarea) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const newValue =
-          input.substring(0, start) + markdownText + input.substring(end);
-        setInput(newValue);
-
-        setTimeout(() => {
-          textarea.selectionStart = textarea.selectionEnd =
-            start + markdownText.length;
-          textarea.focus();
-          scheduleTextareaResize();
-        }, 0);
-      }
-      return;
-    }
-
-    const plainText = clipboardData.getData("text/plain");
-    if (plainText && plainText.length > PASTE_TEXT_THRESHOLD) {
-      e.preventDefault();
-      textAsFile(plainText, "text/plain", "txt");
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSend) return;
     if (input.trim() && !isLoading && !disabled) {
       const trimmed = input.trim();
       onSend(trimmed, agentOptionValues, attachments);
-      setHistory((prev) => {
-        const next = [...prev, trimmed].slice(-200);
-        try {
-          localStorage.setItem("chatInputHistory", JSON.stringify(next));
-        } catch {
-          /* storage full or unavailable */
-        }
-        return next;
-      });
-      historyIndexRef.current = -1;
-      draftRef.current = "";
+      pushHistory(trimmed);
       setInput("");
       setAttachments([]);
       requestAnimationFrame(() => {
@@ -489,10 +285,7 @@ export const ChatInput = memo(function ChatInput({
 
     if (e.key === "Enter") {
       const needsModifier = newlineModifier === "ctrl" ? e.ctrlKey : e.shiftKey;
-
-      if (needsModifier) {
-        return;
-      }
+      if (needsModifier) return;
 
       e.preventDefault();
       if (isLoading) {
@@ -502,8 +295,6 @@ export const ChatInput = memo(function ChatInput({
       }
       return;
     }
-
-    if (history.length === 0) return;
 
     const textarea = textareaRef.current;
     const atTop =
@@ -515,45 +306,31 @@ export const ChatInput = memo(function ChatInput({
 
     if (e.key === "ArrowUp" && atTop) {
       e.preventDefault();
-      if (historyIndexRef.current === -1) {
-        draftRef.current = input;
+      const prev = navigateUp(input);
+      if (prev !== null) {
+        setInput(prev);
+        requestAnimationFrame(() => {
+          if (textarea) {
+            textarea.selectionStart = textarea.selectionEnd = prev.length;
+          }
+        });
       }
-      const newIndex = Math.min(
-        historyIndexRef.current + 1,
-        history.length - 1,
-      );
-      historyIndexRef.current = newIndex;
-      setInput(history[history.length - 1 - newIndex]);
-      requestAnimationFrame(() => {
-        if (textarea) {
-          textarea.selectionStart = textarea.selectionEnd =
-            history[history.length - 1 - newIndex].length;
-        }
-      });
-    } else if (
-      e.key === "ArrowDown" &&
-      (atBottom || historyIndexRef.current !== -1)
-    ) {
+    } else if (e.key === "ArrowDown" && (atBottom || history.length > 0)) {
       e.preventDefault();
-      const newIndex = historyIndexRef.current - 1;
-      if (newIndex < 0) {
-        historyIndexRef.current = -1;
-        setInput(draftRef.current);
-        draftRef.current = "";
-      } else {
-        historyIndexRef.current = newIndex;
-        setInput(history[history.length - 1 - newIndex]);
+      const next = navigateDown();
+      if (next !== null) {
+        setInput(next);
+        requestAnimationFrame(() => {
+          if (textarea) {
+            textarea.selectionStart = textarea.selectionEnd =
+              textarea.value.length;
+          }
+        });
       }
-      requestAnimationFrame(() => {
-        if (textarea) {
-          textarea.selectionStart = textarea.selectionEnd =
-            textarea.value.length;
-        }
-      });
     }
   };
 
-  const hasContent = input.trim() && !disabled;
+  const hasContent = !!input.trim() && !disabled;
   const hasUploadingAttachment = attachments.some((a) => a.isUploading);
   const canSubmit =
     hasContent && canSend && !isLoading && !hasUploadingAttachment;
@@ -571,14 +348,38 @@ export const ChatInput = memo(function ChatInput({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingOver(false);
-
     const files = e.dataTransfer?.files;
     if (!files || files.length === 0) return;
-
     if (!validateCount(files.length)) return;
-
     uploadFiles(files);
   };
+
+  const thinkingLabel = agentOptions
+    ? Object.entries(agentOptions)
+        .filter(([, opt]) => opt.options && opt.options.length > 0)
+        .map(([, opt]) => {
+          const val =
+            agentOptionValues[
+              Object.keys(agentOptions).find((k) => agentOptions[k] === opt)!
+            ] ?? opt.default;
+          const selected = opt.options?.find((o) => o.value === val);
+          return selected?.label_key
+            ? t(selected.label_key)
+            : selected?.label || String(val);
+        })[0]
+    : undefined;
+
+  const thinkingLevel = agentOptions
+    ? Object.entries(agentOptions)
+        .filter(([, opt]) => opt.options && opt.options.length > 0)
+        .map(([, opt]) => {
+          const val =
+            agentOptionValues[
+              Object.keys(agentOptions).find((k) => agentOptions[k] === opt)!
+            ] ?? opt.default;
+          return String(val);
+        })[0]
+    : undefined;
 
   return (
     <div
@@ -690,263 +491,77 @@ export const ChatInput = memo(function ChatInput({
             </div>
           </div>
 
-          <div className="flex justify-between flex-nowrap pt-3 pb-3 px-2 mx-0.5 max-w-full">
-            <div className="flex items-center gap-1 sm:gap-2 self-end flex-1 min-w-0 overflow-x-auto no-scrollbar">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleFileInputChange}
-              />
-              <FeatureMenu
-                activePanel={activePanel}
-                onOpen={setActivePanel}
-                enabledToolsCount={enabledToolsCount}
-                totalToolsCount={totalToolsCount}
-                enabledSkillsCount={enabledSkillsCount}
-                totalSkillsCount={totalSkillsCount}
-                hasPersonaSelector={!!onUsePersonaPreset}
-                personaName={selectedPersonaName}
-                hasAgentSelector={agents.length > 1 && !!onSelectAgent}
-                agentName={agents.find((a) => a.id === currentAgent)?.name}
-                hasThinkingOption={
-                  !!(
-                    agentOptions &&
-                    onToggleAgentOption &&
-                    Object.keys(agentOptions).length > 0
-                  )
-                }
-                uploadCategories={uploadCategories}
-                uploadLimits={uploadLimits}
-                onFileCategorySelect={handleFileCategorySelect}
-                thinkingLabel={
-                  agentOptions
-                    ? Object.entries(agentOptions)
-                        .filter(
-                          ([, opt]) => opt.options && opt.options.length > 0,
-                        )
-                        .map(([, opt]) => {
-                          const val =
-                            agentOptionValues[
-                              Object.keys(agentOptions).find(
-                                (k) => agentOptions[k] === opt,
-                              )!
-                            ] ?? opt.default;
-                          const selected = opt.options?.find(
-                            (o) => o.value === val,
-                          );
-                          return selected?.label_key
-                            ? t(selected.label_key)
-                            : selected?.label || String(val);
-                        })[0]
-                    : undefined
-                }
-                thinkingLevel={
-                  agentOptions
-                    ? Object.entries(agentOptions)
-                        .filter(
-                          ([, opt]) => opt.options && opt.options.length > 0,
-                        )
-                        .map(([, opt]) => {
-                          const val =
-                            agentOptionValues[
-                              Object.keys(agentOptions).find(
-                                (k) => agentOptions[k] === opt,
-                              )!
-                            ] ?? opt.default;
-                          return String(val);
-                        })[0]
-                    : undefined
-                }
-              />
-              {selectedPersonaName && (
-                <button
-                  type="button"
-                  className="chat-tool-btn group shrink min-w-0"
-                  onClick={() => setActivePanel("persona")}
-                  title={selectedPersonaName}
-                >
-                  <div className="flex flex-row items-center gap-1.5 min-w-0">
-                    <span className="relative w-[18px] h-[18px] shrink-0 inline-flex items-center justify-center">
-                      {personaAvatar?.avatar ? (
-                        <PersonaAvatarImage
-                          avatar={personaAvatar.avatar}
-                          alt=""
-                          className="w-[18px] h-[18px] rounded-full object-cover group-hover:opacity-0 transition-opacity"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
-                          }}
-                        />
-                      ) : (
-                        <PersonaAvatarIcon
-                          avatar={personaAvatar?.avatar}
-                          primaryTag={personaAvatar?.primaryTag}
-                          size={18}
-                          className="transition-transform duration-200 group-hover:opacity-0"
-                        />
-                      )}
-                      {onClearPersonaPreset && (
-                        <X
-                          size={18}
-                          className="absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onClearPersonaPreset();
-                          }}
-                        />
-                      )}
-                    </span>
-                    <span className="max-w-40 truncate text-sm font-semibold text-blue-600 dark:text-blue-400">
-                      {selectedPersonaName}
-                    </span>
-                    <ChevronDown size={14} className="opacity-50 shrink-0" />
-                  </div>
-                </button>
-              )}
-            </div>
-
-            <div className="self-end flex space-x-1.5 flex-shrink-0">
-              {!canSend ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setContactAdminOpen(true);
-                  }}
-                  className="flex items-center justify-center rounded-full p-2 cursor-pointer transition-all duration-200 hover:scale-105"
-                  style={{
-                    backgroundColor: "var(--theme-primary-light)",
-                    color: "var(--theme-text-secondary)",
-                  }}
-                  title={t("chat.noPermission")}
-                >
-                  <Lock size={18} />
-                </button>
-              ) : isLoading ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setStopConfirmOpen(true);
-                  }}
-                  className="chat-tool-btn-active flex items-center justify-center rounded-full p-2 transition-all duration-300 hover:scale-105 active:scale-95"
-                  style={{
-                    borderColor: "color-mix(in srgb, #fbbf24 40%, transparent)",
-                    background: "color-mix(in srgb, #fbbf24 10%, transparent)",
-                    color: "#fbbf24",
-                  }}
-                  title={t("chat.stop")}
-                >
-                  <Square size={16} fill="currentColor" />
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={!canSubmit}
-                  className={`flex items-center justify-center rounded-full p-2 transition-all duration-300 ${
-                    canSubmit ? "hover:scale-105 active:scale-95" : ""
-                  }`}
-                  style={{
-                    backgroundColor: "transparent",
-                    border: canSubmit
-                      ? "1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)"
-                      : "1px solid var(--theme-border)",
-                    color: canSubmit
-                      ? "var(--theme-primary)"
-                      : "var(--theme-text-secondary)",
-                  }}
-                  title={
-                    hasUploadingAttachment
-                      ? t("chat.waitingForUpload", "请等待文件上传完成")
-                      : t("chat.send")
-                  }
-                >
-                  <ArrowUp size={18} />
-                </button>
-              )}
-            </div>
-          </div>
+          <ChatInputToolbar
+            activePanel={activePanel}
+            onActivePanelChange={setActivePanel}
+            canSend={canSend}
+            isLoading={isLoading}
+            canSubmit={canSubmit}
+            hasUploadingAttachment={hasUploadingAttachment}
+            enabledToolsCount={enabledToolsCount}
+            totalToolsCount={totalToolsCount}
+            enabledSkillsCount={enabledSkillsCount}
+            totalSkillsCount={totalSkillsCount}
+            hasPersonaSelector={!!onUsePersonaPreset}
+            personaName={selectedPersonaName}
+            hasAgentSelector={agents.length > 1 && !!onSelectAgent}
+            agentName={agents.find((a) => a.id === currentAgent)?.name}
+            hasThinkingOption={
+              !!(
+                agentOptions &&
+                onToggleAgentOption &&
+                Object.keys(agentOptions).length > 0
+              )
+            }
+            thinkingLabel={thinkingLabel}
+            thinkingLevel={thinkingLevel}
+            uploadCategories={uploadCategories}
+            uploadLimits={uploadLimits}
+            uploadFiles={uploadFiles}
+            selectedPersonaName={selectedPersonaName}
+            personaAvatar={personaAvatar}
+            onClearPersonaPreset={onClearPersonaPreset}
+            onStopClick={() => setStopConfirmOpen(true)}
+            onNoPermissionClick={() => setContactAdminOpen(true)}
+          />
         </div>
       </form>
 
-      {/* Controlled selectors — modals only, triggered by FeatureMenu */}
-      {onToggleTool && onToggleCategory && onToggleAll && (
-        <ToolSelector
-          tools={tools}
-          onToggleTool={onToggleTool}
-          onToggleCategory={onToggleCategory}
-          onToggleAll={onToggleAll}
-          enabledCount={enabledToolsCount}
-          totalCount={totalToolsCount}
-          isOpen={activePanel === "tools"}
-          onOpenChange={(open) => setActivePanel(open ? "tools" : null)}
-        />
-      )}
-      {enableSkills &&
-        onToggleSkill &&
-        onToggleSkillCategory &&
-        onToggleAllSkills && (
-          <SkillSelector
-            skills={skills}
-            onToggleSkill={onToggleSkill}
-            onToggleCategory={onToggleSkillCategory}
-            onToggleAll={onToggleAllSkills}
-            pendingSkillNames={pendingSkillNames}
-            isMutating={skillsMutating}
-            enabledCount={enabledSkillsCount}
-            totalCount={totalSkillsCount}
-            controlledByPersonaName={
-              personaSkillsControlled ? selectedPersonaName : null
-            }
-            isOpen={activePanel === "skills"}
-            onOpenChange={(open) => setActivePanel(open ? "skills" : null)}
-          />
-        )}
-      {onUsePersonaPreset && onCopyPersonaPreset && onClearPersonaPreset && (
-        <PersonaPresetSelector
-          presets={personaPresets}
-          selectedPresetId={selectedPersonaPresetId}
-          isOpen={activePanel === "persona"}
-          isLoading={personaPresetsLoading}
-          isMutating={personaPresetsMutating}
-          canManagePresets={canManagePersonaPresets}
-          onOpenChange={(open) => setActivePanel(open ? "persona" : null)}
-          onUsePreset={onUsePersonaPreset}
-          onCopyPreset={onCopyPersonaPreset}
-          onManagePresets={() => navigate("/persona")}
-          onClearPreset={() => {
-            onClearPersonaPreset();
-            setActivePanel(null);
-          }}
-        />
-      )}
-      <AgentModeSelector
+      <ChatInputSelectors
+        activePanel={activePanel}
+        onActivePanelChange={setActivePanel}
+        tools={tools}
+        onToggleTool={onToggleTool}
+        onToggleCategory={onToggleCategory}
+        onToggleAll={onToggleAll}
+        enabledToolsCount={enabledToolsCount}
+        totalToolsCount={totalToolsCount}
+        skills={skills}
+        onToggleSkill={onToggleSkill}
+        onToggleSkillCategory={onToggleSkillCategory}
+        onToggleAllSkills={onToggleAllSkills}
+        pendingSkillNames={pendingSkillNames}
+        skillsMutating={skillsMutating}
+        enabledSkillsCount={enabledSkillsCount}
+        totalSkillsCount={totalSkillsCount}
+        enableSkills={enableSkills}
+        personaSkillsControlled={personaSkillsControlled}
+        selectedPersonaName={selectedPersonaName}
+        personaPresets={personaPresets}
+        selectedPersonaPresetId={selectedPersonaPresetId}
+        personaPresetsLoading={personaPresetsLoading}
+        personaPresetsMutating={personaPresetsMutating}
+        onUsePersonaPreset={onUsePersonaPreset}
+        onCopyPersonaPreset={onCopyPersonaPreset}
+        onClearPersonaPreset={onClearPersonaPreset}
+        canManagePersonaPresets={canManagePersonaPresets}
         agents={agents}
-        currentAgent={currentAgent || ""}
+        currentAgent={currentAgent}
         onSelectAgent={onSelectAgent}
-        isOpen={activePanel === "agent"}
-        onOpenChange={(open) => setActivePanel(open ? "agent" : null)}
+        agentOptions={agentOptions}
+        agentOptionValues={agentOptionValues}
+        onToggleAgentOption={onToggleAgentOption}
       />
-      {agentOptions &&
-        onToggleAgentOption &&
-        Object.keys(agentOptions).length > 0 &&
-        Object.entries(agentOptions)
-          .filter(([, opt]) => opt.options && opt.options.length > 0)
-          .map(([key, option]) => (
-            <AgentOptionButton
-              key={key}
-              optionKey={key}
-              option={option}
-              value={agentOptionValues[key] ?? option.default}
-              onChange={(value) => onToggleAgentOption(key, value)}
-              isOpen={activePanel === "thinking"}
-              onOpenChange={(open) => setActivePanel(open ? "thinking" : null)}
-            />
-          ))}
 
       <div className="hidden sm:flex mx-auto max-w-3xl lg:max-w-4xl xl:max-w-5xl mt-3 px-2 justify-center">
         <span

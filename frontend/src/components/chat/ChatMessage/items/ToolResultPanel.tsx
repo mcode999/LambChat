@@ -116,9 +116,34 @@ export function ToolResultPanel({
   const [internalIsFullscreen, setInternalIsFullscreen] = useState(false);
 
   // Allow external control of viewMode, but default to internal state
-  const effectiveViewMode = externalViewMode ?? internalViewMode;
+  let effectiveViewMode = externalViewMode ?? internalViewMode;
   const effectiveIsFullscreen = externalIsFullscreen ?? internalIsFullscreen;
   const isFullscreen = effectiveIsFullscreen;
+
+  // Mobile: force center mode so panels render as fullscreen overlays instead of bottom sheets
+  const {
+    isMobile,
+    animateIn,
+    sidebarWidth,
+    panelRef,
+    indicatorRef,
+    dragHandleRef,
+    swipeElementRef,
+    isResizing,
+    justResized,
+    handleResizeStart,
+  } = useSidebarPanel({
+    open,
+    onClose,
+    widthStorageKey: WIDTH_STORAGE_KEY,
+    widthCssVar: WIDTH_CSS_VAR,
+    defaultWidthPct: DEFAULT_WIDTH_PCT,
+    dataAttr: "data-sidebar-preview",
+  });
+
+  if (isMobile && effectiveViewMode === "sidebar") {
+    effectiveViewMode = "center";
+  }
   const viewMode = effectiveViewMode;
 
   const handleToggleViewMode = useCallback(() => {
@@ -166,26 +191,6 @@ export function ToolResultPanel({
     Symbol(`tool-result-panel:${title || "untitled"}`),
   );
   const latestOnCloseRef = useRef(onClose);
-
-  const {
-    isMobile,
-    animateIn,
-    sidebarWidth,
-    panelRef,
-    indicatorRef,
-    dragHandleRef,
-    swipeElementRef,
-    isResizing,
-    justResized,
-    handleResizeStart,
-  } = useSidebarPanel({
-    open,
-    onClose,
-    widthStorageKey: WIDTH_STORAGE_KEY,
-    widthCssVar: WIDTH_CSS_VAR,
-    defaultWidthPct: DEFAULT_WIDTH_PCT,
-    dataAttr: "data-sidebar-preview",
-  });
 
   // Track latest onClose for registry
   useEffect(() => {
@@ -311,7 +316,7 @@ export function ToolResultPanel({
             <div className="flex justify-center pt-2 pb-1">
               <div
                 ref={dragHandleRef}
-                className="w-9 h-1 rounded-full bg-stone-300 dark:bg-stone-600"
+                className="mobile-drag-handle w-9 h-1 rounded-full bg-stone-300 dark:bg-stone-600"
               />
             </div>
           )}

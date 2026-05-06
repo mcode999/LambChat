@@ -496,13 +496,13 @@
 }
 
 .editor-sidebar-overlay--visible {
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--theme-overlay);
   pointer-events: auto;
 }
 
 @media (max-width: 639px) {
   .editor-sidebar-overlay--visible {
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--theme-overlay-strong);
   }
 }
 
@@ -527,14 +527,8 @@
   transform: translateX(100%);
   border-left: 1px solid var(--theme-border);
   box-shadow:
-    -2px 0 8px rgba(0, 0, 0, 0.04),
-    -8px 0 32px -4px rgba(0, 0, 0, 0.1);
-}
-
-.dark .editor-sidebar--sidebar {
-  box-shadow:
-    -2px 0 8px rgba(0, 0, 0, 0.2),
-    -8px 0 32px -4px rgba(0, 0, 0, 0.4);
+    -2px 0 8px var(--theme-shadow-sm),
+    -8px 0 32px -4px var(--theme-shadow-md);
 }
 
 .editor-sidebar--sidebar.editor-sidebar--animate-in {
@@ -552,17 +546,16 @@
   bottom: 0;
   max-height: 92vh;
   border-radius: 1rem 1rem 0 0;
-  transform: translateY(100%);
-  box-shadow: 0 -8px 40px -8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 -8px 40px -8px var(--theme-shadow-lg);
 }
 
-.dark .editor-sidebar--mobile {
-  box-shadow: 0 -8px 40px -8px rgba(0, 0, 0, 0.5);
+.editor-sidebar--mobile:not(.editor-sidebar--animate-in) {
+  transform: translateY(100%);
 }
 
 .editor-sidebar--mobile.editor-sidebar--animate-in {
   animation: editor-sidebar-slide-up-sheet 280ms cubic-bezier(0.16, 1, 0.3, 1)
-    forwards;
+    backwards;
 }
 
 @keyframes editor-sidebar-slide-in-right {
@@ -598,6 +591,16 @@
   border-radius: 9999px;
   background: var(--theme-text-secondary);
   opacity: 0.3;
+  transition:
+    opacity 0.15s,
+    width 0.15s,
+    transform 0.15s;
+}
+
+.editor-sidebar-drag-handle:active::after {
+  opacity: 0.6;
+  width: 2.5rem;
+  transform: scaleY(1.4);
 }
 
 /* --- Header --- */
@@ -790,7 +793,9 @@
   font-size: 0.875rem;
   width: 100%;
   border-radius: 0.5rem;
-  padding: 0 0.75rem;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 0.75rem;
 }
 
 /* Textarea variant */

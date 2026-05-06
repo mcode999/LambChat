@@ -215,7 +215,7 @@ function DetailModal({
           >
             {t(`memory.type.${memory.memory_type}`)}
           </span>
-          <span className="text-[11px] text-stone-400 dark:text-stone-500">
+          <span className="text-[11px] text-theme-text-secondary">
             {relativeTime(memory.updated_at)}
           </span>
         </div>
@@ -234,7 +234,10 @@ function DetailModal({
         {/* Tags */}
         {memory.tags.length > 0 && (
           <div className="flex items-center gap-1.5 mt-3 flex-wrap">
-            <Tag size={12} className="text-stone-400 flex-shrink-0" />
+            <Tag
+              size={12}
+              className="text-theme-text-secondary flex-shrink-0"
+            />
             {memory.tags.slice(0, 8).map((tag) => (
               <span key={tag} className="es-chip">
                 {tag}
@@ -250,7 +253,7 @@ function DetailModal({
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <svg
-              className="h-6 w-6 animate-spin text-stone-400"
+              className="h-6 w-6 animate-spin text-theme-text-secondary"
               viewBox="0 0 24 24"
               fill="none"
             >
@@ -271,7 +274,7 @@ function DetailModal({
           </div>
         ) : (
           <div className="es-section">
-            <p className="text-sm text-stone-700 dark:text-stone-300 whitespace-pre-wrap leading-relaxed">
+            <p className="text-sm text-theme-text whitespace-pre-wrap leading-relaxed">
               {content || memory.summary}
             </p>
           </div>

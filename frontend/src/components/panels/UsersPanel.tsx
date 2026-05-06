@@ -209,7 +209,7 @@ function UserFormModal({
         <div className="es-field">
           <label className="es-label">{t("users.username")}</label>
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-stone-400 dark:text-stone-500">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-theme-text-secondary">
               <User size={16} />
             </div>
             <input
@@ -226,7 +226,7 @@ function UserFormModal({
         <div className="es-field">
           <label className="es-label">{t("users.email")}</label>
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-stone-400 dark:text-stone-500">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-theme-text-secondary">
               <Mail size={16} />
             </div>
             <input
@@ -245,7 +245,7 @@ function UserFormModal({
             {t("users.password")} {isEditing && t("users.passwordHint")}
           </label>
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-stone-400 dark:text-stone-500">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-theme-text-secondary">
               <Lock size={16} />
             </div>
             <input
@@ -280,9 +280,7 @@ function UserFormModal({
                       checked={selectedRoles.includes(role.name)}
                       onChange={() => toggleRole(role.name)}
                     />
-                    <span className="text-sm text-stone-700 dark:text-stone-300">
-                      {role.name}
-                    </span>
+                    <span className="text-sm text-theme-text">{role.name}</span>
                     {role.is_system && (
                       <span className="es-chip">{t("users.system")}</span>
                     )}
@@ -445,9 +443,7 @@ export function UsersPanel() {
       <PanelHeader
         title={t("users.title")}
         subtitle={t("users.subtitle")}
-        icon={
-          <Users size={24} className="text-stone-600 dark:text-stone-400" />
-        }
+        icon={<Users size={24} className="text-theme-text-secondary" />}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         searchPlaceholder={t("users.searchPlaceholder")}
@@ -475,9 +471,9 @@ export function UsersPanel() {
           <div className="flex h-full flex-col items-center justify-center text-center">
             <Users
               size={48}
-              className="mb-4 text-stone-300 dark:text-stone-600"
+              className="mb-4 text-theme-text-secondary opacity-40"
             />
-            <p className="text-stone-500 dark:text-stone-400">
+            <p className="text-theme-text-secondary">
               {debouncedSearch
                 ? t("users.noMatchingUsers")
                 : t("users.noUsers")}
@@ -490,23 +486,23 @@ export function UsersPanel() {
               <table className="min-w-full divide-y divide-[var(--glass-border)]">
                 <thead className="bg-[var(--glass-bg-subtle)]">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-text-secondary">
                       {t("users.user")}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-text-secondary">
                       {t("users.email")}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-text-secondary">
                       {t("users.roles")}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-text-secondary">
                       {t("users.status")}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-text-secondary">
                       {t("users.createdAt")}
                     </th>
                     {(canEdit || canDelete) && (
-                      <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                      <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-theme-text-secondary">
                         {t("users.actions")}
                       </th>
                     )}
@@ -521,12 +517,12 @@ export function UsersPanel() {
                       <td className="whitespace-nowrap px-6 py-4">
                         <div className="flex items-center gap-3">
                           <UserAvatar user={user} />
-                          <span className="font-medium text-stone-900 dark:text-stone-100">
+                          <span className="font-medium text-theme-text">
                             {user.username}
                           </span>
                         </div>
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-stone-500 dark:text-stone-400">
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-theme-text-secondary">
                         {user.email}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
@@ -554,7 +550,7 @@ export function UsersPanel() {
                           </span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-stone-500 dark:text-stone-400">
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-theme-text-secondary">
                         {new Date(user.created_at).toLocaleDateString("zh-CN")}
                       </td>
                       {(canEdit || canDelete) && (
@@ -595,10 +591,10 @@ export function UsersPanel() {
                   <div className="flex items-start gap-3">
                     <UserAvatar user={user} size="md" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-stone-900 dark:text-stone-100">
+                      <p className="truncate font-medium text-theme-text">
                         {user.username}
                       </p>
-                      <p className="truncate text-sm text-stone-500 dark:text-stone-400">
+                      <p className="truncate text-sm text-theme-text-secondary">
                         {user.email}
                       </p>
                     </div>
@@ -628,7 +624,7 @@ export function UsersPanel() {
                           {t("users.disabled")}
                         </span>
                       )}
-                      <span className="text-xs text-stone-400 dark:text-stone-500">
+                      <span className="text-xs text-theme-text-secondary opacity-60">
                         {new Date(user.created_at).toLocaleDateString("zh-CN")}
                       </span>
                     </div>

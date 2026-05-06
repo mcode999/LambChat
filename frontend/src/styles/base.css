@@ -31,6 +31,21 @@
   html[data-editor-sidebar="open"] body > [data-yields-sidebar] {
     right: var(--editor-sidebar-width, 30%) !important;
   }
+
+  /* When both sidebars are open, compress #root for the combined width */
+  html[data-sidebar-preview="open"][data-editor-sidebar="open"] #root {
+    max-width: calc(
+      100% - var(--sidebar-preview-width, 35%) -
+        var(--editor-sidebar-width, 30%)
+    ) !important;
+  }
+  html[data-sidebar-preview="open"][data-editor-sidebar="open"]
+    #root
+    [data-yields-sidebar] {
+    right: calc(
+      var(--sidebar-preview-width, 35%) + var(--editor-sidebar-width, 30%)
+    ) !important;
+  }
 }
 
 /* 统一 checkbox / radio 样式 */
@@ -92,6 +107,11 @@ select:-webkit-autofill:active {
   --theme-border: #e7e5e4; /* stone-200 */
   --theme-text: #1c1917; /* stone-900 */
   --theme-text-secondary: #78716c; /* stone-500 */
+  --theme-overlay: rgba(0, 0, 0, 0.4);
+  --theme-overlay-strong: rgba(0, 0, 0, 0.5);
+  --theme-shadow-sm: rgba(0, 0, 0, 0.04);
+  --theme-shadow-md: rgba(0, 0, 0, 0.1);
+  --theme-shadow-lg: rgba(0, 0, 0, 0.2);
   --sidebar-width: 16rem;
   --sidebar-rail-width: 3.25rem;
   --sidebar-transition-duration: 150ms;
@@ -110,6 +130,11 @@ select:-webkit-autofill:active {
   --theme-border: #44403c; /* stone-700 */
   --theme-text: #ffffff; /* pure white */
   --theme-text-secondary: #d6d3d1; /* stone-300 */
+  --theme-overlay: rgba(0, 0, 0, 0.6);
+  --theme-overlay-strong: rgba(0, 0, 0, 0.7);
+  --theme-shadow-sm: rgba(0, 0, 0, 0.2);
+  --theme-shadow-md: rgba(0, 0, 0, 0.4);
+  --theme-shadow-lg: rgba(0, 0, 0, 0.5);
 }
 
 /* Dark mode text brightness boost — shift stone-400/500/600 one step lighter */
@@ -262,4 +287,17 @@ html[data-mobile-keyboard="true"] #root {
     color-mix(in srgb, var(--theme-bg) 80%, white)
   );
   color: var(--theme-text);
+}
+
+/* Mobile bottom-sheet drag handle — touch feedback */
+.mobile-drag-handle {
+  transition:
+    opacity 0.15s,
+    width 0.15s,
+    height 0.15s;
+}
+.mobile-drag-handle:active {
+  opacity: 0.6;
+  width: 2.5rem !important;
+  height: 0.35rem !important;
 }

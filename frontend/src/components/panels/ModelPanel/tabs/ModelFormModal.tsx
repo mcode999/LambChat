@@ -213,7 +213,7 @@ export const ModelFormModal = ({
 
         {/* Advanced (collapsed) */}
         <details className="group">
-          <summary className="text-xs text-stone-500 dark:text-stone-500 cursor-pointer select-none hover:text-stone-700 dark:hover:text-stone-300 transition-colors py-1">
+          <summary className="text-xs text-theme-text-secondary cursor-pointer select-none hover:text-theme-text transition-colors py-1">
             {t("agentConfig.advancedConfig", "高级配置")}
           </summary>
           <div
@@ -281,7 +281,7 @@ export const ModelFormModal = ({
                 <button
                   type="button"
                   onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-stone-500 hover:text-stone-700 rounded-md dark:text-stone-400"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-theme-text-secondary hover:text-theme-text rounded-md"
                 >
                   {showApiKey ? (
                     <svg

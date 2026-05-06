@@ -19,6 +19,7 @@ interface MobileMoreMenuSheetProps {
   onClose: () => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
   swipeRef: React.RefObject<HTMLElement | null>;
+  dragHandleRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function MobileMoreMenuSheet({
@@ -29,6 +30,7 @@ export function MobileMoreMenuSheet({
   onClose,
   menuRef,
   swipeRef,
+  dragHandleRef,
 }: MobileMoreMenuSheetProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -70,7 +72,10 @@ export function MobileMoreMenuSheet({
         className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white dark:bg-stone-800 rounded-t-2xl shadow-xl max-h-[70vh] overflow-y-auto"
       >
         <div className="flex justify-center py-2">
-          <div className="w-10 h-1 rounded-full bg-stone-300 dark:bg-stone-600" />
+          <div
+            ref={dragHandleRef}
+            className="mobile-drag-handle w-10 h-1 rounded-full bg-stone-300 dark:bg-stone-600"
+          />
         </div>
         <div className="flex items-center justify-between px-4 pb-1.5">
           <span className="text-[13px] font-medium text-[var(--theme-text)]">

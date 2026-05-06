@@ -228,9 +228,11 @@ export const SessionSidebar = forwardRef<
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuBtnRef = useRef<HTMLButtonElement>(null);
   const expandedMoreMenuBtnRef = useRef<HTMLButtonElement>(null);
+  const moreMenuDragHandleRef = useRef<HTMLDivElement>(null);
   const moreMenuSwipeRef = useSwipeToClose({
     onClose: () => setIsMoreMenuOpen(false),
     enabled: isMoreMenuOpen && isMobile,
+    dragHandleRef: moreMenuDragHandleRef,
   });
   const location = useLocation();
   const navigate = useNavigate();
@@ -732,6 +734,7 @@ export const SessionSidebar = forwardRef<
           onClose={() => setIsMoreMenuOpen(false)}
           menuRef={moreMenuRef}
           swipeRef={moreMenuSwipeRef}
+          dragHandleRef={moreMenuDragHandleRef}
         />
       </div>
 

@@ -442,7 +442,7 @@ function RoleFormModal({
                       )
                     }
                   />
-                  <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+                  <span className="text-sm font-medium text-theme-text">
                     {group.name}
                   </span>
                 </label>
@@ -458,7 +458,7 @@ function RoleFormModal({
                         checked={selectedPermissions.includes(permission.value)}
                         onChange={() => togglePermission(permission.value)}
                       />
-                      <span className="text-sm text-stone-600 dark:text-stone-400">
+                      <span className="text-sm text-theme-text-secondary">
                         {permissionLabels[permission.value] || permission.label}
                       </span>
                       <code className="es-chip ml-auto">
@@ -641,9 +641,7 @@ export function RolesPanel() {
       <PanelHeader
         title={t("roles.title")}
         subtitle={t("roles.subtitle")}
-        icon={
-          <Shield size={24} className="text-stone-600 dark:text-stone-400" />
-        }
+        icon={<Shield size={24} className="text-theme-text-secondary" />}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         searchPlaceholder={t("roles.searchPlaceholder")}
@@ -671,9 +669,9 @@ export function RolesPanel() {
           <div className="flex h-full flex-col items-center justify-center text-center">
             <Shield
               size={48}
-              className="mb-4 text-stone-300 dark:text-stone-600"
+              className="mb-4 text-theme-text-secondary opacity-40"
             />
-            <p className="text-stone-500 dark:text-stone-400">
+            <p className="text-theme-text-secondary">
               {searchQuery ? t("roles.noMatchingRoles") : t("roles.noRoles")}
             </p>
           </div>
@@ -685,28 +683,25 @@ export function RolesPanel() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--glass-bg-subtle)]">
-                        <Lock
-                          size={14}
-                          className="text-stone-600 dark:text-stone-300"
-                        />
+                        <Lock size={14} className="text-theme-text-secondary" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-stone-900 dark:text-stone-100">
+                          <h3 className="font-medium text-theme-text">
                             {role.name}
                           </h3>
                           {role.is_system && (
-                            <span className="rounded bg-[var(--glass-bg-subtle)] px-1.5 py-0.5 text-xs text-stone-500 dark:text-stone-400">
+                            <span className="rounded bg-[var(--glass-bg-subtle)] px-1.5 py-0.5 text-xs text-theme-text-secondary">
                               {t("roles.systemRole")}
                             </span>
                           )}
                         </div>
                         {role.description && (
-                          <p className="text-sm text-stone-500 dark:text-stone-400">
+                          <p className="text-sm text-theme-text-secondary">
                             {role.description}
                           </p>
                         )}
-                        <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">
+                        <p className="text-xs text-theme-text-secondary mt-0.5">
                           {t("roles.permissionCount", {
                             count: role.permissions.length,
                           })}
@@ -720,7 +715,7 @@ export function RolesPanel() {
                         {role.permissions.map((permission) => (
                           <span
                             key={permission}
-                            className="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium bg-stone-100 text-stone-700 dark:bg-stone-700/60 dark:text-stone-300 border border-stone-200/60 dark:border-stone-600/40 cursor-default"
+                            className="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium bg-theme-bg-card text-theme-text border border-theme-border cursor-default"
                           >
                             {permissionLabels[permission] || permission}
                           </span>
@@ -773,7 +768,7 @@ export function RolesPanel() {
                 </div>
 
                 {/* 时间信息 */}
-                <div className="mt-3 flex items-center gap-4 text-xs text-stone-400 dark:text-stone-500">
+                <div className="mt-3 flex items-center gap-4 text-xs text-theme-text-secondary">
                   <span>
                     {t("roles.created")}:{" "}
                     {new Date(role.created_at).toLocaleDateString("zh-CN")}

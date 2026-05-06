@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { LoadingSpinner } from "../common/LoadingSpinner";
 import { FileIcon } from "../common/FileIcon";
@@ -134,6 +134,8 @@ export default function DocumentPreview({
   const [viewMode, setViewMode] = useState<"center" | "sidebar">("sidebar");
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [toolbarCompact, setToolbarCompact] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 639px)");
@@ -141,6 +143,16 @@ export default function DocumentPreview({
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    const el = toolbarRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      setToolbarCompact(entries[0].contentRect.width < 420);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   const fileName = path.split("/").pop() || path;
@@ -491,7 +503,10 @@ export default function DocumentPreview({
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-0.5 sm:gap-1 relative z-10 shrink-0 overflow-x-auto scrollbar-none">
+          <div
+            ref={toolbarRef}
+            className="flex items-center gap-0.5 sm:gap-1 relative z-10 shrink-0 overflow-x-auto scrollbar-none"
+          >
             {markdownFile && data?.content && (
               <button
                 type="button"
@@ -507,12 +522,12 @@ export default function DocumentPreview({
                 {viewSource ? (
                   <>
                     <Eye size={16} />
-                    {!isSidebar && <span>{t("documents.preview")}</span>}
+                    {!toolbarCompact && <span>{t("documents.preview")}</span>}
                   </>
                 ) : (
                   <>
                     <Code2 size={16} />
-                    {!isSidebar && <span>{t("documents.source")}</span>}
+                    {!toolbarCompact && <span>{t("documents.source")}</span>}
                   </>
                 )}
               </button>
@@ -539,14 +554,14 @@ export default function DocumentPreview({
               {isSidebar ? (
                 <>
                   <Columns2 size={16} />
-                  <span className="hidden xl:inline">
-                    {t("documents.centerView", "居中")}
-                  </span>
+                  {!toolbarCompact && (
+                    <span>{t("documents.centerView", "居中")}</span>
+                  )}
                 </>
               ) : (
                 <>
                   <PanelRight size={16} />
-                  <span>{t("documents.sidebarView")}</span>
+                  {!toolbarCompact && <span>{t("documents.sidebarView")}</span>}
                 </>
               )}
             </button>
@@ -570,16 +585,14 @@ export default function DocumentPreview({
               {isFullscreen ? (
                 <>
                   <Shrink size={16} />
-                  <span className="hidden xl:inline">
-                    {t("documents.exitFullscreen")}
-                  </span>
+                  {!toolbarCompact && (
+                    <span>{t("documents.exitFullscreen")}</span>
+                  )}
                 </>
               ) : (
                 <>
                   <Expand size={16} />
-                  <span className="hidden xl:inline">
-                    {t("documents.fullscreen")}
-                  </span>
+                  {!toolbarCompact && <span>{t("documents.fullscreen")}</span>}
                 </>
               )}
             </button>
@@ -599,7 +612,7 @@ export default function DocumentPreview({
                   title={t("documents.download")}
                 >
                   <Download size={16} />
-                  {!isSidebar && <span>{t("documents.download")}</span>}
+                  {!toolbarCompact && <span>{t("documents.download")}</span>}
                 </button>
                 {data?.content && (
                   <button
@@ -616,7 +629,7 @@ export default function DocumentPreview({
                           size={16}
                           className="text-green-500 dark:text-green-400"
                         />
-                        {!isSidebar && (
+                        {!toolbarCompact && (
                           <span className="text-green-500 dark:text-green-400">
                             {t("documents.copied")}
                           </span>
@@ -625,7 +638,7 @@ export default function DocumentPreview({
                     ) : (
                       <>
                         <Copy size={16} />
-                        {!isSidebar && <span>{t("documents.copy")}</span>}
+                        {!toolbarCompact && <span>{t("documents.copy")}</span>}
                       </>
                     )}
                   </button>

@@ -346,7 +346,7 @@ export function MCPPanel() {
 
   if (!canRead) {
     return (
-      <div className="flex h-full items-center justify-center text-stone-500 dark:text-stone-400">
+      <div className="flex h-full items-center justify-center text-theme-text-secondary">
         {t("mcp.noPermission")}
       </div>
     );
@@ -362,9 +362,7 @@ export function MCPPanel() {
       <PanelHeader
         title={t("mcp.title")}
         subtitle={t("mcp.subtitle")}
-        icon={
-          <Server size={20} className="text-stone-600 dark:text-stone-400" />
-        }
+        icon={<Server size={20} className="text-theme-text-secondary" />}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         searchPlaceholder={t("mcp.searchPlaceholder")}
@@ -412,18 +410,15 @@ export function MCPPanel() {
       {/* Servers List */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4">
         {filteredServers.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center text-stone-500 dark:text-stone-400">
-            <FolderOpen
-              size={48}
-              className="mb-3 text-stone-300 dark:text-stone-600"
-            />
+          <div className="flex h-full flex-col items-center justify-center text-theme-text-secondary">
+            <FolderOpen size={48} className="mb-3 text-theme-text-secondary" />
             <p className="text-center">
               {searchQuery ? t("mcp.noMatchingServers") : t("mcp.noServers")}
             </p>
             {!searchQuery && canWrite && (
               <button
                 onClick={handleCreate}
-                className="mt-3 text-sm text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200"
+                className="mt-3 text-sm text-theme-text-secondary hover:text-theme-text"
               >
                 {t("mcp.addFirst")}
               </button>
