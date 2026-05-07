@@ -322,6 +322,7 @@ export function RevealPreviewHost({
         onClose={onClose}
         onUserInteraction={onUserInteraction}
         registryKey={`reveal-preview:${preview.previewKey}`}
+        mobileFillViewport
       />
     );
   }

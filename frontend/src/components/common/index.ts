@@ -28,6 +28,8 @@ export { DeferredCodeMirrorViewer } from "./DeferredCodeMirrorViewer";
 
 export { getLangSupport } from "./getLangSupport";
 
+export { CopyButton } from "./CopyButton";
+
 export { SkillBaseCard } from "./SkillBaseCard";
 export type { SkillBaseCardProps } from "./SkillBaseCard";
 

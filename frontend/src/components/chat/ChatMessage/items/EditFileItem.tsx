@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { CollapsiblePill } from "../../../common";
+import { CollapsiblePill, CopyButton } from "../../../common";
 import { DeferredCodeMirrorViewer } from "../../../common/DeferredCodeMirrorViewer";
 import { extractText } from "./toolUtils";
 import { openPersistentToolPanel } from "./persistentToolPanelState";
@@ -60,7 +60,7 @@ const EditFileItem = memo(function EditFileItem({
           <div className="text-xs text-emerald-500 dark:text-emerald-400 mb-1.5 font-semibold uppercase tracking-wider">
             {t("chat.message.toolEditAdded")}
           </div>
-          <div className="rounded-lg border border-emerald-200/60 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/30 overflow-hidden">
+          <div className="relative group rounded-lg border border-emerald-200/60 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/30 overflow-hidden">
             <DeferredCodeMirrorViewer
               value={newString}
               filePath={filePath}
@@ -68,6 +68,13 @@ const EditFileItem = memo(function EditFileItem({
               fontSize="0.8rem"
               className="[&_.cm-editor]:bg-transparent dark:[&_.cm-editor]:bg-transparent"
             />
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <CopyButton
+                text={newString}
+                size={14}
+                className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-emerald-200 dark:!border-emerald-800"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -128,7 +135,7 @@ const EditFileItem = memo(function EditFileItem({
                 <div className="text-xs text-emerald-500 dark:text-emerald-400 mb-1 font-medium">
                   +
                 </div>
-                <div className="overflow-y-auto rounded-md border border-emerald-200/60 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/30">
+                <div className="relative group overflow-y-auto rounded-md border border-emerald-200/60 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/30">
                   <DeferredCodeMirrorViewer
                     value={newString}
                     filePath={filePath}
@@ -136,6 +143,13 @@ const EditFileItem = memo(function EditFileItem({
                     fontSize="0.75rem"
                     className="[&_.cm-editor]:bg-transparent dark:[&_.cm-editor]:bg-transparent"
                   />
+                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <CopyButton
+                      text={newString}
+                      size={12}
+                      className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-emerald-200 dark:!border-emerald-800"
+                    />
+                  </div>
                 </div>
               </div>
             )}

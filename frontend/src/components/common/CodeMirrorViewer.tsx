@@ -13,6 +13,49 @@ import type { Extension } from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { getLangSupport } from "./getLangSupport";
 
+const githubLight = EditorView.theme(
+  {
+    "&": {
+      color: "#24292f",
+      backgroundColor: "transparent",
+    },
+    ".cm-content": {
+      caretColor: "#0969da",
+    },
+    ".cm-cursor, .cm-dropCursor": {
+      borderLeftColor: "#0969da",
+    },
+    ".cm-activeLine": {
+      backgroundColor: "rgba(234, 238, 242, 0.5)",
+    },
+    ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
+      backgroundColor: "rgba(84, 174, 255, 0.3)",
+    },
+    ".cm-gutters": {
+      backgroundColor: "#fafafa",
+      color: "#8b949e",
+      borderRight: "1px solid #d8dee4",
+    },
+    ".cm-lineNumbers .cm-gutterElement": {
+      color: "#8b949e",
+    },
+    ".cm-keyword": { color: "#cf222e" },
+    ".cm-operator": { color: "#57606a" },
+    ".cm-variable": { color: "#953800" },
+    ".cm-variableName": { color: "#0550ae" },
+    ".cm-typeName": { color: "#953800" },
+    ".cm-propertyName": { color: "#0550ae" },
+    ".cm-string": { color: "#0a3069" },
+    ".cm-number": { color: "#0550ae" },
+    ".cm-comment": { color: "#6e7781", fontStyle: "italic" },
+    ".cm-def": { color: "#8250df" },
+    ".cm-tag": { color: "#116329" },
+    ".cm-attributeName": { color: "#0550ae" },
+    ".cm-meta": { color: "#0550ae" },
+  },
+  { dark: false },
+);
+
 // Shared hook for detecting dark mode via MutationObserver
 function useIsDark() {
   const [isDark, setIsDark] = useState(() =>
@@ -167,6 +210,7 @@ export const CodeMirrorViewer = memo(function CodeMirrorViewer({
           ...(maxHeight ? { maxHeight, overflow: "auto" } : {}),
         },
         ".cm-gutters": {
+          backgroundColor: isDark ? "#1e1e1e" : "#fafafa",
           borderRight: isDark ? "1px solid #333" : "1px solid #e7e5e4",
         },
         ".cm-lineNumbers .cm-gutterElement": {
@@ -203,7 +247,7 @@ export const CodeMirrorViewer = memo(function CodeMirrorViewer({
     <div className={className}>
       <CodeMirror
         value={value}
-        theme={isDark ? oneDark : undefined}
+        theme={isDark ? oneDark : githubLight}
         extensions={[...extensions, ...lineOffsetExtensions]}
         onCreateEditor={handleCreateEditor}
         basicSetup={{

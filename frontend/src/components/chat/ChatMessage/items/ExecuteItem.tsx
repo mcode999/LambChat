@@ -2,7 +2,7 @@ import { memo, useMemo } from "react";
 import { clsx } from "clsx";
 import { Terminal, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { CollapsiblePill } from "../../../common";
+import { CollapsiblePill, CopyButton } from "../../../common";
 import { extractText } from "./toolUtils";
 import { openPersistentToolPanel } from "./persistentToolPanelState";
 
@@ -75,15 +75,24 @@ const ExecuteItem = memo(function ExecuteItem({
       </div>
 
       {parsed.output && (
-        <pre
-          className={clsx(
-            "text-sm rounded-lg p-4 min-w-0",
-            "bg-stone-50 dark:bg-stone-900 border border-stone-200/60 dark:border-stone-700/50",
-            "text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words font-mono",
-          )}
-        >
-          {parsed.output}
-        </pre>
+        <div className="relative group">
+          <pre
+            className={clsx(
+              "text-sm rounded-lg p-4 min-w-0",
+              "bg-stone-50 dark:bg-stone-900 border border-stone-200/60 dark:border-stone-700/50",
+              "text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words font-mono",
+            )}
+          >
+            {parsed.output}
+          </pre>
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <CopyButton
+              text={parsed.output}
+              size={14}
+              className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+            />
+          </div>
+        </div>
       )}
 
       {!isPending && result && (
@@ -156,15 +165,24 @@ const ExecuteItem = memo(function ExecuteItem({
             </div>
 
             {parsed.output && (
-              <pre
-                className={clsx(
-                  "text-xs rounded-md p-2.5 min-w-0",
-                  "bg-stone-50 dark:bg-stone-900 border border-stone-200/60 dark:border-stone-700/50",
-                  "text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words font-mono",
-                )}
-              >
-                {parsed.output}
-              </pre>
+              <div className="relative group">
+                <pre
+                  className={clsx(
+                    "text-xs rounded-md p-2.5 min-w-0",
+                    "bg-stone-50 dark:bg-stone-900 border border-stone-200/60 dark:border-stone-700/50",
+                    "text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words font-mono",
+                  )}
+                >
+                  {parsed.output}
+                </pre>
+                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <CopyButton
+                    text={parsed.output}
+                    size={12}
+                    className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+                  />
+                </div>
+              </div>
             )}
 
             {!isPending && result && (

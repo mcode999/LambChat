@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Download, ChevronRight } from "lucide-react";
+import { Download, ChevronRight, Copy } from "lucide-react";
 import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 import { getFileTypeInfo, isImageFile } from "../../../documents/utils";
@@ -242,6 +242,18 @@ function FileTreeNode({
       >
         <Download size={20} />
       </span>
+      {!node.isBinary && files[node.path] && (
+        <span
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(files[node.path]);
+          }}
+          className="shrink-0 p-1.5 rounded-lg text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 opacity-0 group-hover:opacity-100 transition-all"
+          title={t("chat.message.copy")}
+        >
+          <Copy size={20} />
+        </span>
+      )}
     </button>
   );
 }

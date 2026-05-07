@@ -2,7 +2,7 @@ import { memo, useMemo } from "react";
 import { clsx } from "clsx";
 import { FolderSearch, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { CollapsiblePill } from "../../../common";
+import { CollapsiblePill, CopyButton } from "../../../common";
 import { extractPaths } from "./toolUtils";
 import { openPersistentToolPanel } from "./persistentToolPanelState";
 
@@ -49,7 +49,14 @@ const GlobItem = memo(function GlobItem({
         )}
       </div>
       {paths.length > 0 && (
-        <div className="rounded-lg border border-stone-200/60 dark:border-stone-700/50 bg-stone-50 dark:bg-stone-900 overflow-auto max-h-[60vh]">
+        <div className="relative group rounded-lg border border-stone-200/60 dark:border-stone-700/50 bg-stone-50 dark:bg-stone-900 overflow-auto max-h-[60vh]">
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <CopyButton
+              text={paths.join("\n")}
+              size={14}
+              className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+            />
+          </div>
           {paths.map((p, i) => {
             const isDir = p.endsWith("/") || p.endsWith("\\");
             const name = isDir
@@ -126,7 +133,14 @@ const GlobItem = memo(function GlobItem({
               )}
             </div>
             {paths.length > 0 && (
-              <div className="max-h-48 overflow-y-auto rounded-md border border-stone-200/60 dark:border-stone-700/50 bg-stone-50 dark:bg-stone-900">
+              <div className="relative group max-h-48 overflow-y-auto rounded-md border border-stone-200/60 dark:border-stone-700/50 bg-stone-50 dark:bg-stone-900">
+                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <CopyButton
+                    text={paths.join("\n")}
+                    size={12}
+                    className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+                  />
+                </div>
                 {paths.map((p, i) => {
                   const isDir = p.endsWith("/") || p.endsWith("\\");
                   const name = isDir

@@ -3,27 +3,29 @@ import { DeferredCodeMirrorViewer } from "../../common/DeferredCodeMirrorViewer"
 
 interface CodeRendererProps {
   content: string;
-  language: string;
-  t: (key: string, options?: Record<string, unknown>) => string;
+  language?: string;
+  filePath?: string;
+  t?: (key: string, options?: Record<string, unknown>) => string;
   initialLine?: number;
 }
+
+const MAX_LINES = 10000;
 
 // Memoized code renderer for better performance
 const CodeRenderer = memo(function CodeRenderer({
   content,
   language,
+  filePath,
   t,
   initialLine,
 }: CodeRendererProps) {
-  // Limit content for very large files to prevent performance issues
   const displayContent = useMemo(() => {
-    const maxLines = 5000;
     const lines = content.split("\n");
-    if (lines.length > maxLines) {
-      return (
-        lines.slice(0, maxLines).join("\n") +
-        `\n\n${t("documents.fileTooLargeLines", { count: maxLines })}`
-      );
+    if (lines.length > MAX_LINES) {
+      const suffix = t
+        ? `\n\n${t("documents.fileTooLargeLines", { count: MAX_LINES })}`
+        : `\n\nShowing first ${MAX_LINES.toLocaleString()} of ${lines.length.toLocaleString()} lines`;
+      return lines.slice(0, MAX_LINES).join("\n") + suffix;
     }
     return content;
   }, [content, t]);
@@ -33,6 +35,7 @@ const CodeRenderer = memo(function CodeRenderer({
       <DeferredCodeMirrorViewer
         value={displayContent}
         language={language}
+        filePath={filePath}
         lineNumbers={true}
         fontSize="0.875rem"
         className="h-full"

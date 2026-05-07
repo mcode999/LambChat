@@ -1,7 +1,7 @@
 import { memo, useMemo } from "react";
 import { Search, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { CollapsiblePill } from "../../../common";
+import { CollapsiblePill, CopyButton } from "../../../common";
 import { DeferredCodeMirrorViewer } from "../../../common/DeferredCodeMirrorViewer";
 import { extractText } from "./toolUtils";
 import { openPersistentToolPanel } from "./persistentToolPanelState";
@@ -114,12 +114,19 @@ const GrepItem = memo(function GrepItem({
         </div>
       )}
       {outputMode === "content" && parsedResult.lines.length > 0 && (
-        <div className="rounded-lg border border-stone-200/60 dark:border-stone-700/50 overflow-hidden">
+        <div className="relative group rounded-lg border border-stone-200/60 dark:border-stone-700/50 overflow-hidden">
           <DeferredCodeMirrorViewer
             value={parsedResult.lines.join("\n")}
             lineNumbers={false}
             fontSize="0.8rem"
           />
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <CopyButton
+              text={parsedResult.lines.join("\n")}
+              size={14}
+              className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+            />
+          </div>
         </div>
       )}
       {result &&
@@ -200,12 +207,19 @@ const GrepItem = memo(function GrepItem({
               </div>
             )}
             {outputMode === "content" && parsedResult.lines.length > 0 && (
-              <div className="max-h-48 overflow-y-auto rounded-md border border-stone-200/60 dark:border-stone-700/50">
+              <div className="relative group max-h-48 overflow-y-auto rounded-md border border-stone-200/60 dark:border-stone-700/50">
                 <DeferredCodeMirrorViewer
                   value={parsedResult.lines.slice(0, 50).join("\n")}
                   lineNumbers={false}
                   fontSize="0.75rem"
                 />
+                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <CopyButton
+                    text={parsedResult.lines.slice(0, 50).join("\n")}
+                    size={12}
+                    className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+                  />
+                </div>
                 {parsedResult.lines.length > 50 && (
                   <div className="text-stone-400 dark:text-stone-500 mt-1 text-xs px-2 pb-2">
                     {t("chat.message.toolMoreLines", {

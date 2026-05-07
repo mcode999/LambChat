@@ -2,7 +2,7 @@ import { memo, useMemo } from "react";
 import { clsx } from "clsx";
 import { FolderOpen, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { CollapsiblePill } from "../../../common";
+import { CollapsiblePill, CopyButton } from "../../../common";
 import { extractPaths } from "./toolUtils";
 import { openPersistentToolPanel } from "./persistentToolPanelState";
 
@@ -46,7 +46,14 @@ const LsItem = memo(function LsItem({
           {entries.length} items
         </span>
       </div>
-      <div className="rounded-lg border border-stone-200/60 dark:border-stone-700/50 bg-stone-50 dark:bg-stone-900 overflow-auto max-h-[60vh]">
+      <div className="relative group rounded-lg border border-stone-200/60 dark:border-stone-700/50 bg-stone-50 dark:bg-stone-900 overflow-auto max-h-[60vh]">
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          <CopyButton
+            text={entries.join("\n")}
+            size={14}
+            className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+          />
+        </div>
         {entries.map((entry, i) => {
           const isDir = entry.endsWith("/") || entry.endsWith("\\");
           const name = isDir
@@ -118,7 +125,14 @@ const LsItem = memo(function LsItem({
                 {t("chat.message.toolItemCount", { count: entries.length })}
               </span>
             </div>
-            <div className="max-h-48 overflow-y-auto rounded-md border border-stone-200/60 dark:border-stone-700/50 bg-stone-50 dark:bg-stone-900">
+            <div className="relative group max-h-48 overflow-y-auto rounded-md border border-stone-200/60 dark:border-stone-700/50 bg-stone-50 dark:bg-stone-900">
+              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <CopyButton
+                  text={entries.join("\n")}
+                  size={12}
+                  className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+                />
+              </div>
               {entries.map((entry, i) => {
                 const isDir = entry.endsWith("/") || entry.endsWith("\\");
                 const name = isDir

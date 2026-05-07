@@ -10,6 +10,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { MarkdownContent } from "../MarkdownContent";
+import { CopyButton } from "../../../common";
 import { dispatchPersonaPresetsChanged } from "../../../../hooks/personaPresetEvents";
 import { getPersonaPresetMutationDetail } from "./personaPresetToolResult";
 import type { McpContentBlock, McpMultiModalResult } from "./toolUtils";
@@ -78,6 +79,9 @@ export function BlockPreviewPortal() {
     title = t("chat.message.toolOutput");
     content = (
       <div className="p-4 sm:p-5">
+        <div className="flex justify-end mb-2">
+          <CopyButton text={preview.text} />
+        </div>
         <pre className="text-sm text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words font-mono">
           {preview.text}
         </pre>
@@ -157,12 +161,17 @@ export function McpBlockPreview({ block }: { block: McpContentBlock }) {
 
   if (block.text) {
     return (
-      <pre
-        onClick={() => openBlockPreview({ type: "text", text: block.text })}
-        className="text-xs text-stone-600 dark:text-stone-300 whitespace-pre-wrap break-words overflow-y-auto min-w-0 cursor-pointer hover:text-stone-900 dark:hover:text-stone-100 transition-colors"
-      >
-        {block.text}
-      </pre>
+      <div className="group/pre relative">
+        <pre
+          onClick={() => openBlockPreview({ type: "text", text: block.text })}
+          className="text-xs text-stone-600 dark:text-stone-300 whitespace-pre-wrap break-words overflow-y-auto min-w-0 cursor-pointer hover:text-stone-900 dark:hover:text-stone-100 transition-colors"
+        >
+          {block.text}
+        </pre>
+        <div className="absolute top-0.5 right-0.5 opacity-0 group-hover/pre:opacity-100 transition-opacity">
+          <CopyButton text={block.text} size={12} />
+        </div>
+      </div>
     );
   }
 
@@ -346,7 +355,10 @@ function JsonFallback({ data }: { data: unknown }) {
       : str;
 
   return (
-    <div>
+    <div className="group/json relative">
+      <div className="absolute top-1 right-1 opacity-0 group-hover/json:opacity-100 transition-opacity z-10">
+        <CopyButton text={str} size={12} />
+      </div>
       <pre className="text-xs text-stone-600 dark:text-stone-300 overflow-y-auto whitespace-pre-wrap break-words min-w-0">
         {display}
       </pre>

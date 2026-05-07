@@ -54,7 +54,6 @@ import {
 
 // Import preview components
 import CodeRenderer from "./previews/CodeRenderer";
-import PlainTextViewer from "./previews/PlainTextViewer";
 import MarkdownRenderer from "./previews/MarkdownRenderer";
 import PptPreview from "./previews/PptPreview";
 import HtmlPreview from "./previews/HtmlPreview";
@@ -102,6 +101,7 @@ interface DocumentPreviewProps {
   onUserInteraction?: () => void;
   registryKey?: string;
   onBack?: () => void;
+  mobileFillViewport?: boolean;
 }
 
 export default function DocumentPreview({
@@ -117,6 +117,7 @@ export default function DocumentPreview({
   onUserInteraction,
   registryKey,
   onBack,
+  mobileFillViewport,
 }: DocumentPreviewProps) {
   const { t } = useTranslation();
   const [historyAvailable, setHistoryAvailable] = useState(
@@ -473,6 +474,7 @@ export default function DocumentPreview({
       registryKey={registryKey}
       viewMode={isMobile ? "center" : viewMode}
       isFullscreen={isFullscreen}
+      mobileFillViewport={mobileFillViewport}
       overlayClass={
         isSidebar ? undefined : "sm:items-center sm:justify-center bg-black/70"
       }
@@ -909,7 +911,7 @@ export default function DocumentPreview({
         </Suspense>
       ) : markdownFile ? (
         viewSource ? (
-          <PlainTextViewer content={data?.content || ""} />
+          <CodeRenderer content={data?.content || ""} filePath={path} t={t} />
         ) : (
           <MarkdownRenderer content={data?.content || ""} _t={t} />
         )
