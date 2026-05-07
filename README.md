@@ -235,4 +235,6 @@ Made with ❤️ by [Clivia](https://github.com/Yanyutin753)
 
 [📧 3254822118@qq.com](mailto:3254822118@qq.com) · [GitHub](https://github.com/Yanyutin753)
 
+<img src=".github/images/wechat-qr.webp" width="150" alt="WeChat"><br><sub>💬 扫码添加微信（备注 LambChat）· 部署问题欢迎咨询</sub>
+
 </div>
