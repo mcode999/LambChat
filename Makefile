@@ -1,12 +1,13 @@
-.PHONY: help install dev build clean docker-up docker-down docker-logs docker-build test lint format check-all frontend-dev frontend-build frontend-install
+.PHONY: help install install-pnpm dev build clean docker-up docker-down docker-logs docker-build test lint format typecheck check-all frontend-dev frontend-build frontend-install
 
 # 默认目标
 help:
 	@echo "LambAgent - Makefile 快捷命令"
 	@echo ""
 	@echo "安装依赖:"
+	@echo "  make install-pnpm     - 检查并安装 pnpm"
 	@echo "  make install          - 安装 Python 后端依赖"
-	@echo "  make frontend-install - 安装前端依赖"
+	@echo "  make frontend-install - 安装前端依赖（含 pnpm 检查）"
 	@echo "  make install-all      - 安装所有依赖"
 	@echo ""
 	@echo "开发运行:"
@@ -29,21 +30,27 @@ help:
 	@echo "代码质量:"
 	@echo "  make lint             - 运行 Ruff 代码检查"
 	@echo "  make format           - 格式化代码"
+	@echo "  make typecheck        - 运行 Mypy 类型检查"
 	@echo "  make test             - 运行测试"
-	@echo "  make check-all        - 运行所有检查（lint + test）"
+	@echo "  make check-all        - 运行所有检查（lint + typecheck + test）"
 	@echo ""
 	@echo "清理:"
 	@echo "  make clean            - 清理缓存和临时文件"
 	@echo "  make clean-all        - 深度清理（包括 node_modules, .venv）"
 
 # 安装依赖
+install-pnpm:
+	@echo "📦 检查 pnpm..."
+	@which pnpm > /dev/null 2>&1 || (echo "安装 pnpm..." && npm install -g pnpm)
+	@echo "✅ pnpm 已就绪 ($(shell pnpm --version))"
+
 install:
 	@echo "📦 安装 Python 依赖..."
 	uv sync
 
-frontend-install:
+frontend-install: install-pnpm
 	@echo "📦 安装前端依赖..."
-	cd frontend && npm install
+	cd frontend && pnpm install
 
 install-all: install frontend-install
 	@echo "✅ 所有依赖安装完成"
@@ -55,7 +62,7 @@ dev:
 
 frontend-dev:
 	@echo "🎨 启动前端开发服务器..."
-	cd frontend && npm run dev
+	cd frontend && pnpm run dev
 
 dev-all:
 	@echo "🚀 启动前后端开发服务器..."
@@ -70,7 +77,7 @@ build:
 
 frontend-build:
 	@echo "🔨 构建前端..."
-	cd frontend && npm run build
+	cd frontend && pnpm run build
 
 build-all: build frontend-build
 	@echo "✅ 构建完成"
@@ -104,11 +111,15 @@ format:
 	@echo "✨ 格式化代码..."
 	uv run ruff format .
 
+typecheck:
+	@echo "🔬 运行 Mypy 类型检查..."
+	uv run mypy src/
+
 test:
 	@echo "🧪 运行测试..."
 	uv run pytest
 
-check-all: lint test
+check-all: lint typecheck test
 	@echo "✅ 所有检查通过"
 
 # 清理
