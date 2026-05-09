@@ -61,6 +61,19 @@ async def _validate_agent_id(agent_id: str | None, user: TokenPayload) -> None:
             )
 
 
+async def _validate_project_id(project_id: str | None, user: TokenPayload) -> None:
+    """Validate that the project exists and belongs to the current user."""
+    if not project_id:
+        return
+
+    from src.infra.folder.storage import get_project_storage
+
+    project_storage = get_project_storage()
+    project = await project_storage.get_by_id(project_id, user.sub)
+    if not project:
+        raise HTTPException(status_code=400, detail=f"Project '{project_id}' does not exist")
+
+
 @router.get(
     "/types",
     response_model=ChannelTypeListResponse,
@@ -255,6 +268,7 @@ async def create_channel_instance(
 
     # Validate agent_id against user permissions
     await _validate_agent_id(data.agent_id, user)
+    await _validate_project_id(data.project_id, user)
 
     try:
         config = await storage.create_config(
@@ -340,6 +354,7 @@ async def update_channel_instance(
     # Handle project_id with same ellipsis pattern
     project_id_value: str | None = ...  # type: ignore[assignment]
     if "project_id" in data.model_fields_set:
+        await _validate_project_id(data.project_id, user)
         project_id_value = data.project_id
     else:
         project_id_value = ...  # type: ignore[assignment]
