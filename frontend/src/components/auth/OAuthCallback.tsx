@@ -54,6 +54,9 @@ export function OAuthCallback() {
         // 保存 token
         setTokens(accessToken, refreshToken);
 
+        // 通知其他模块（如 settings）重新加载数据
+        window.dispatchEvent(new CustomEvent("auth:login"));
+
         // 刷新用户信息
         await refreshUser();
 
