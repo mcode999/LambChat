@@ -179,8 +179,10 @@ function ChatInputSkeleton() {
           }}
         >
           {/* Textarea area */}
-          <div className="px-2.5 pt-1 flex items-start gap-2">
-            <div className="skeleton-line h-3 w-3/5 rounded flex-1 pt-[10px] min-h-[40px] sm:min-h-[44px]" />
+          <div className="px-2.5 pt-1">
+            <div className="pt-[10px] min-h-[40px] sm:min-h-[44px]">
+              <div className="skeleton-line h-3 w-3/5 rounded" />
+            </div>
           </div>
           {/* Toolbar — matches real toolbar: gap-1 sm:gap-2 */}
           <div className="flex justify-between flex-nowrap pt-3 pb-3 px-2 mx-0.5 max-w-full">
