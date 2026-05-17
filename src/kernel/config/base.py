@@ -97,6 +97,13 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_PASSWORD: Optional[str] = None
 
+    # Task execution settings
+    TASK_BACKEND: str = "local"  # local | arq
+    ARQ_EMBEDDED_WORKER: bool = True
+    ARQ_QUEUE_NAME: str = "lambchat:arq"
+    ARQ_WORKER_MAX_JOBS: int = 64
+    ARQ_JOB_TIMEOUT_SECONDS: int = 3600
+
     # MongoDB Settings
     MONGODB_URL: str = "mongodb://localhost:27017"
     MONGODB_DB: str = "agent_state"
@@ -163,6 +170,9 @@ class Settings(BaseSettings):
 
     # Skills Settings
     ENABLE_SKILLS: bool = True
+
+    # Code Interpreter Settings
+    ENABLE_CODE_INTERPRETER: bool = False
 
     # LangSmith Tracing Settings
     LANGSMITH_TRACING: bool = False

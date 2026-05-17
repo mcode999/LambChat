@@ -18,6 +18,7 @@ from src.infra.memory.tools import (
 )
 from src.infra.scheduler import get_runtime_scheduler
 from src.infra.settings.pubsub import get_settings_pubsub
+from src.infra.task.arq_runtime import start_arq_runtime, stop_arq_runtime
 from src.infra.task.manager import get_task_manager
 from src.infra.tool.cache_pubsub import get_tool_cache_pubsub
 from src.infra.tool.mcp_global import get_mcp_cache_pubsub
@@ -28,6 +29,7 @@ async def start_runtime_services() -> None:
     """Start distributed runtime listeners needed by the current process."""
     task_manager = get_task_manager()
     await task_manager.start_pubsub_listener()
+    await start_arq_runtime()
 
     settings_pubsub = get_settings_pubsub()
     await settings_pubsub.start_listener()
@@ -80,4 +82,5 @@ async def stop_runtime_services() -> None:
     await settings_pubsub.stop_listener()
 
     task_manager = get_task_manager()
+    await stop_arq_runtime()
     await task_manager.stop_pubsub_listener()

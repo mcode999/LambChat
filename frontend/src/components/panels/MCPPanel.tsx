@@ -19,6 +19,7 @@ import { MCPServerCard } from "../mcp/MCPServerCard";
 import { MCPServerForm } from "../mcp/MCPServerForm";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { EditorSidebar } from "../common/EditorSidebar";
+import { resolveMCPServerFormSystemMode } from "../mcp/mcpServerEditor";
 import { useMCP } from "../../hooks/useMcp";
 import { useAuth } from "../../hooks/useAuth";
 import { Permission } from "../../types";
@@ -107,6 +108,11 @@ export function MCPPanel() {
 
   const filteredServers = servers;
   const paginatedServers = servers;
+  const formIsSystemServer = resolveMCPServerFormSystemMode({
+    isCreating,
+    createAsSystem,
+    changeToSystem,
+  });
 
   const handleCreate = useCallback(async () => {
     setIsCreating(true);
@@ -152,7 +158,17 @@ export function MCPPanel() {
               );
               success = result !== null;
               if (success) {
-                toast.success(t("mcp.promoteSuccess"));
+                const updated = await updateServer(
+                  editingServer.name,
+                  data,
+                  true,
+                );
+                success = updated !== null;
+                if (success) {
+                  toast.success(t("mcp.promoteSuccess"));
+                } else {
+                  toast.error(t("mcp.updateFailed"));
+                }
               } else {
                 toast.error(t("mcp.promoteFailed"));
               }
@@ -164,7 +180,17 @@ export function MCPPanel() {
               );
               success = result !== null;
               if (success) {
-                toast.success(t("mcp.demoteSuccess"));
+                const updated = await updateServer(
+                  editingServer.name,
+                  data,
+                  false,
+                );
+                success = updated !== null;
+                if (success) {
+                  toast.success(t("mcp.demoteSuccess"));
+                } else {
+                  toast.error(t("mcp.updateFailed"));
+                }
               } else {
                 toast.error(t("mcp.demoteFailed"));
               }
@@ -503,9 +529,7 @@ export function MCPPanel() {
             onCancel={handleCancel}
             isLoading={isLoading}
             allowedTransports={allowedTransports}
-            isSystemServer={
-              isCreating ? createAsSystem : !!editingServer?.is_system
-            }
+            isSystemServer={formIsSystemServer}
           />
         </div>
       </EditorSidebar>

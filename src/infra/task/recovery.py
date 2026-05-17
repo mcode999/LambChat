@@ -14,6 +14,7 @@ from src.kernel.schemas.session import SessionUpdate
 from .concurrency import ConcurrencyResult, get_concurrency_limiter, get_registered_executor
 from .recovery_texts import build_recovery_message, normalize_recovery_language
 from .run_ids import generate_run_id
+from .state_machine import TaskStateMachine
 from .status import TaskStatus
 
 logger = get_logger(__name__)
@@ -49,6 +50,7 @@ class TaskRecoveryService:
         self._ensure_executor = ensure_executor
         self._submit_task = submit_task
         self._mark_run_failed = mark_run_failed
+        self._state_machine = TaskStateMachine()
 
     async def get_preferred_language(self, user_id: str | None, session: Any) -> str:
         """Resolve the preferred language for recovery messages."""
@@ -247,7 +249,7 @@ class TaskRecoveryService:
             )
             await executor._update_session_status(
                 session.id,
-                TaskStatus.PENDING,
+                TaskStatus.QUEUED,
                 run_id=new_run_id,
             )
             trace_presenter = Presenter(
@@ -353,6 +355,15 @@ class TaskRecoveryService:
                 source_run_id,
                 "Task interrupted (instance unavailable)",
                 session,
+            )
+            await self._storage.update(
+                session.id,
+                SessionUpdate(
+                    metadata=self._state_machine.build_metadata(
+                        TaskStatus.RECOVERING,
+                        run_id=source_run_id,
+                    )
+                ),
             )
             return await self.submit_recovery_run(session, source_run_id, reason)
         except Exception as e:

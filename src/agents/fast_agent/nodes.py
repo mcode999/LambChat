@@ -19,7 +19,11 @@ from src.agents.core.node_utils import (
     resolve_fallback_model,
 )
 from src.agents.core.persona import build_persona_prompt_sections
-from src.agents.core.subagent_prompts import SUBAGENT_PROMPT, get_memory_guide
+from src.agents.core.subagent_prompts import (
+    MAIN_AGENT_PROMPT_SECTIONS,
+    SUBAGENT_PROMPT,
+    get_memory_guide,
+)
 from src.agents.core.thinking import build_thinking_config
 from src.agents.fast_agent.context import FastAgentContext
 from src.agents.fast_agent.prompt import FAST_SYSTEM_PROMPT
@@ -28,6 +32,7 @@ from src.infra.agent.middleware import (
     PromptCachingMiddleware,
     SectionPromptMiddleware,
     ToolResultBinaryMiddleware,
+    create_code_interpreter_middleware,
     create_retry_middleware,
 )
 from src.infra.agent.middleware_subagent import SubagentActivityMiddleware
@@ -184,7 +189,11 @@ async def fast_agent_node(state: Dict[str, Any], config: RunnableConfig) -> Dict
     user_middleware.append(ToolResultBinaryMiddleware(base_url=subagent_base_url))
     # Skills + memory guide: session-static (one SectionPromptMiddleware, multiple blocks)
     # persona_sections returns 0-2 blocks (role + behavior) for fine-grained KV cache
-    _prompt_sections = [s for s in (*persona_sections, skills_prompt, memory_guide) if s]
+    _prompt_sections = [
+        s
+        for s in (*MAIN_AGENT_PROMPT_SECTIONS, *persona_sections, skills_prompt, memory_guide)
+        if s
+    ]
     if _prompt_sections:
         user_middleware.append(SectionPromptMiddleware(sections=_prompt_sections))
     if settings.ENABLE_MEMORY and settings.NATIVE_MEMORY_INDEX_ENABLED and context.user_id:
@@ -201,6 +210,8 @@ async def fast_agent_node(state: Dict[str, Any], config: RunnableConfig) -> Dict
                 search_limit=settings.DEFERRED_TOOL_SEARCH_LIMIT,
             )
         )
+
+    user_middleware.extend(create_code_interpreter_middleware(agent_options))
 
     # KV cache: tag final system block + last tool AFTER all dynamic injection
     user_middleware.append(PromptCachingMiddleware())

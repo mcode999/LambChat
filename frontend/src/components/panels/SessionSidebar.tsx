@@ -15,19 +15,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import {
-  Users,
-  Shield,
-  Bot,
-  Cpu,
-  Star,
-  Bell,
-  Settings,
-  Server,
-  Brain,
-  MessageCircle,
-  Sparkles,
-} from "lucide-react";
+import { Server, Brain, MessageCircle, Sparkles } from "lucide-react";
 import { sessionApi, type BackendSession } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
 import { useSettingsContext } from "../../contexts/SettingsContext";
@@ -125,18 +113,6 @@ export const SessionSidebar = forwardRef<
   const { hasAnyPermission } = useAuth();
   const { enableMemory } = useSettingsContext();
 
-  const canManageUsers = hasAnyPermission([
-    Permission.USER_READ,
-    Permission.USER_WRITE,
-  ]);
-  const canManageRoles = hasAnyPermission([Permission.ROLE_MANAGE]);
-  const canManageAgents = hasAnyPermission([Permission.AGENT_READ]);
-  const canManageModels = hasAnyPermission([Permission.MODEL_ADMIN]);
-  const canViewFeedback = hasAnyPermission([Permission.FEEDBACK_READ]);
-  const canManageNotifications = hasAnyPermission([
-    Permission.NOTIFICATION_MANAGE,
-  ]);
-  const canManageSettings = hasAnyPermission([Permission.SETTINGS_MANAGE]);
   const canReadMCP = hasAnyPermission([Permission.MCP_READ]);
   const canReadChannels = hasAnyPermission([Permission.CHANNEL_READ]);
   const canReadMemory = enableMemory;
@@ -168,58 +144,7 @@ export const SessionSidebar = forwardRef<
     },
   ];
 
-  const moreMenuUserItems = [
-    {
-      path: "/users",
-      label: t("nav.users"),
-      icon: Users,
-      show: canManageUsers,
-    },
-    {
-      path: "/roles",
-      label: t("nav.roles"),
-      icon: Shield,
-      show: canManageRoles,
-    },
-    {
-      path: "/agents",
-      label: t("nav.agents"),
-      icon: Bot,
-      show: canManageAgents,
-    },
-    {
-      path: "/models",
-      label: t("nav.models"),
-      icon: Cpu,
-      show: canManageModels,
-    },
-  ];
-
-  const moreMenuSysItems = [
-    {
-      path: "/feedback",
-      label: t("nav.feedback"),
-      icon: Star,
-      show: canViewFeedback,
-    },
-    {
-      path: "/notifications",
-      label: t("nav.notifications"),
-      icon: Bell,
-      show: canManageNotifications,
-    },
-    {
-      path: "/settings",
-      label: t("nav.systemSettings"),
-      icon: Settings,
-      show: canManageSettings,
-    },
-  ];
-
-  const hasMoreMenuItems =
-    moreMenuFeatureItems.some((i) => i.show) ||
-    moreMenuUserItems.some((i) => i.show) ||
-    moreMenuSysItems.some((i) => i.show);
+  const hasMoreMenuItems = moreMenuFeatureItems.some((i) => i.show);
 
   const [isMobile, setIsMobile] = useState(
     () => window.matchMedia("(max-width: 639px)").matches,
@@ -668,20 +593,25 @@ export const SessionSidebar = forwardRef<
   return (
     <>
       <div
-        className={`fixed inset-0 z-[60] bg-black/40 sm:hidden transition-opacity duration-300 ease-in-out ${
+        className={`fixed left-0 right-0 z-[60] bg-black/40 sm:hidden transition-opacity duration-300 ease-in-out ${
           mobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
-        style={{ height: "var(--app-viewport-height, 100dvh)" }}
+        style={{
+          top: "env(safe-area-inset-top)",
+          height:
+            "calc(var(--app-viewport-height, 100dvh) - env(safe-area-inset-top))",
+        }}
         onClick={onMobileClose}
       />
 
       <div
-        className={`rounded-r-lg fixed left-0 top-0 z-[70] w-64 flex flex-col sm:hidden bg-[var(--theme-bg-sidebar)] transition-transform duration-300 ease-in-out ${
+        className={`rounded-r-lg fixed left-0 z-[70] w-64 flex flex-col sm:hidden bg-[var(--theme-bg-sidebar)] transition-transform duration-300 ease-in-out ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         style={{
-          height: "var(--app-viewport-height, 100dvh)",
-          paddingTop: "env(safe-area-inset-top)",
+          top: "env(safe-area-inset-top)",
+          height:
+            "calc(var(--app-viewport-height, 100dvh) - env(safe-area-inset-top))",
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
@@ -728,8 +658,6 @@ export const SessionSidebar = forwardRef<
 
         <MobileMoreMenuSheet
           featureItems={moreMenuFeatureItems}
-          userItems={moreMenuUserItems}
-          sysItems={moreMenuSysItems}
           isOpen={isMoreMenuOpen}
           onClose={() => setIsMoreMenuOpen(false)}
           menuRef={moreMenuRef}
@@ -909,8 +837,6 @@ export const SessionSidebar = forwardRef<
       {!isMobile && (
         <DesktopMoreMenu
           featureItems={moreMenuFeatureItems}
-          userItems={moreMenuUserItems}
-          sysItems={moreMenuSysItems}
           isOpen={isMoreMenuOpen}
           onClose={() => setIsMoreMenuOpen(false)}
           menuRef={moreMenuRef}

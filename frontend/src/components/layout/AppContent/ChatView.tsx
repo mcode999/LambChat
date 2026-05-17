@@ -112,6 +112,9 @@ interface ChatViewProps {
   enableSkills: boolean;
   personaPresets: PersonaPreset[];
   personaPresetsTotal: number;
+  hasMorePersonaPresets: boolean;
+  isLoadingMorePersonaPresets: boolean;
+  onLoadMorePersonaPresets: () => void;
   personaPresetsPage: number;
   onPersonaPresetsPageChange: (page: number) => void;
   onPersonaPresetsSearchChange: (query: string) => void;
@@ -198,6 +201,9 @@ export function ChatView({
   enableSkills,
   personaPresets,
   personaPresetsTotal,
+  hasMorePersonaPresets,
+  isLoadingMorePersonaPresets,
+  onLoadMorePersonaPresets,
   personaPresetsPage,
   onPersonaPresetsPageChange,
   onPersonaPresetsSearchChange,
@@ -769,6 +775,9 @@ export function ChatView({
               )}
               changePersonaLabel={t("personaPresets.change", "更换角色")}
               personaPresets={personaPresets}
+              hasMorePersonaPresets={hasMorePersonaPresets}
+              isLoadingMorePersonaPresets={isLoadingMorePersonaPresets}
+              onLoadMorePersonaPresets={onLoadMorePersonaPresets}
               selectedPersonaPresetId={selectedPersonaPresetId}
               selectedPersonaSnapshot={selectedPersonaSnapshot}
               personaPresetsLoading={personaPresetsLoading}
@@ -844,7 +853,9 @@ export function ChatView({
           {!isNearBottom && (
             <button
               onClick={scrollToBottom}
-              className={`absolute left-1/2 z-50 flex items-center p-2 rounded-full bg-white/90 dark:bg-stone-800/90 border border-stone-200/80 dark:border-stone-700/60 shadow-lg  hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 ${FLOATING_SCROLL_BUTTON_OFFSET_CLASS} -translate-x-1/2`}
+              className={`absolute left-1/2 z-50 flex items-center p-2 rounded-full bg-white/90 dark:bg-stone-800/90 border border-stone-200/80 dark:border-stone-700/60 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 ${FLOATING_SCROLL_BUTTON_OFFSET_CLASS} -translate-x-1/2 ${
+                hasVisibleStreamingMessage ? "scroll-btn-glow" : ""
+              }`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

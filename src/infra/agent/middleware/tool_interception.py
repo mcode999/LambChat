@@ -431,18 +431,7 @@ class ToolSearchMiddleware(AgentMiddleware):
         new_tools = []
         if search_tool.name not in existing_names:
             new_tools.append(search_tool)
-        new_tools.extend(
-            t.model_copy(
-                update={
-                    "extras": {
-                        **(t.extras or {}),
-                        _PROMPT_CACHE_VOLATILE_TOOL_EXTRA: True,
-                    }
-                }
-            )
-            for t in discovered
-            if t.name not in existing_names
-        )
+        new_tools.extend(t for t in discovered if t.name not in existing_names)
         if new_tools:
             combined = list(request.tools) + sorted(new_tools, key=_tool_sort_key)
             request = request.override(tools=combined)

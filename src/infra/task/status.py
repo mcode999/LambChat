@@ -9,7 +9,13 @@ from enum import Enum
 class TaskStatus(str, Enum):
     """任务状态"""
 
+    QUEUED = "queued"
     PENDING = "pending"
+    STARTING = "starting"
     RUNNING = "running"
+    CANCELLING = "cancelling"
+    CANCELLED = "cancelled"
     COMPLETED = "completed"
     FAILED = "failed"
+    RECOVERING = "recovering"
+    EXPIRED = "expired"

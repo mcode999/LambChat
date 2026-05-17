@@ -277,7 +277,7 @@ const PdfPreview = memo(function PdfPreview({ url }: PdfPreviewProps) {
         style={{ touchAction: "none" }}
       >
         {loading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-stone-100/80 backdrop-blur-sm dark:bg-stone-950/80">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-stone-100/80 dark:bg-stone-950/80">
             <LoadingSpinner
               className="text-stone-400 dark:text-stone-500"
               size="lg"

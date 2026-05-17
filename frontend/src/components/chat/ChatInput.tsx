@@ -543,6 +543,9 @@ export const ChatInput = memo(function ChatInput({
             selectedPersonaName={selectedPersonaName}
             personaAvatar={personaAvatar}
             onClearPersonaPreset={onClearPersonaPreset}
+            agentOptions={agentOptions}
+            agentOptionValues={agentOptionValues}
+            onToggleAgentOption={onToggleAgentOption}
             onStopClick={() => setStopConfirmOpen(true)}
             onNoPermissionClick={() => setContactAdminOpen(true)}
           />

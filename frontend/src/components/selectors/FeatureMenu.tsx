@@ -23,10 +23,11 @@ import {
   Upload,
   Layers,
   Settings2,
+  ToggleLeft,
 } from "lucide-react";
 import { THINKING_LEVEL_COLOR } from "../chat/chatInputConstants";
 
-import type { FileCategory } from "../../types";
+import type { AgentOption, FileCategory } from "../../types";
 import type { UploadLimits } from "../../hooks/useFileUpload";
 
 export type FeaturePanel =
@@ -58,6 +59,9 @@ interface FeatureMenuProps {
   hasThinkingOption: boolean;
   thinkingLabel?: string;
   thinkingLevel?: string;
+  booleanAgentOptions?: Record<string, AgentOption>;
+  agentOptionValues?: Record<string, boolean | string | number>;
+  onToggleAgentOption?: (key: string, value: boolean | string | number) => void;
   // File upload
   uploadCategories: FileCategory[];
   uploadLimits?: UploadLimits | null;
@@ -159,6 +163,9 @@ export const FeatureMenu = memo(function FeatureMenu({
   hasThinkingOption,
   thinkingLabel,
   thinkingLevel,
+  booleanAgentOptions,
+  agentOptionValues = {},
+  onToggleAgentOption,
   uploadCategories,
   uploadLimits,
   onFileCategorySelect,
@@ -198,12 +205,14 @@ export const FeatureMenu = memo(function FeatureMenu({
     };
   };
 
+  const booleanOptionEntries = Object.entries(booleanAgentOptions ?? {});
   const hasFeatureItems =
     totalToolsCount > 0 ||
     totalSkillsCount > 0 ||
     hasPersonaSelector ||
     hasAgentSelector ||
-    hasThinkingOption;
+    hasThinkingOption ||
+    booleanOptionEntries.length > 0;
   if (!hasFeatureItems && uploadCategories.length === 0) return null;
 
   return (
@@ -304,7 +313,9 @@ export const FeatureMenu = memo(function FeatureMenu({
                 )}
               </MenuGroup>
             )}
-            {(hasAgentSelector || hasThinkingOption) && (
+            {(hasAgentSelector ||
+              hasThinkingOption ||
+              booleanOptionEntries.length > 0) && (
               <MenuGroup
                 label={t("featureMenu.settings", "设置")}
                 icon={<Settings2 size={18} />}
@@ -328,6 +339,25 @@ export const FeatureMenu = memo(function FeatureMenu({
                     onClick={() => onOpen("thinking")}
                   />
                 )}
+                {booleanOptionEntries.map(([key, option]) => {
+                  const value = agentOptionValues[key] ?? option.default;
+                  const enabled = value === true;
+                  const label = option.label_key
+                    ? t(option.label_key)
+                    : option.label;
+                  return (
+                    <MenuItem
+                      key={key}
+                      icon={<ToggleLeft size={18} />}
+                      label={label}
+                      badge={
+                        enabled ? t("common.on", "On") : t("common.off", "Off")
+                      }
+                      active={enabled}
+                      onClick={() => onToggleAgentOption?.(key, !enabled)}
+                    />
+                  );
+                })}
               </MenuGroup>
             )}
           </div>,

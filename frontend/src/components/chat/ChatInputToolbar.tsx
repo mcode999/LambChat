@@ -7,7 +7,7 @@ import {
   PersonaAvatarImage,
 } from "../persona/PersonaAvatarIcon";
 import { isEmojiAvatar, getEmojiAvatarUrl } from "../persona/personaAvatar";
-import type { FileCategory } from "../../types";
+import type { AgentOption, FileCategory } from "../../types";
 import type { UploadLimits } from "../../hooks/useFileUpload";
 
 export interface ChatInputToolbarProps {
@@ -34,6 +34,9 @@ export interface ChatInputToolbarProps {
   selectedPersonaName?: string | null;
   personaAvatar: { avatar?: string; primaryTag: string } | null;
   onClearPersonaPreset?: () => void;
+  agentOptions?: Record<string, AgentOption>;
+  agentOptionValues?: Record<string, boolean | string | number>;
+  onToggleAgentOption?: (key: string, value: boolean | string | number) => void;
   onStopClick: () => void;
   onNoPermissionClick: () => void;
 }
@@ -69,6 +72,9 @@ export function ChatInputToolbar({
   selectedPersonaName,
   personaAvatar,
   onClearPersonaPreset,
+  agentOptions,
+  agentOptionValues = {},
+  onToggleAgentOption,
   onStopClick,
   onNoPermissionClick,
 }: ChatInputToolbarProps) {
@@ -76,6 +82,13 @@ export function ChatInputToolbar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFileCategory, setSelectedFileCategory] =
     useState<FileCategory | null>(null);
+  const booleanAgentOptions = agentOptions
+    ? Object.fromEntries(
+        Object.entries(agentOptions).filter(
+          ([, option]) => option.type === "boolean",
+        ),
+      )
+    : undefined;
 
   const handleFileCategorySelect = useCallback((category: FileCategory) => {
     setSelectedFileCategory(category);
@@ -122,6 +135,9 @@ export function ChatInputToolbar({
           onFileCategorySelect={handleFileCategorySelect}
           thinkingLabel={thinkingLabel}
           thinkingLevel={thinkingLevel}
+          booleanAgentOptions={booleanAgentOptions}
+          agentOptionValues={agentOptionValues}
+          onToggleAgentOption={onToggleAgentOption}
         />
         {selectedPersonaName && (
           <button
@@ -216,18 +232,20 @@ export function ChatInputToolbar({
           <button
             type="submit"
             disabled={!canSubmit}
-            className={`flex items-center justify-center rounded-full p-2 transition-all duration-300 ${
-              canSubmit ? "hover:scale-105 active:scale-95" : ""
-            }`}
-            style={{
-              backgroundColor: "transparent",
-              border: canSubmit
-                ? "1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)"
-                : "1px solid var(--theme-border)",
-              color: canSubmit
-                ? "var(--theme-primary)"
-                : "var(--theme-text-secondary)",
-            }}
+            className={`flex items-center justify-center rounded-full p-2 transition-all duration-300`}
+            style={
+              canSubmit
+                ? {
+                    backgroundColor: "var(--theme-primary)",
+                    border: "1px solid var(--theme-primary)",
+                    color: "var(--theme-bg, #fff)",
+                  }
+                : {
+                    backgroundColor: "transparent",
+                    border: "1px solid var(--theme-border)",
+                    color: "var(--theme-text-secondary)",
+                  }
+            }
             title={
               hasUploadingAttachment
                 ? t("chat.waitingForUpload", "请等待文件上传完成")

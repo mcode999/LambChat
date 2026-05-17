@@ -161,6 +161,7 @@ function collectPartImages(
   return [];
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function collectSessionImageGalleryItems(
   messages: Message[],
 ): SessionImageGalleryItem[] {

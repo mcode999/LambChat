@@ -284,7 +284,7 @@ export function ImageViewer({
 
         {isImageLoading && (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/20">
-            <div className="flex items-center gap-2 rounded-full bg-black/65 px-3 py-2 text-xs font-medium text-white/80 shadow-lg backdrop-blur-sm">
+            <div className="flex items-center gap-2 rounded-full bg-black/65 px-3 py-2 text-xs font-medium text-white/80 shadow-lg">
               <span className="h-4 w-4 rounded-full border-2 border-white/25 border-t-white/85 animate-spin" />
               <span>{t("imageViewer.loading", "Loading image")}</span>
             </div>

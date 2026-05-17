@@ -347,11 +347,8 @@ export function ToolResultPanel({
         <div className="flex flex-col shrink-0 bg-gradient-to-r from-stone-50 to-white dark:from-stone-800 dark:to-[#292524]">
           {/* Mobile drag handle */}
           {isMobile && (
-            <div className="flex justify-center pt-2 pb-1">
-              <div
-                ref={dragHandleRef}
-                className="mobile-drag-handle w-9 h-1 rounded-full bg-stone-300 dark:bg-stone-600"
-              />
+            <div ref={dragHandleRef} className="flex justify-center pt-4 pb-2">
+              <div className="mobile-drag-handle w-9 h-1 rounded-full bg-stone-300 dark:bg-stone-600" />
             </div>
           )}
           {hasCustomHeader ? (
@@ -427,7 +424,7 @@ export function ToolResultPanel({
                       e.stopPropagation();
                       handleToggleViewMode();
                     }}
-                    className="flex items-center justify-center w-8 h-8 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all duration-200 active:scale-95"
+                    className="hidden sm:flex items-center justify-center w-8 h-8 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all duration-200 active:scale-95"
                     title={
                       isSidebar
                         ? t("documents.centerView", "Center view")

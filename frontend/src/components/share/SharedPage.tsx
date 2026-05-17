@@ -43,6 +43,7 @@ import {
 } from "../chat/ChatMessage/items/revealPreviewState";
 import { reconstructMessagesFromEvents } from "../../hooks/useAgent/historyLoader";
 import { APP_NAME, GITHUB_URL } from "../../constants";
+import { BrandWordmark } from "../common/BrandWordmark";
 import { formatDate, formatDateTimeShort } from "../../utils/datetime";
 import { getModelIconUrl, isMonochromeIcon } from "../agent/modelIcon";
 import { ScrollButtons } from "../landing/components/ScrollButtons";
@@ -544,16 +545,17 @@ export function SharedPage() {
           {/* Left: Brand */}
           <Link
             to="/"
-            className="flex items-center gap-2.5 cursor-pointer group"
+            className="flex items-center cursor-pointer group gap-1.5"
           >
             <img
-              src="/icons/icon.svg"
+              src="/images/lamb.webp"
               alt=""
-              className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg transition-transform duration-300 group-hover:scale-105"
+              className="size-8 object-contain transition-transform duration-300 group-hover:scale-105"
             />
-            <span className="text-md sm:text-lg font-bold tracking-tight text-stone-900 dark:text-stone-100 font-serif">
-              {APP_NAME}
-            </span>
+            <BrandWordmark
+              decorative
+              className="w-auto text-stone-900 dark:text-stone-100 h-8"
+            />
           </Link>
 
           {/* Right: Controls */}
@@ -619,9 +621,9 @@ export function SharedPage() {
                   />
                 ) : (
                   <img
-                    src="/icons/icon.svg"
+                    src="/images/lamb.webp"
                     alt=""
-                    className="size-10 rounded-full flex-shrink-0 ring-2 ring-stone-100 dark:ring-stone-800"
+                    className="size-12 rounded-full flex-shrink-0 ring-2 ring-stone-100 dark:ring-stone-800 object-contain"
                   />
                 )}
                 <div className="space-y-1">
@@ -801,8 +803,12 @@ export function SharedPage() {
                 to="/"
                 className="group flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white bg-stone-900 dark:bg-stone-100 dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-stone-200 active:scale-[0.97] transition-all duration-200 shadow-sm hover:shadow-md font-serif"
               >
-                <img src="/icons/icon.svg" alt="" className="w-4 h-4 rounded" />
-                {APP_NAME}
+                <img
+                  src="/images/lamb.webp"
+                  alt=""
+                  className="size-6 object-contain"
+                />
+                <BrandWordmark decorative className="h-5 w-auto" />
                 <svg
                   width="14"
                   height="14"

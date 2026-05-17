@@ -70,20 +70,65 @@ def test_retag_system_message_pins_global_base_block_for_cross_context_reuse() -
     assert tagged_indices == [0, 2, 3]
 
 
-def test_runtime_user_specific_system_sections_are_volatile_for_cache() -> None:
-    volatile_blocks = [
+def test_session_stable_runtime_system_sections_are_cacheable() -> None:
+    cacheable_blocks = [
         {
             "type": "text",
             "text": "## Sandbox Runtime\n\nCurrent sandbox work_dir: `/tmp/session-a`",
         },
         {"type": "text", "text": "## Sandbox Tools (NOT MCP — DO NOT call directly)"},
         {"type": "text", "text": "## Available Environment Variables"},
+        {"type": "text", "text": "## Available Skills\n\n- RedBookSkills"},
+        {"type": "text", "text": "## Current Workspace\n\ncwd: /workspace/project"},
+    ]
+
+    for block in cacheable_blocks:
+        assert not PromptCachingMiddleware._is_volatile_system_block(block)
+
+
+def test_turn_dynamic_system_sections_are_volatile_for_cache() -> None:
+    volatile_blocks = [
         {"type": "text", "text": "<memory_index>\n- preference\n</memory_index>"},
         {"type": "text", "text": "## MCP Tools (Deferred)\n\n- github:create_issue"},
+        {"type": "text", "text": "## User Runtime Context\n\nCurrent date: 2026-05-17"},
     ]
 
     for block in volatile_blocks:
         assert PromptCachingMiddleware._is_volatile_system_block(block)
+
+
+def test_mcp_tool_search_guide_is_cacheable_while_deferred_list_is_volatile() -> None:
+    assert not PromptCachingMiddleware._is_volatile_system_block(
+        {"type": "text", "text": "## MCP Tool Search Guide\n\ncall `search_tools` first"}
+    )
+    assert PromptCachingMiddleware._is_volatile_system_block(
+        {"type": "text", "text": "## MCP Tools (Deferred)\n\n- github:create_issue"}
+    )
+
+
+def test_retag_system_message_keeps_session_stable_runtime_sections_in_cache_prefix() -> None:
+    system_message = SystemMessage(
+        content=[
+            {"type": "text", "text": "base"},
+            {"type": "text", "text": "persona"},
+            {"type": "text", "text": "## Sandbox Runtime\n\nwork_dir: /tmp/session-a"},
+            {"type": "text", "text": "## Sandbox Tools (NOT MCP — DO NOT call directly)"},
+            {"type": "text", "text": "## Available Environment Variables"},
+            {"type": "text", "text": "<memory_index>\n- preference\n</memory_index>"},
+        ]
+    )
+
+    retagged = PromptCachingMiddleware._retag_system_message(
+        system_message, {"type": "ephemeral"}, max_cached_blocks=4
+    )
+
+    tagged_indices = [
+        i
+        for i, block in enumerate(retagged.content)
+        if isinstance(block, dict) and "cache_control" in block
+    ]
+
+    assert tagged_indices == [0, 2, 3, 4]
 
 
 def test_retag_tools_tags_multiple_tail_tools() -> None:
@@ -103,7 +148,7 @@ def test_retag_tools_tags_multiple_tail_tools() -> None:
     assert retagged[2].extras == {"cache_control": {"type": "ephemeral"}}
 
 
-def test_retag_tools_skips_volatile_deferred_tools() -> None:
+def test_retag_tools_skips_explicitly_volatile_tools() -> None:
     tools = [
         _FakeTool(name="stable_tool", description="stable"),
         _FakeTool(
@@ -187,6 +232,61 @@ async def test_prompt_caching_middleware_respects_four_breakpoint_budget() -> No
     assert result.system_message.content[3]["cache_control"] == {"type": "ephemeral"}
     assert "cache_control" not in result.system_message.content[4]
     assert result.tools[-1].extras == {"cache_control": {"type": "ephemeral"}}
+
+
+async def test_prompt_caching_preserves_stable_search_guide_and_tool_after_discovery() -> None:
+    middleware = PromptCachingMiddleware()
+
+    class _AnthropicLike:
+        pass
+
+    _AnthropicLike.__module__ = "langchain_anthropic.chat_models"
+
+    class _Request:
+        def __init__(self) -> None:
+            self.model = _AnthropicLike()
+            self.system_message = SystemMessage(
+                content=[
+                    {"type": "text", "text": "base"},
+                    {"type": "text", "text": "persona"},
+                    {"type": "text", "text": "skills"},
+                    {
+                        "type": "text",
+                        "text": "## MCP Tool Search Guide\n\ncall `search_tools` first",
+                    },
+                    {
+                        "type": "text",
+                        "text": "## MCP Tools (Deferred)\n\n- beta:list: beta list",
+                    },
+                ]
+            )
+            self.tools = [
+                _FakeTool(name="read_file", description="stable read tool"),
+                _FakeTool(name="search_tools", description="stable search tool"),
+                _FakeTool(name="alpha:create", description="discovered schema"),
+            ]
+
+        def override(self, **kwargs):
+            clone = _Request()
+            clone.model = kwargs.get("model", self.model)
+            clone.system_message = kwargs.get("system_message", self.system_message)
+            clone.tools = kwargs.get("tools", self.tools)
+            return clone
+
+    async def _handler(request):
+        return request
+
+    result = await middleware.awrap_model_call(_Request(), _handler)
+
+    tagged_system_indices = [
+        i
+        for i, block in enumerate(result.system_message.content)
+        if isinstance(block, dict) and "cache_control" in block
+    ]
+    assert tagged_system_indices == [0, 2, 3]
+    assert result.tools[1].name == "search_tools"
+    assert result.tools[2].name == "alpha:create"
+    assert result.tools[2].extras == {"cache_control": {"type": "ephemeral"}}
 
 
 async def test_prompt_caching_middleware_skips_non_anthropic_models() -> None:
@@ -371,6 +471,36 @@ async def test_tool_search_middleware_intercepts_registered_search_tool_with_own
     assert manager.discovered_names == ["alpha:create", "beta:list"]
 
 
+async def test_tool_search_middleware_injects_discovered_tools_as_cacheable() -> None:
+    manager = DeferredToolManager(
+        all_deferred_tools=[
+            _FakeTool(name="alpha:create", description="alpha create", server="alpha"),
+        ],
+        session_id="session-1",
+        pre_discovered_names=["alpha:create"],
+    )
+    middleware = ToolSearchMiddleware(deferred_manager=manager, search_limit=5)
+
+    class _Request:
+        def __init__(self) -> None:
+            self.system_message = SystemMessage(content=[{"type": "text", "text": "base"}])
+            self.tools = []
+
+        def override(self, **kwargs):
+            clone = _Request()
+            clone.system_message = kwargs.get("system_message", self.system_message)
+            clone.tools = kwargs.get("tools", self.tools)
+            return clone
+
+    async def _handler(request):
+        return request
+
+    result = await middleware.awrap_model_call(_Request(), _handler)
+    discovered_tool = next(tool for tool in result.tools if tool.name == "alpha:create")
+
+    assert "_lambchat_prompt_cache_volatile" not in (discovered_tool.extras or {})
+
+
 def test_deferred_prompt_does_not_repeat_loaded_tool_names() -> None:
     manager = DeferredToolManager(
         all_deferred_tools=[
@@ -399,8 +529,29 @@ def test_deferred_prompt_blocks_split_stable_rules_and_dynamic_tool_list() -> No
     blocks = manager.get_deferred_prompt_blocks()
 
     assert len(blocks) == 2
+    assert blocks[0].startswith("## MCP Tool Search Guide")
     assert "search_tools" in blocks[0]
+    assert blocks[1].startswith("## MCP Tools (Deferred)")
     assert "- beta:list: beta list" in blocks[1]
+
+
+def test_deferred_prompt_keeps_search_guide_stable_after_discovery() -> None:
+    manager = DeferredToolManager(
+        all_deferred_tools=[
+            _FakeTool(name="alpha:create", description="alpha create", server="alpha"),
+            _FakeTool(name="beta:list", description="beta list", server="beta"),
+        ],
+        session_id="session-1",
+    )
+
+    before = manager.get_deferred_prompt_blocks()
+    manager.discover_tools(["alpha:create"])
+    after = manager.get_deferred_prompt_blocks()
+
+    assert before[0] == after[0]
+    assert "- alpha:create: alpha create" in before[1]
+    assert "- alpha:create: alpha create" not in after[1]
+    assert "- beta:list: beta list" in after[1]
 
 
 def test_deferred_prompt_string_is_stably_sorted() -> None:

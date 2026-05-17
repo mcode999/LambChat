@@ -60,6 +60,31 @@ from src.kernel.config import initialize_settings, settings
 
 logger = get_logger(__name__)
 
+STATIC_CACHE_CONTROL_BY_PREFIX = {
+    "assets/": "public, max-age=31536000, immutable",
+    "icons/": "public, max-age=604800",
+    "images/": "public, max-age=604800, stale-while-revalidate=86400",
+}
+MANIFEST_CACHE_CONTROL = "public, max-age=86400"
+
+
+def _cache_control_for_static_path(path: str) -> str | None:
+    normalized_path = path.lstrip("/")
+    for prefix, cache_control in STATIC_CACHE_CONTROL_BY_PREFIX.items():
+        if normalized_path.startswith(prefix):
+            return cache_control
+    if normalized_path == "manifest.json":
+        return MANIFEST_CACHE_CONTROL
+    return None
+
+
+def _static_file_response(file_path: Path, request_path: str) -> FileResponse:
+    headers = {}
+    cache_control = _cache_control_for_static_path(request_path)
+    if cache_control:
+        headers["Cache-Control"] = cache_control
+    return FileResponse(str(file_path), headers=headers)
+
 
 async def _warm_agent_registry() -> None:
     """Preload agent registrations without blocking startup."""
@@ -447,7 +472,7 @@ def create_app() -> FastAPI:
         async def serve_manifest():
             manifest_file = static_dir / "manifest.json"
             if manifest_file.exists():
-                return FileResponse(str(manifest_file))
+                return _static_file_response(manifest_file, "manifest.json")
             return {"error": "manifest.json not found"}
 
         @app.get("/shared/{share_id}", response_class=HTMLResponse)
@@ -494,7 +519,7 @@ def create_app() -> FastAPI:
             # First, check if it's a static file
             static_file = static_dir / full_path
             if static_file.exists() and static_file.is_file():
-                return FileResponse(str(static_file))
+                return _static_file_response(static_file, full_path)
             # Otherwise, serve index.html for SPA routing
             index_file = static_dir / "index.html"
             if index_file.exists():
@@ -507,6 +532,7 @@ def create_app() -> FastAPI:
                 rendered = inject_public_route_seo_into_html(html_doc, seo)
                 return HTMLResponse(content=rendered)
             return {"error": "Frontend not built. Run 'npm run build' in frontend directory."}
+
     elif frontend_target and frontend_target[0] == "redirect":
         frontend_dev_url = frontend_target[1]
         assert isinstance(frontend_dev_url, str)

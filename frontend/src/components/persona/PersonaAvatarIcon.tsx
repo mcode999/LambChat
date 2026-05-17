@@ -15,7 +15,13 @@ import {
   isPersonaImageAvatar,
   type PersonaAvatarIconKey,
 } from "./personaAvatar";
+import { getFluentEmojiCDN } from "@lobehub/fluent-emoji";
 import { getCategoryIcon } from "../panels/MarketplacePanel/constants";
+
+const DEFAULT_AVATAR_EMOJI = "🤖";
+const DEFAULT_AVATAR_SRC = getFluentEmojiCDN(DEFAULT_AVATAR_EMOJI, {
+  type: "anim",
+});
 
 const ICONS: Record<PersonaAvatarIconKey, LucideIcon> = {
   sparkles: Sparkles,
@@ -51,8 +57,21 @@ export function PersonaAvatarIcon({
     );
   }
 
-  const FallbackIcon = primaryTag ? getCategoryIcon(primaryTag) : Sparkles;
-  return <FallbackIcon size={size} className={className} />;
+  const CategoryIcon = primaryTag ? getCategoryIcon(primaryTag) : null;
+  if (CategoryIcon) {
+    return <CategoryIcon size={size} className={className} />;
+  }
+
+  return (
+    <img
+      src={DEFAULT_AVATAR_SRC}
+      alt=""
+      width={size}
+      height={size}
+      className={className}
+      style={{ objectFit: "contain" }}
+    />
+  );
 }
 
 export function PersonaAvatarImage({

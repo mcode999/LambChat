@@ -34,7 +34,7 @@ export function ChatInputHelpMenu() {
         aria-label="Help"
         aria-expanded={helpMenuOpen}
         onClick={() => setHelpMenuOpen((v) => !v)}
-        className="flex items-center justify-center w-8 h-8 text-sm font-medium rounded-full shadow-md backdrop-blur-sm transition-all duration-200 hover:shadow-lg hover:scale-110 active:scale-95"
+        className="flex items-center justify-center w-8 h-8 text-sm font-medium rounded-full shadow-md transition-all duration-200 hover:shadow-lg hover:scale-110 active:scale-95"
         style={{
           backgroundColor:
             "color-mix(in srgb, var(--theme-bg-card) 85%, transparent)",

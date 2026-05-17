@@ -60,4 +60,4 @@ export const SORT_OPTIONS = [
 
 /* ── Misc ─────────────────────────────────────────────── */
 
-export const VISIBLE_FILES_PER_SESSION = 3;
+export const VISIBLE_FILES_PER_SESSION = 6;

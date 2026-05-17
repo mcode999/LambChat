@@ -231,6 +231,108 @@ async def test_update_increments_version_and_checks_ownership() -> None:
 
 
 @pytest.mark.asyncio
+async def test_admin_can_change_own_user_preset_to_global_public() -> None:
+    manager = PersonaPresetManager(FakePresetStorage(), FakeSkillStorage(set()))
+    preset = await manager.create_preset(
+        PersonaPresetCreate(name="Mine", system_prompt="Initial"),
+        user_id="admin-1",
+        is_admin=False,
+    )
+
+    updated = await manager.update_preset(
+        preset.id,
+        PersonaPresetUpdate(
+            scope=PersonaPresetScope.GLOBAL,
+            visibility=PersonaPresetVisibility.PUBLIC,
+            status=PersonaPresetStatus.PUBLISHED,
+        ),
+        user_id="admin-1",
+        is_admin=True,
+    )
+
+    assert updated.scope == PersonaPresetScope.GLOBAL
+    assert updated.owner_user_id is None
+    assert updated.visibility == PersonaPresetVisibility.PUBLIC
+    assert updated.status == PersonaPresetStatus.PUBLISHED
+
+
+@pytest.mark.asyncio
+async def test_admin_can_change_global_preset_to_private_user_preset() -> None:
+    manager = PersonaPresetManager(FakePresetStorage(), FakeSkillStorage(set()))
+    preset = await manager.create_preset(
+        PersonaPresetCreate(
+            name="Official",
+            scope=PersonaPresetScope.GLOBAL,
+            visibility=PersonaPresetVisibility.PUBLIC,
+            status=PersonaPresetStatus.PUBLISHED,
+            system_prompt="Initial",
+        ),
+        user_id="admin-1",
+        is_admin=True,
+    )
+
+    updated = await manager.update_preset(
+        preset.id,
+        PersonaPresetUpdate(
+            scope=PersonaPresetScope.USER,
+            visibility=PersonaPresetVisibility.PRIVATE,
+            status=PersonaPresetStatus.DRAFT,
+        ),
+        user_id="admin-1",
+        is_admin=True,
+    )
+
+    assert updated.scope == PersonaPresetScope.USER
+    assert updated.owner_user_id == "admin-1"
+    assert updated.visibility == PersonaPresetVisibility.PRIVATE
+    assert updated.status == PersonaPresetStatus.DRAFT
+
+
+@pytest.mark.asyncio
+async def test_creator_can_edit_legacy_user_preset_without_owner_user_id() -> None:
+    storage = FakePresetStorage()
+    manager = PersonaPresetManager(storage, FakeSkillStorage(set()))
+    preset = await manager.create_preset(
+        PersonaPresetCreate(name="Mine", system_prompt="Initial"),
+        user_id="admin-1",
+        is_admin=False,
+    )
+    storage.docs[preset.id].pop("owner_user_id")
+
+    updated = await manager.update_preset(
+        preset.id,
+        PersonaPresetUpdate(system_prompt="Reviewed"),
+        user_id="admin-1",
+        is_admin=True,
+    )
+
+    assert updated.system_prompt == "Reviewed"
+    assert updated.updated_by == "admin-1"
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_publish_user_preset_as_global() -> None:
+    manager = PersonaPresetManager(FakePresetStorage(), FakeSkillStorage(set()))
+    preset = await manager.create_preset(
+        PersonaPresetCreate(name="Mine", system_prompt="Initial"),
+        user_id="user-1",
+        is_admin=False,
+    )
+
+    with pytest.raises(AuthorizationError):
+        await manager.update_preset(
+            preset.id,
+            PersonaPresetUpdate(
+                scope=PersonaPresetScope.GLOBAL,
+                visibility=PersonaPresetVisibility.PUBLIC,
+                status=PersonaPresetStatus.PUBLISHED,
+            ),
+            user_id="user-1",
+            is_admin=False,
+        )
+
+
+@pytest.mark.asyncio
 async def test_use_preset_returns_snapshot_and_filters_missing_skills() -> None:
     storage = FakePresetStorage()
     manager = PersonaPresetManager(storage, FakeEffectiveSkillStorage({"planner"}))
@@ -313,3 +415,16 @@ async def test_invisible_preset_raises_not_found() -> None:
 
     with pytest.raises(NotFoundError):
         await manager.get_preset(preset.id, user_id="user-2", is_admin=False)
+
+
+@pytest.mark.asyncio
+async def test_admin_cannot_view_another_users_private_user_preset() -> None:
+    manager = PersonaPresetManager(FakePresetStorage(), FakeSkillStorage(set()))
+    preset = await manager.create_preset(
+        PersonaPresetCreate(name="Private", system_prompt="Private prompt"),
+        user_id="user-1",
+        is_admin=False,
+    )
+
+    with pytest.raises(NotFoundError):
+        await manager.get_preset(preset.id, user_id="admin-1", is_admin=True)

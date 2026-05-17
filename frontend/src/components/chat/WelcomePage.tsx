@@ -17,6 +17,8 @@ import { PersonaAvatarWithLoading } from "../persona/PersonaAvatarWithLoading";
 import { useSettingsContext } from "../../contexts/SettingsContext";
 import type { PersonaPreset, PersonaPresetSnapshot } from "../../types";
 
+const WELCOME_ICON_SRC = "/images/lamb.webp";
+
 interface WelcomePageProps {
   greeting: string;
   subtitle: string;
@@ -25,6 +27,9 @@ interface WelcomePageProps {
   starterPromptsLabel?: string;
   changePersonaLabel?: string;
   personaPresets: PersonaPreset[];
+  hasMorePersonaPresets?: boolean;
+  isLoadingMorePersonaPresets?: boolean;
+  onLoadMorePersonaPresets?: () => void;
   selectedPersonaPresetId?: string | null;
   selectedPersonaSnapshot?: PersonaPresetSnapshot | null;
   personaPresetsLoading?: boolean;
@@ -37,6 +42,23 @@ interface WelcomePageProps {
   onClearPersonaPreset?: () => void;
 }
 
+function WelcomeIcon({
+  className,
+  label,
+}: {
+  className: string;
+  label?: string;
+}) {
+  return (
+    <img
+      src={WELCOME_ICON_SRC}
+      alt={label ?? ""}
+      className={className}
+      aria-hidden={label ? undefined : true}
+    />
+  );
+}
+
 export const WelcomePage = memo(function WelcomePage({
   greeting,
   subtitle,
@@ -45,6 +67,9 @@ export const WelcomePage = memo(function WelcomePage({
   starterPromptsLabel,
   changePersonaLabel,
   personaPresets,
+  hasMorePersonaPresets,
+  isLoadingMorePersonaPresets,
+  onLoadMorePersonaPresets,
   selectedPersonaPresetId,
   selectedPersonaSnapshot,
   personaPresetsLoading = false,
@@ -62,6 +87,14 @@ export const WelcomePage = memo(function WelcomePage({
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [pendingInput, setPendingInput] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
+
+  const handleGalleryScroll = useCallback(() => {
+    const el = galleryRef.current;
+    if (!el || !hasMorePersonaPresets || !onLoadMorePersonaPresets) return;
+    const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 40;
+    if (nearBottom) onLoadMorePersonaPresets();
+  }, [hasMorePersonaPresets, onLoadMorePersonaPresets]);
 
   const promptSources = useMemo(() => {
     if (
@@ -176,10 +209,9 @@ export const WelcomePage = memo(function WelcomePage({
       <div className="welcome-hero relative flex flex-col items-center mb-3 sm:mb-4 md:mb-5 xl:mb-6 2xl:mb-7 w-full max-w-[90vw]">
         {/* App icon (mobile only) */}
         <div className="sm:hidden relative mb-3">
-          <img
-            src="/icons/icon.svg"
-            alt="LambChat"
-            className="welcome-icon relative size-10 rounded-full shadow-md ring-1 ring-stone-200/60 dark:ring-stone-700/40"
+          <WelcomeIcon
+            label="LambChat"
+            className="welcome-icon relative size-12 object-contain"
           />
         </div>
 
@@ -188,11 +220,7 @@ export const WelcomePage = memo(function WelcomePage({
           className="welcome-greeting max-w-[90vw] text-[1.65rem] sm:text-[2rem] md:text-[2.25rem] lg:text-[2.35rem] xl:text-[2.4rem] 2xl:text-[2.5rem] font-semibold tracking-[-0.02em] leading-[1.2] text-center font-serif"
           style={{ color: "var(--theme-text)" }}
         >
-          <img
-            src="/icons/icon.svg"
-            alt=""
-            className="welcome-icon hidden sm:inline-block size-10 2xl:size-12 mr-4 align-text-bottom rounded-full"
-          />
+          <WelcomeIcon className="welcome-icon hidden sm:inline-block size-14 2xl:size-16 mr-4 align-text-bottom object-contain" />
           {greeting}
         </h1>
         {/* Subtle subtitle prompt */}
@@ -279,9 +307,11 @@ export const WelcomePage = memo(function WelcomePage({
           </div>
           <div
             key={animKey}
+            ref={showPersonaCards ? galleryRef : undefined}
+            onScroll={showPersonaCards ? handleGalleryScroll : undefined}
             className={
               showPersonaCards
-                ? "welcome-persona-gallery px-2 pb-1 sm:px-0 sm:pb-0"
+                ? "welcome-persona-gallery relative px-2 pb-1 sm:px-0 sm:pb-0"
                 : "welcome-suggestions-grid-wrapper"
             }
           >
@@ -289,7 +319,7 @@ export const WelcomePage = memo(function WelcomePage({
               Array.from({ length: personaSkeletonCount }).map((_, i) => (
                 <div
                   key={`persona-skeleton-${i}`}
-                  className="welcome-persona-card welcome-persona-skeleton relative min-w-[15.75rem] snap-start rounded-2xl border p-2.5"
+                  className="welcome-persona-card welcome-persona-skeleton relative snap-start rounded-2xl border p-2.5"
                   style={{
                     backgroundColor: "var(--theme-bg-card)",
                     borderColor: "var(--theme-border)",
@@ -297,10 +327,13 @@ export const WelcomePage = memo(function WelcomePage({
                   aria-hidden="true"
                 >
                   <span className="welcome-skeleton-avatar" />
-                  <span className="welcome-skeleton-line welcome-skeleton-title" />
-                  <span className="welcome-skeleton-line welcome-skeleton-tag" />
-                  <span className="welcome-skeleton-line" />
-                  <span className="welcome-skeleton-line welcome-skeleton-line-short" />
+                  <span className="welcome-skeleton-info">
+                    <span className="welcome-skeleton-name-row">
+                      <span className="welcome-skeleton-line welcome-skeleton-title" />
+                      <span className="welcome-skeleton-line welcome-skeleton-tag" />
+                    </span>
+                    <span className="welcome-skeleton-line welcome-skeleton-desc" />
+                  </span>
                 </div>
               ))}
             {showPersonaCards &&
@@ -331,10 +364,10 @@ export const WelcomePage = memo(function WelcomePage({
                           color: "var(--theme-primary)",
                         }}
                       />
-                      <span className="welcome-persona-info min-w-0 flex-1 pt-0.5">
+                      <span className="welcome-persona-info min-w-0 flex-1">
                         <span className="welcome-persona-name-row relative flex items-center gap-1.5">
                           <span
-                            className="truncate text-[14px] font-semibold leading-[1.35] transition-colors duration-300 group-hover:text-[var(--theme-text)]"
+                            className="welcome-persona-name truncate text-[13px] sm:text-[14px] font-semibold leading-[1.3] transition-colors duration-300 group-hover:text-[var(--theme-text)]"
                             style={{ color: "var(--theme-text)" }}
                           >
                             {preset.name}
@@ -367,6 +400,13 @@ export const WelcomePage = memo(function WelcomePage({
                   </button>
                 );
               })}
+            {showPersonaCards && isLoadingMorePersonaPresets && (
+              <div className="welcome-persona-loading sticky bottom-0 left-0 right-0 flex items-center justify-center py-1 pointer-events-none z-10">
+                <span className="welcome-persona-loading-dot" />
+                <span className="welcome-persona-loading-dot" />
+                <span className="welcome-persona-loading-dot" />
+              </div>
+            )}
             <div
               className={
                 showStarterPrompts

@@ -64,6 +64,7 @@ class JsonSchemaField(BaseModel):
     placeholder: Optional[str] = None
     required: bool = False
     options: Optional[list[str]] = None  # for select type
+    layout_width: Optional[str] = None  # compact or full
 
 
 class JsonSchema(BaseModel):

@@ -26,6 +26,12 @@ Model Context Protocol (MCP) 和工具系统设置。
 |--------|--------|------|
 | `ENABLE_SKILLS` | `true` | 启用技能系统。 |
 
+## 代码解释器
+
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `ENABLE_CODE_INTERPRETER` | `false` | 启用实验性的 QuickJS 代码解释器供 Agent 运行使用。 |
+
 ## 音频转写
 
 | 变量名 | 默认值 | 敏感 | 说明 |
@@ -44,6 +50,9 @@ MCP_ENCRYPTION_SALT=your-random-salt-here
 
 # 技能
 ENABLE_SKILLS=true
+
+# 代码解释器（可选）
+ENABLE_CODE_INTERPRETER=false
 
 # 音频转写（可选）
 ENABLE_AUDIO_TRANSCRIPTION=true

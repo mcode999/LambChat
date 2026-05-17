@@ -89,6 +89,7 @@ SETTING_DEFINITIONS: dict[str, dict] = {
                     label="settingDesc.WELCOME_SUGGESTION_ICON",
                     placeholder="🐍",
                     required=True,
+                    layout_width="compact",
                 ),
                 JsonSchemaField(
                     name="text",
@@ -96,6 +97,7 @@ SETTING_DEFINITIONS: dict[str, dict] = {
                     label="settingDesc.WELCOME_SUGGESTION_TEXT",
                     placeholder="...",
                     required=True,
+                    layout_width="full",
                 ),
             ],
         ),
@@ -427,6 +429,17 @@ SETTING_DEFINITIONS: dict[str, dict] = {
         "frontend_visible": True,
     },
     # ============================================
+    # Code Interpreter Settings
+    # ============================================
+    "ENABLE_CODE_INTERPRETER": {
+        "type": SettingType.BOOLEAN,
+        "category": SettingCategory.TOOLS,
+        "subcategory": "code",
+        "description": "settingDesc.ENABLE_CODE_INTERPRETER",
+        "default": False,
+        "frontend_visible": True,
+    },
+    # ============================================
     # Mcp Settings
     # ============================================
     "ENABLE_MCP": {
@@ -551,6 +564,46 @@ SETTING_DEFINITIONS: dict[str, dict] = {
         "description": "settingDesc.REDIS_PASSWORD",
         "default": "",
         "is_sensitive": True,
+    },
+    "TASK_BACKEND": {
+        "type": SettingType.SELECT,
+        "category": SettingCategory.REDIS,
+        "subcategory": "task",
+        "description": "settingDesc.TASK_BACKEND",
+        "default": "arq",
+        "options": ["local", "arq"],
+    },
+    "ARQ_EMBEDDED_WORKER": {
+        "type": SettingType.BOOLEAN,
+        "category": SettingCategory.REDIS,
+        "subcategory": "task",
+        "description": "settingDesc.ARQ_EMBEDDED_WORKER",
+        "default": True,
+        "depends_on": "TASK_BACKEND",
+    },
+    "ARQ_QUEUE_NAME": {
+        "type": SettingType.STRING,
+        "category": SettingCategory.REDIS,
+        "subcategory": "task",
+        "description": "settingDesc.ARQ_QUEUE_NAME",
+        "default": "lambchat:arq",
+        "depends_on": "TASK_BACKEND",
+    },
+    "ARQ_WORKER_MAX_JOBS": {
+        "type": SettingType.NUMBER,
+        "category": SettingCategory.REDIS,
+        "subcategory": "task",
+        "description": "settingDesc.ARQ_WORKER_MAX_JOBS",
+        "default": 64,
+        "depends_on": "TASK_BACKEND",
+    },
+    "ARQ_JOB_TIMEOUT_SECONDS": {
+        "type": SettingType.NUMBER,
+        "category": SettingCategory.REDIS,
+        "subcategory": "task",
+        "description": "settingDesc.ARQ_JOB_TIMEOUT_SECONDS",
+        "default": 3600,
+        "depends_on": "TASK_BACKEND",
     },
     # ============================================
     # LangSmith Tracing Settings

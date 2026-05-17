@@ -54,7 +54,7 @@ const LsItem = memo(function LsItem({
           <CopyButton
             text={entries.join("\n")}
             size={14}
-            className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+            className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md !border !border-stone-200 dark:!border-stone-700"
           />
         </div>
         {entries.map((entry, i) => {
@@ -137,7 +137,7 @@ const LsItem = memo(function LsItem({
                 <CopyButton
                   text={entries.join("\n")}
                   size={12}
-                  className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+                  className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md !border !border-stone-200 dark:!border-stone-700"
                 />
               </div>
               {entries.map((entry, i) => {

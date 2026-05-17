@@ -13,8 +13,6 @@ interface MoreMenuItem {
 
 interface MobileMoreMenuSheetProps {
   featureItems?: MoreMenuItem[];
-  userItems: MoreMenuItem[];
-  sysItems: MoreMenuItem[];
   isOpen: boolean;
   onClose: () => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
@@ -24,8 +22,6 @@ interface MobileMoreMenuSheetProps {
 
 export function MobileMoreMenuSheet({
   featureItems = [],
-  userItems,
-  sysItems,
   isOpen,
   onClose,
   menuRef,
@@ -37,26 +33,22 @@ export function MobileMoreMenuSheet({
 
   if (!isOpen) return null;
 
-  const visibleFeature = featureItems.filter((i) => i.show);
-  const visibleUser = userItems.filter((i) => i.show);
-  const visibleSys = sysItems.filter((i) => i.show);
+  const visibleItems = featureItems.filter((i) => i.show);
 
   const renderItem = (item: MoreMenuItem) => (
     <button
       key={item.path}
       type="button"
-      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-[var(--theme-text-secondary)] hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg transition-colors"
+      className="sidebar-nav-btn w-full h-9 rounded-[10px] flex items-center gap-3 px-[9px] text-sm focus:outline-none transition-colors"
       onClick={() => {
         onClose();
         navigate(item.path);
       }}
     >
-      <item.icon size={16} />
+      <item.icon size={20} />
       <span>{item.label}</span>
     </button>
   );
-
-  const hasPrev = visibleFeature.length > 0 || visibleUser.length > 0;
 
   return (
     <>
@@ -69,12 +61,13 @@ export function MobileMoreMenuSheet({
           (menuRef as React.RefObject<HTMLDivElement | null>).current = el;
           (swipeRef as React.RefObject<HTMLDivElement | null>).current = el;
         }}
-        className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white dark:bg-stone-800 rounded-t-2xl shadow-xl max-h-[70vh] overflow-y-auto"
+        className="fixed bottom-0 left-0 right-0 z-50 sm:hidden rounded-t-2xl shadow-xl max-h-[70vh] overflow-y-auto"
+        style={{ backgroundColor: "var(--theme-bg-card)" }}
       >
         <div className="flex justify-center py-2">
           <div
             ref={dragHandleRef}
-            className="mobile-drag-handle w-10 h-1 rounded-full bg-stone-300 dark:bg-stone-600"
+            className="mobile-drag-handle w-10 h-1 rounded-full bg-[var(--theme-text-secondary)] opacity-25"
           />
         </div>
         <div className="flex items-center justify-between px-4 pb-1.5">
@@ -83,21 +76,13 @@ export function MobileMoreMenuSheet({
           </span>
           <button
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-stone-100 dark:hover:bg-stone-700"
+            className="p-1 rounded-full hover:bg-[var(--theme-primary-light)]"
           >
-            <X size={16} className="text-stone-400" />
+            <X size={16} className="text-[var(--theme-text-secondary)]" />
           </button>
         </div>
-        <div className="px-2 pb-4">
-          {visibleFeature.map(renderItem)}
-          {visibleFeature.length > 0 && hasPrev && (
-            <div className="h-px bg-stone-200 dark:bg-stone-700 my-1.5" />
-          )}
-          {visibleUser.map(renderItem)}
-          {visibleUser.length > 0 && visibleSys.length > 0 && (
-            <div className="h-px bg-stone-200 dark:bg-stone-700 my-1.5" />
-          )}
-          {visibleSys.map(renderItem)}
+        <div className="flex flex-col gap-px px-2 pb-3 space-y-1">
+          {visibleItems.map(renderItem)}
         </div>
       </div>
     </>

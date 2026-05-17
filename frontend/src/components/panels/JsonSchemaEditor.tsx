@@ -10,6 +10,19 @@ interface JsonSchemaEditorProps {
   onChange: (value: object) => void;
 }
 
+function getFieldLayoutClass(field: JsonSchemaField): string {
+  if (field.layout_width === "compact") {
+    return "json-schema-field--compact";
+  }
+  if (field.layout_width === "full") {
+    return "json-schema-field--full";
+  }
+  if (field.type === "toggle" || field.type === "number") {
+    return "json-schema-field--compact";
+  }
+  return "json-schema-field--full";
+}
+
 function FieldInput({
   field,
   value,
@@ -164,20 +177,21 @@ function ArrayEditor({
               </button>
             )}
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="flex flex-wrap gap-2">
             {schema.fields.map((field) => (
-              <FieldInput
-                key={field.name}
-                field={field}
-                value={
-                  (item as Record<string, unknown>)[field.name] as
-                    | string
-                    | number
-                    | boolean
-                }
-                disabled={disabled}
-                onChange={(val) => updateItem(index, field.name, val)}
-              />
+              <div key={field.name} className={getFieldLayoutClass(field)}>
+                <FieldInput
+                  field={field}
+                  value={
+                    (item as Record<string, unknown>)[field.name] as
+                      | string
+                      | number
+                      | boolean
+                  }
+                  disabled={disabled}
+                  onChange={(val) => updateItem(index, field.name, val)}
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -225,10 +239,10 @@ function ObjectArrayEditor({
             {(value[key] || []).map((item, index) => (
               <div
                 key={index}
-                className="flex items-end gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--theme-bg-secondary)] p-2"
+                className="flex flex-wrap items-end gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--theme-bg-secondary)] p-2"
               >
                 {schema.fields.map((field) => (
-                  <div key={field.name} className="flex-1">
+                  <div key={field.name} className={getFieldLayoutClass(field)}>
                     <FieldInput
                       field={field}
                       value={

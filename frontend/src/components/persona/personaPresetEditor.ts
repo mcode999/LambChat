@@ -47,11 +47,21 @@ export function buildPersonaPresetPayload(
   };
 
   if (preset) {
+    if (options.scope === "global") {
+      return {
+        ...base,
+        ...(preset.scope !== "global" ? { scope: "global" } : {}),
+        visibility: "public",
+        status: options.status,
+      };
+    }
+
     if (preset.scope === "global") {
       return {
         ...base,
-        visibility: "public",
-        status: options.status,
+        scope: "user",
+        visibility: "private",
+        status: "draft",
       };
     }
 

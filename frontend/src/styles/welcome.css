@@ -10,6 +10,7 @@
   padding-top: max(1rem, env(safe-area-inset-top));
   padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
 }
+
 .welcome-root::-webkit-scrollbar {
   display: none;
 }
@@ -33,6 +34,7 @@
   100% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.04);
   }
@@ -42,6 +44,7 @@
 .welcome-refresh-btn {
   border-radius: 0.5rem;
 }
+
 .welcome-refresh-btn:hover {
   background-color: var(--theme-primary-light) !important;
   color: var(--theme-text) !important;
@@ -165,6 +168,7 @@
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   opacity: 0.72;
   transition: opacity 0.2s ease;
@@ -176,8 +180,9 @@
 
 .welcome-persona-skeleton {
   display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
   pointer-events: none;
 }
 
@@ -195,9 +200,10 @@
 }
 
 .welcome-skeleton-avatar {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.625rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.75rem;
+  flex-shrink: 0;
 }
 
 .welcome-skeleton-line {
@@ -210,10 +216,11 @@
 }
 
 .welcome-skeleton-tag {
-  width: 34%;
+  height: 0.875rem;
+  width: 18%;
 }
 
-.welcome-skeleton-line-short {
+.welcome-skeleton-desc {
   width: 72%;
 }
 
@@ -221,9 +228,24 @@
   0% {
     background-position: 120% 0;
   }
+
   100% {
     background-position: -120% 0;
   }
+}
+
+.welcome-skeleton-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.welcome-skeleton-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 
 @media (min-width: 640px) {
@@ -277,9 +299,25 @@
   box-shadow: 0 1px 2px color-mix(in srgb, black 12%, transparent);
 }
 
+.dark .welcome-persona-card:not(.welcome-persona-skeleton) {
+  background: linear-gradient(
+    135deg,
+    var(--theme-bg-card) 0%,
+    color-mix(in srgb, var(--theme-primary) 3%, var(--theme-bg-card)) 100%
+  );
+}
+
 @media (max-width: 639px) {
+  .welcome-persona-card:not(.welcome-persona-skeleton):active {
+    transform: scale(0.97);
+    box-shadow:
+      0 0.5px 2px color-mix(in srgb, var(--theme-text) 3%, transparent),
+      0 0 0 0.5px color-mix(in srgb, var(--theme-border) 60%, transparent);
+    transition-duration: 0.1s;
+  }
+
   .welcome-persona-gallery {
-    --welcome-persona-card-height: 4.75rem;
+    --welcome-persona-card-height: 3.5rem;
     --welcome-persona-row-gap: 0.5rem;
     display: grid;
     grid-template-columns: 1fr;
@@ -290,9 +328,9 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    scroll-snap-type: y proximity;
-    -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
-    mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+    scroll-snap-type: y mandatory;
+    -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
     scroll-padding-inline: 0;
   }
 
@@ -304,44 +342,60 @@
     height: var(--welcome-persona-card-height);
     min-width: 0 !important;
     min-height: auto;
-    padding: 0.5rem 0.75rem;
+    padding: 0.75rem;
     gap: 0;
     scroll-snap-align: start;
+    border-radius: 1rem;
+    box-shadow:
+      0 1px 3px color-mix(in srgb, var(--theme-text) 4%, transparent),
+      0 0 0 0.5px color-mix(in srgb, var(--theme-border) 60%, transparent);
   }
 
   .welcome-persona-header {
-    gap: 0.625rem !important;
+    gap: 0.875rem !important;
     align-items: center !important;
   }
 
   .welcome-persona-avatar {
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2.375rem;
+    height: 2.375rem;
     border-radius: 0.625rem;
+    box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--theme-primary) 18%, transparent);
   }
 
   .welcome-persona-info {
     padding-top: 0 !important;
   }
 
+  .welcome-persona-name-row {
+    gap: 0.375rem;
+  }
+
+  .welcome-persona-tag {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+  }
+
   .welcome-persona-description {
-    font-size: 0.75rem;
-    line-height: 1.4;
+    font-size: 0.6875rem;
+    line-height: 1.45;
     min-height: auto;
     -webkit-line-clamp: 1;
     line-clamp: 1;
+    margin-top: 0.25rem;
+    opacity: 0.55;
   }
 
   .welcome-persona-skeleton {
-    align-items: center !important;
+    gap: 0.75rem !important;
   }
 
   .welcome-skeleton-avatar {
-    margin: 0 auto;
-  }
-
-  .welcome-skeleton-line {
-    margin: 0 auto;
+    width: 2.375rem;
+    height: 2.375rem;
+    border-radius: 0.625rem;
   }
 
   /* Mobile keyboard open — keep centered layout, just compact spacing */
@@ -422,5 +476,44 @@
     .welcome-input:has([data-mention-active])
     ~ .welcome-suggestions {
     display: none;
+  }
+}
+
+/* ── Persona gallery loading dots ── */
+.welcome-persona-loading {
+  background: linear-gradient(to top, var(--theme-bg) 40%, transparent 100%);
+}
+.welcome-persona-loading-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--theme-primary);
+  opacity: 0.5;
+  animation: welcome-loading-bounce 1.2s ease-in-out infinite;
+}
+
+.welcome-persona-loading-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.welcome-persona-loading-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.welcome-persona-loading-dot + .welcome-persona-loading-dot {
+  margin-left: 4px;
+}
+
+@keyframes welcome-loading-bounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+
+  40% {
+    opacity: 1;
+    transform: scale(1.1);
   }
 }

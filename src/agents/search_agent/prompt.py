@@ -7,8 +7,6 @@ Search Agent 系统提示词
 基础提示词只包含能力描述，保证全局 KV 缓存稳定。
 """
 
-from src.agents.core.subagent_prompts import SUBAGENT_TASK_GUIDE, WORKFLOW_SECTION
-
 SANDBOX_SYSTEM_PROMPT = """## Storage Architecture (CRITICAL)
 
 | System | Paths | Access |
@@ -21,8 +19,6 @@ SANDBOX_SYSTEM_PROMPT = """## Storage Architecture (CRITICAL)
 ## URL File Upload
 Use `upload_url_to_sandbox(url, file_path)` to download URLs to sandbox. `file_path` must be absolute inside the current sandbox work_dir.
 """
-
-SANDBOX_SYSTEM_PROMPT = SANDBOX_SYSTEM_PROMPT + WORKFLOW_SECTION + SUBAGENT_TASK_GUIDE
 
 SANDBOX_RUNTIME_SECTION = """## Sandbox Runtime
 
@@ -39,7 +35,5 @@ DEFAULT_SYSTEM_PROMPT = """## File System
 
 `/skills/` is virtual storage, not a real filesystem directory. Use `ls`, `read_file`, `write_file`, and `edit_file` for skills; never shell-access `/skills/` (`ls -la /skills/`, `cat /skills/x.md`, `python /skills/x.py`). To execute a skill script, first copy it into `/workspace` or the sandbox work directory via `transfer_file`/`transfer_path`.
 """
-
-DEFAULT_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT + WORKFLOW_SECTION + SUBAGENT_TASK_GUIDE
 
 DEFERRED_TOOL_GUIDE = ""

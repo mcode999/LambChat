@@ -112,7 +112,7 @@ const ReadFileItem = memo(function ReadFileItem({
             <CopyButton
               text={displayContent}
               size={14}
-              className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+              className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md !border !border-stone-200 dark:!border-stone-700"
             />
           </div>
         </div>
@@ -181,7 +181,7 @@ const ReadFileItem = memo(function ReadFileItem({
                   <CopyButton
                     text={displayContent}
                     size={12}
-                    className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+                    className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md !border !border-stone-200 dark:!border-stone-700"
                   />
                 </div>
               </div>

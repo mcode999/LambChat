@@ -14,15 +14,7 @@ import {
   Loader2,
   Smile,
   MessageSquare,
-  GraduationCap,
-  Code2,
-  PenTool,
-  Shield,
-  Database,
-  Zap,
-  Package,
   Check,
-  type LucideIcon,
 } from "lucide-react";
 import { LoadingSpinner } from "../common/LoadingSpinner";
 import { EditorSidebar } from "../common/EditorSidebar";
@@ -32,13 +24,11 @@ import { buildPersonaPresetPayload } from "./personaPresetEditor";
 import { uploadApi } from "../../services/api";
 import { compressImageFile } from "../../utils/imageCompression";
 import {
-  getPersonaAvatarIconValue,
-  getPersonaAvatarIcons,
   isPersonaImageAvatar,
   isEmojiAvatar,
   getEmojiAvatarUrl,
-  type PersonaAvatarIconKey,
 } from "./personaAvatar";
+import { getFluentEmojiCDN } from "@lobehub/fluent-emoji";
 import { PersonaAvatarIcon, PersonaAvatarImage } from "./PersonaAvatarIcon";
 import type {
   PersonaPreset,
@@ -48,26 +38,24 @@ import type {
   PersonaPresetUpdate,
 } from "../../types";
 
-const AVATAR_ICONS: {
-  key: PersonaAvatarIconKey;
-  icon: LucideIcon;
-  label: string;
-  color: string;
-  bg: string;
-}[] = getPersonaAvatarIcons().map((item) => ({
-  ...item,
-  icon:
-    {
-      sparkles: Sparkles,
-      academic: GraduationCap,
-      coding: Code2,
-      writing: PenTool,
-      security: Shield,
-      data: Database,
-      productivity: Zap,
-      general: Package,
-    }[item.key] ?? Sparkles,
-}));
+const AVATAR_EMOJIS: { emoji: string; label: string }[] = [
+  { emoji: "✨", label: "Sparkles" },
+  { emoji: "🤖", label: "Robot" },
+  { emoji: "🎓", label: "Academic" },
+  { emoji: "💻", label: "Coding" },
+  { emoji: "✍️", label: "Writing" },
+  { emoji: "🛡️", label: "Security" },
+  { emoji: "📊", label: "Data" },
+  { emoji: "⚡", label: "Productivity" },
+  { emoji: "📦", label: "General" },
+  { emoji: "🎨", label: "Art" },
+  { emoji: "🎵", label: "Music" },
+  { emoji: "📚", label: "Literature" },
+  { emoji: "🧠", label: "Intelligence" },
+  { emoji: "🔬", label: "Science" },
+  { emoji: "💬", label: "Chat" },
+  { emoji: "🌟", label: "Star" },
+];
 
 interface StarterPromptDraftRow {
   icon: string;
@@ -267,18 +255,25 @@ export function PersonaEditorModal({
             status: editorStatus,
           }),
         );
-    if (saved) {
-      onClose();
-      toast.success(
+    if (!saved) {
+      toast.error(
         editingPreset
-          ? t("personaPresets.updateSuccess", "角色「{{name}}」已更新", {
-              name: normalizedDraft.name,
-            })
-          : t("personaPresets.createSuccess", "角色「{{name}}」已创建", {
-              name: normalizedDraft.name,
-            }),
+          ? t("personaPresets.updateFailed", "角色更新失败")
+          : t("personaPresets.createFailed", "角色创建失败"),
       );
+      return;
     }
+
+    onClose();
+    toast.success(
+      editingPreset
+        ? t("personaPresets.updateSuccess", "角色「{{name}}」已更新", {
+            name: normalizedDraft.name,
+          })
+        : t("personaPresets.createSuccess", "角色「{{name}}」已创建", {
+            name: normalizedDraft.name,
+          }),
+    );
   }, [
     onClose,
     createPreset,
@@ -366,15 +361,12 @@ export function PersonaEditorModal({
                 avatarInputRef.current?.click()
               }
             >
-              {isPersonaImageAvatar(draft.avatar) ? (
+              {isEmojiAvatar(draft.avatar) ? (
                 <>
                   <PersonaAvatarImage
-                    avatar={draft.avatar}
+                    avatar={getEmojiAvatarUrl(draft.avatar)}
                     alt=""
                     className="ppe-avatar-img"
-                    onError={() =>
-                      setDraft((prev) => ({ ...prev, avatar: "" }))
-                    }
                   />
                   <button
                     type="button"
@@ -388,12 +380,15 @@ export function PersonaEditorModal({
                     <X size={12} />
                   </button>
                 </>
-              ) : isEmojiAvatar(draft.avatar) ? (
+              ) : isPersonaImageAvatar(draft.avatar) ? (
                 <>
                   <PersonaAvatarImage
-                    avatar={getEmojiAvatarUrl(draft.avatar)}
+                    avatar={draft.avatar}
                     alt=""
                     className="ppe-avatar-img"
+                    onError={() =>
+                      setDraft((prev) => ({ ...prev, avatar: "" }))
+                    }
                   />
                   <button
                     type="button"
@@ -459,32 +454,29 @@ export function PersonaEditorModal({
               </button>
               {iconPickerOpen && (
                 <div className="ppe-icon-picker">
-                  {AVATAR_ICONS.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.key}
-                        type="button"
-                        className="ppe-icon-picker-item"
-                        style={
-                          {
-                            "--icon-color": item.color,
-                            "--icon-bg": item.bg,
-                          } as React.CSSProperties
-                        }
-                        onClick={() => {
-                          setDraft((prev) => ({
-                            ...prev,
-                            avatar: getPersonaAvatarIconValue(item.key),
-                          }));
-                          setIconPickerOpen(false);
-                        }}
-                        title={item.label}
-                      >
-                        <Icon size={15} style={{ color: item.color }} />
-                      </button>
-                    );
-                  })}
+                  {AVATAR_EMOJIS.map((item) => (
+                    <button
+                      key={item.emoji}
+                      type="button"
+                      className="ppe-icon-picker-item"
+                      onClick={() => {
+                        setDraft((prev) => ({
+                          ...prev,
+                          avatar: item.emoji,
+                        }));
+                        setIconPickerOpen(false);
+                      }}
+                      title={item.label}
+                    >
+                      <img
+                        src={getFluentEmojiCDN(item.emoji, { type: "anim" })}
+                        alt={item.label}
+                        width={20}
+                        height={20}
+                        style={{ objectFit: "contain" }}
+                      />
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -541,7 +533,6 @@ export function PersonaEditorModal({
                 <GlassSelect
                   value={editorScope}
                   onChange={(v) => setEditorScope(v as "user" | "global")}
-                  disabled={!!editingPreset}
                   options={[
                     {
                       value: "user",

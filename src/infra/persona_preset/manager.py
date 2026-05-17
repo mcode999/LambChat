@@ -30,10 +30,13 @@ class PersonaPresetManager:
 
     @staticmethod
     def _can_view(doc: dict, *, user_id: str, is_admin: bool) -> bool:
-        if is_admin:
-            return True
         if doc.get("scope") == PersonaPresetScope.USER.value:
-            return doc.get("owner_user_id") == user_id
+            owner_user_id = doc.get("owner_user_id")
+            if owner_user_id:
+                return owner_user_id == user_id
+            return doc.get("created_by") == user_id
+        if is_admin:
+            return doc.get("scope") == PersonaPresetScope.GLOBAL.value
         return (
             doc.get("scope") == PersonaPresetScope.GLOBAL.value
             and doc.get("visibility") == PersonaPresetVisibility.PUBLIC.value
@@ -44,7 +47,10 @@ class PersonaPresetManager:
     def _can_edit(doc: dict, *, user_id: str, is_admin: bool) -> bool:
         if doc.get("scope") == PersonaPresetScope.GLOBAL.value:
             return is_admin
-        return doc.get("owner_user_id") == user_id
+        owner_user_id = doc.get("owner_user_id")
+        if owner_user_id:
+            return owner_user_id == user_id
+        return doc.get("created_by") == user_id
 
     async def create_preset(
         self,
@@ -199,6 +205,14 @@ class PersonaPresetManager:
             raise AuthorizationError("persona_preset_no_edit_permission")
 
         update = preset_data.model_dump(mode="json", exclude_unset=True)
+        target_scope = update.get("scope")
+        if target_scope == PersonaPresetScope.GLOBAL.value:
+            if not is_admin:
+                raise AuthorizationError("persona_preset_no_admin_permission")
+            update["owner_user_id"] = None
+        elif target_scope == PersonaPresetScope.USER.value:
+            update["owner_user_id"] = user_id
+
         update["version"] = int(doc.get("version", 1)) + 1
         update["updated_by"] = user_id
         updated = await self.storage.update(preset_id, update)

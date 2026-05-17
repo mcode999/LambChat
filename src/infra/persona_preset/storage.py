@@ -308,7 +308,12 @@ class PersonaPresetStorage:
         q: str | None = None,
     ) -> dict[str, Any]:
         query: dict[str, Any] = {}
-        if not include_admin:
+        if include_admin:
+            query["$or"] = [
+                {"scope": "user", "owner_user_id": user_id},
+                {"scope": "global"},
+            ]
+        else:
             query["$or"] = [
                 {"scope": "user", "owner_user_id": user_id},
                 {

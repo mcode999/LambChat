@@ -579,7 +579,7 @@ class UserConcurrencyLimiter:
                                 session_id,
                                 SessionUpdate(
                                     metadata={
-                                        "task_status": TaskStatus.FAILED.value,
+                                        "task_status": TaskStatus.CANCELLED.value,
                                         "task_error": "Task cancelled by user",
                                         "task_error_code": "cancelled",
                                         "task_recoverable": False,

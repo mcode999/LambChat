@@ -4,6 +4,7 @@ from pathlib import Path
 from src.agents.core.subagent_prompts import (
     DEFAULT_SUBAGENT_PROMPT,
     DETAILED_SUBAGENT_PROMPT,
+    MAIN_AGENT_PROMPT_SECTIONS,
     SUBAGENT_PROMPT,
     SUBAGENT_TASK_GUIDE,
     WORKFLOW_SECTION,
@@ -29,6 +30,10 @@ FAST_SYSTEM_PROMPT = _fast_prompt.FAST_SYSTEM_PROMPT
 DEFAULT_SYSTEM_PROMPT = _search_prompt.DEFAULT_SYSTEM_PROMPT
 SANDBOX_SYSTEM_PROMPT = _search_prompt.SANDBOX_SYSTEM_PROMPT
 SANDBOX_RUNTIME_SECTION = _search_prompt.SANDBOX_RUNTIME_SECTION
+
+
+def _effective_main_prompt(base_prompt: str) -> str:
+    return "\n\n".join((base_prompt, *MAIN_AGENT_PROMPT_SECTIONS))
 
 
 def test_subagent_prompt_requires_structured_handoff_notes() -> None:
@@ -144,14 +149,37 @@ def test_main_agent_prompts_require_file_reveal_before_claiming_completion() -> 
         "reveal the actual artifact",
     ]
 
-    for prompt in (FAST_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT, SANDBOX_SYSTEM_PROMPT):
+    for prompt in (
+        _effective_main_prompt(FAST_SYSTEM_PROMPT),
+        _effective_main_prompt(DEFAULT_SYSTEM_PROMPT),
+        _effective_main_prompt(SANDBOX_SYSTEM_PROMPT),
+    ):
         lower_prompt = prompt.lower()
         for phrase in required_guidance:
             assert phrase in lower_prompt
 
 
+def test_main_agent_prompt_sections_hold_workflow_guidance() -> None:
+    joined = "\n\n".join(MAIN_AGENT_PROMPT_SECTIONS)
+
+    for phrase in [
+        "File Reveal (REQUIRED)",
+        "Artifact Completion Gate (REQUIRED)",
+        "File Transfer",
+        "Tool Selection Rules",
+        "Using the `task` Tool (Subagents)",
+    ]:
+        assert phrase in joined
+
+
+def test_main_agent_base_prompts_stay_small_and_delegate_workflow_sections() -> None:
+    for prompt in (FAST_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT, SANDBOX_SYSTEM_PROMPT):
+        assert "## Workflow" not in prompt
+        assert "## Using the `task` Tool (Subagents)" not in prompt
+
+
 def test_fast_system_prompt_does_not_repeat_file_transfer_rules() -> None:
-    assert FAST_SYSTEM_PROMPT.count("File Transfer") == 1
+    assert FAST_SYSTEM_PROMPT.count("File Transfer") == 0
 
 
 def test_workflow_section_keeps_core_operational_guidance() -> None:
@@ -199,7 +227,11 @@ def test_main_agent_prompts_include_timestamp_guidance() -> None:
         "verify time-sensitive facts",
     ]
 
-    for prompt in (FAST_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT, SANDBOX_SYSTEM_PROMPT):
+    for prompt in (
+        _effective_main_prompt(FAST_SYSTEM_PROMPT),
+        _effective_main_prompt(DEFAULT_SYSTEM_PROMPT),
+        _effective_main_prompt(SANDBOX_SYSTEM_PROMPT),
+    ):
         lower_prompt = prompt.lower()
         for phrase in required_guidance:
             assert phrase in lower_prompt
@@ -252,6 +284,14 @@ def test_search_prompts_keep_virtual_skills_and_transfer_guidance() -> None:
         for phrase in [
             "`/skills/` is virtual",
             "never shell-access",
+        ]:
+            assert phrase in prompt
+
+    for prompt in (
+        _effective_main_prompt(DEFAULT_SYSTEM_PROMPT),
+        _effective_main_prompt(SANDBOX_SYSTEM_PROMPT),
+    ):
+        for phrase in [
             "transfer_file",
             "transfer_path",
         ]:

@@ -11,6 +11,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { LoadingSpinner } from "../../common/LoadingSpinner";
+import { BrandWordmark } from "../../common/BrandWordmark";
 import type { BackendSession } from "../../../services/api";
 import type { ProjectItemHandle } from "../../sidebar/ProjectItem";
 import {
@@ -129,19 +130,19 @@ export function SessionListContent({
     <>
       {/* Header */}
       <div className="flex items-center justify-between px-3 pt-3 pb-1 sm:px-4">
-        <div className="flex h-7 items-center gap-2">
+        <div className="flex h-7 items-center gap-1.5">
           <img
-            src="/icons/icon.svg"
+            src="/images/lamb.webp"
             alt={APP_NAME}
-            className="size-6 rounded-full object-cover"
+            className="h-7 object-contain"
           />
           <a
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-lg font-bold leading-none text-stone-800 dark:text-stone-100 hover:text-stone-900 dark:hover:text-stone-50 transition-colors font-serif"
+            className="text-stone-800 dark:text-stone-100 hover:text-stone-900 dark:hover:text-stone-50 transition-colors"
           >
-            {APP_NAME}
+            <BrandWordmark decorative className="h-7 w-auto" />
           </a>
         </div>
         <button

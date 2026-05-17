@@ -127,7 +127,7 @@ const GrepItem = memo(function GrepItem({
             <CopyButton
               text={parsedResult.lines.join("\n")}
               size={14}
-              className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+              className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md !border !border-stone-200 dark:!border-stone-700"
             />
           </div>
         </div>
@@ -144,7 +144,7 @@ const GrepItem = memo(function GrepItem({
                 <CopyButton
                   text={text}
                   size={12}
-                  className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md"
+                  className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md"
                 />
               </div>
             </pre>
@@ -230,7 +230,7 @@ const GrepItem = memo(function GrepItem({
                   <CopyButton
                     text={parsedResult.lines.slice(0, 50).join("\n")}
                     size={12}
-                    className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-stone-200 dark:!border-stone-700"
+                    className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md !border !border-stone-200 dark:!border-stone-700"
                   />
                 </div>
                 {parsedResult.lines.length > 50 && (

@@ -1,0 +1,69 @@
+from __future__ import annotations
+
+import asyncio
+from types import SimpleNamespace
+
+import pytest
+
+from src.infra.task import arq_runtime
+
+
+class _FakeWorker:
+    instances: list["_FakeWorker"] = []
+
+    def __init__(self, *args, **kwargs) -> None:
+        self.args = args
+        self.kwargs = kwargs
+        self.closed = asyncio.Event()
+        _FakeWorker.instances.append(self)
+
+    async def async_run(self) -> None:
+        await self.closed.wait()
+
+    async def close(self) -> None:
+        self.closed.set()
+
+
+@pytest.mark.asyncio
+async def test_start_embedded_arq_worker_skips_when_backend_is_local(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = SimpleNamespace(TASK_BACKEND="local", ARQ_EMBEDDED_WORKER=True)
+    monkeypatch.setattr(arq_runtime, "settings", settings)
+
+    runtime = arq_runtime.EmbeddedArqRuntime(worker_factory=_FakeWorker)
+    await runtime.start()
+
+    assert runtime.is_running is False
+    assert _FakeWorker.instances == []
+
+
+@pytest.mark.asyncio
+async def test_start_embedded_arq_worker_runs_with_signals_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _FakeWorker.instances.clear()
+    settings = SimpleNamespace(
+        TASK_BACKEND="arq",
+        ARQ_EMBEDDED_WORKER=True,
+        ARQ_WORKER_MAX_JOBS=64,
+        ARQ_JOB_TIMEOUT_SECONDS=30,
+        ARQ_QUEUE_NAME="lambchat:arq",
+        REDIS_URL="redis://localhost:6379/0",
+        REDIS_PASSWORD=None,
+    )
+    monkeypatch.setattr(arq_runtime, "settings", settings)
+
+    runtime = arq_runtime.EmbeddedArqRuntime(worker_factory=_FakeWorker)
+    await runtime.start()
+
+    assert runtime.is_running is True
+    assert _FakeWorker.instances
+    worker = _FakeWorker.instances[0]
+    assert worker.kwargs["handle_signals"] is False
+    assert worker.kwargs["max_jobs"] == 64
+    assert worker.kwargs["job_timeout"] == 30
+    assert worker.kwargs["queue_name"] == "lambchat:arq"
+
+    await runtime.stop()
+    assert runtime.is_running is False

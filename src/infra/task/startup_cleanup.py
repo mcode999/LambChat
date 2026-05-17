@@ -93,7 +93,11 @@ class TaskStartupCleanupService:
                 cleaned_count += 1
 
             cursor = self._storage.collection.find(
-                {"metadata.task_status": TaskStatus.PENDING.value}
+                {
+                    "metadata.task_status": {
+                        "$in": [TaskStatus.PENDING.value, TaskStatus.QUEUED.value]
+                    }
+                }
             )
             pending_sessions = await cursor.to_list(length=1000)
 
@@ -254,7 +258,11 @@ class TaskStartupCleanupService:
             redis = limiter.redis
 
             cursor = self._storage.collection.find(
-                {"metadata.task_status": TaskStatus.PENDING.value}
+                {
+                    "metadata.task_status": {
+                        "$in": [TaskStatus.PENDING.value, TaskStatus.QUEUED.value]
+                    }
+                }
             )
             pending_sessions = await cursor.to_list(length=1000)
 
@@ -324,7 +332,7 @@ class TaskStartupCleanupService:
                             executor = self._ensure_executor()
                             await executor._update_session_status(
                                 session_id,
-                                TaskStatus.FAILED,
+                                TaskStatus.EXPIRED,
                                 "Task abandoned (server restarted while queued)",
                                 run_id=run_id,
                             )
@@ -333,6 +341,6 @@ class TaskStartupCleanupService:
             if replayed > 0:
                 logger.info("Replayed %s queued tasks on startup", replayed)
             if abandoned > 0:
-                logger.warning("Marked %s abandoned queued tasks as FAILED", abandoned)
+                logger.warning("Marked %s abandoned queued tasks as EXPIRED", abandoned)
         except Exception as e:
             logger.error("Failed to replay pending queued tasks: %s", e)

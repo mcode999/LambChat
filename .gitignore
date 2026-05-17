@@ -90,3 +90,6 @@ docs/docs/.vitepress/
 .gitignore
 k8s/lambchat-secret.yaml
 k8s/lambchat.yaml
+
+# Superpowers (external project, not part of this repo)
+.superpowers/

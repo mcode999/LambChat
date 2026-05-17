@@ -1,5 +1,3 @@
-import { Loader2 } from "lucide-react";
-
 export type LoadingSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 interface LoadingSpinnerProps {
@@ -26,16 +24,36 @@ export function LoadingSpinner({
   const sizeValue = sizeMap[size];
 
   return (
-    <Loader2
-      size={sizeValue}
+    <svg
+      width={sizeValue}
+      height={sizeValue}
+      viewBox="0 0 24 24"
+      fill="none"
       className={`${color || "text-stone-500 dark:text-stone-300"} ${
-        isStatic ? "" : "animate-spin"
+        isStatic ? "" : "spinner-rotate"
       } ${className}`}
-    />
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        opacity="0.12"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeDasharray="16 47"
+      />
+    </svg>
   );
 }
 
-// 带文字的加载提示组件
 interface LoadingProps {
   text?: string;
   size?: LoadingSize;

@@ -186,3 +186,32 @@ async def test_auth_spa_routes_are_noindexed_in_initial_html(
     assert response.status_code == 200
     assert 'content="noindex, follow, max-image-preview:large"' in response.text
     assert 'rel="canonical" href="https://lambchat.com/auth/login"' in response.text
+
+
+@pytest.mark.asyncio
+async def test_image_static_files_include_cache_control(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    static_dir = tmp_path / "dist"
+    images_dir = static_dir / "images"
+    images_dir.mkdir(parents=True)
+    (static_dir / "index.html").write_text("<!doctype html><div id='root'></div>", encoding="utf-8")
+    (images_dir / "lamb.webp").write_bytes(b"fake-webp")
+
+    monkeypatch.setattr(
+        api_main,
+        "resolve_frontend_target",
+        lambda _project_root, _frontend_dev_url: ("static", static_dir),
+    )
+
+    app = api_main.create_app()
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="https://lambchat.com") as client:
+        response = await client.get("/images/lamb.webp")
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == (
+        "public, max-age=604800, stale-while-revalidate=86400"
+    )

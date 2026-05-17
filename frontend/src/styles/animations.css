@@ -84,3 +84,33 @@
     opacity: 1;
   }
 }
+
+/* Spinning glow ring for scroll-to-bottom button during streaming */
+.scroll-btn-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  padding: 0.5px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 80%,
+    var(--theme-primary) 88%,
+    transparent 96%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: glow-spin 2s linear infinite;
+}
+
+@keyframes glow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -79,6 +79,72 @@ test("preserves user preset updates without admin-only fields", () => {
   );
 });
 
+test("includes public global fields when editing a user preset as official", () => {
+  const preset = {
+    id: "preset-1",
+    scope: "user",
+    name: "Mine",
+    description: "",
+    tags: [],
+    system_prompt: "Hi",
+    starter_prompts: [],
+    skill_names: [],
+    visibility: "private",
+    status: "draft",
+    version: 1,
+    usage_count: 0,
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  } satisfies PersonaPreset;
+
+  assert.deepEqual(
+    buildPersonaPresetPayload(preset, draft, {
+      scope: "global",
+      status: "published",
+    }),
+    {
+      ...draft,
+      avatar: null,
+      scope: "global",
+      visibility: "public",
+      status: "published",
+    },
+  );
+});
+
+test("includes private user fields when editing an official preset as mine", () => {
+  const preset = {
+    id: "preset-2",
+    scope: "global",
+    name: "Official",
+    description: "",
+    tags: [],
+    system_prompt: "Hi",
+    starter_prompts: [],
+    skill_names: [],
+    visibility: "public",
+    status: "published",
+    version: 1,
+    usage_count: 0,
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  } satisfies PersonaPreset;
+
+  assert.deepEqual(
+    buildPersonaPresetPayload(preset, draft, {
+      scope: "user",
+      status: "published",
+    }),
+    {
+      ...draft,
+      avatar: null,
+      scope: "user",
+      visibility: "private",
+      status: "draft",
+    },
+  );
+});
+
 test("includes status when updating an official preset", () => {
   const preset = {
     id: "preset-2",

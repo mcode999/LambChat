@@ -144,7 +144,7 @@ export function PersonaPresetSelector({
       onClick={() => onOpenChange(false)}
     >
       <div
-        className="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl shadow-2xl sm:max-w-3xl md:max-w-4xl lg:max-w-5xl sm:rounded-2xl"
+        className="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl shadow-2xl sm:max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl sm:rounded-2xl"
         style={{ background: "var(--theme-bg-card)" }}
         onClick={(event) => event.stopPropagation()}
       >

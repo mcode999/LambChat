@@ -114,12 +114,14 @@ export function ChatAppContent({
     presets: personaPresets,
     total: personaPresetsTotal,
     isLoading: personaPresetsLoading,
+    isLoadingMore: personaPresetsLoadingMore,
     isMutating: personaPresetsMutating,
     usePreset: activatePersonaPreset,
     updatePreference: updatePersonaPreference,
     copyPreset: copyPersonaPreset,
     createPreset: createPersonaPreset,
     updatePreset: updatePersonaPreset,
+    loadMore: loadMorePersonaPresets,
   } = usePersonaPresets({
     enabled: canReadPersonaPresets,
     listParams: personaPresetListParams,
@@ -131,6 +133,17 @@ export function ChatAppContent({
   const handlePersonaPresetTagChange = useCallback((tag: string | null) => {
     setPersonaPresetTag(tag);
   }, []);
+
+  const hasMorePersonaPresets = personaPresets.length < personaPresetsTotal;
+  const handleLoadMorePersonaPresets = useCallback(() => {
+    if (!hasMorePersonaPresets || personaPresetsLoadingMore) return;
+    loadMorePersonaPresets(personaPresetListParams);
+  }, [
+    hasMorePersonaPresets,
+    personaPresetsLoadingMore,
+    loadMorePersonaPresets,
+    personaPresetListParams,
+  ]);
 
   const projectManager = useProjectManager();
 
@@ -762,6 +775,9 @@ export function ChatAppContent({
           enableSkills={enableSkills}
           personaPresets={personaPresets}
           personaPresetsTotal={personaPresetsTotal}
+          hasMorePersonaPresets={hasMorePersonaPresets}
+          isLoadingMorePersonaPresets={personaPresetsLoadingMore}
+          onLoadMorePersonaPresets={handleLoadMorePersonaPresets}
           personaPresetsPage={personaPresetPage}
           onPersonaPresetsPageChange={setPersonaPresetPage}
           onPersonaPresetsSearchChange={handlePersonaPresetSearchChange}

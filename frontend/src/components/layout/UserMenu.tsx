@@ -3,22 +3,19 @@ import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  MessageSquare,
-  Sparkles,
   LogOut,
-  Settings,
-  Server,
-  MessageCircle,
-  Brain,
   User,
+  Users,
+  Shield,
+  Bot,
+  Cpu,
+  Star,
+  Bell,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
-import { useSettingsContext } from "../../contexts/SettingsContext";
 import { Permission } from "../../types";
-import {
-  beginSessionSelectionGuard,
-  clearSessionSelectionGuard,
-} from "../../utils/sessionSelectionGuard";
+import { clearSessionSelectionGuard } from "../../utils/sessionSelectionGuard";
 import { useSwipeToClose } from "../../hooks/useSwipeToClose";
 
 interface UserMenuProps {
@@ -28,7 +25,6 @@ interface UserMenuProps {
 export function UserMenu({ onShowProfile }: UserMenuProps) {
   const { t } = useTranslation();
   const { logout, hasAnyPermission, user } = useAuth();
-  const { enableSkills, enableMemory } = useSettingsContext();
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
@@ -44,13 +40,17 @@ export function UserMenu({ onShowProfile }: UserMenuProps) {
     enabled: showMenu && isMobile,
   });
 
-  const canReadSkills =
-    hasAnyPermission([Permission.SKILL_READ]) && enableSkills;
-  const canReadMarketplace =
-    hasAnyPermission([Permission.MARKETPLACE_READ]) && enableSkills;
-  const canReadAnySkills = canReadSkills || canReadMarketplace;
-  const canReadMCP = hasAnyPermission([Permission.MCP_READ]);
-  const canReadChannels = hasAnyPermission([Permission.CHANNEL_READ]);
+  const canManageUsers = hasAnyPermission([
+    Permission.USER_READ,
+    Permission.USER_WRITE,
+  ]);
+  const canManageRoles = hasAnyPermission([Permission.ROLE_MANAGE]);
+  const canManageAgents = hasAnyPermission([Permission.AGENT_ADMIN]);
+  const canManageModels = hasAnyPermission([Permission.MODEL_ADMIN]);
+  const canViewFeedback = hasAnyPermission([Permission.FEEDBACK_READ]);
+  const canManageNotifications = hasAnyPermission([
+    Permission.NOTIFICATION_MANAGE,
+  ]);
   const canManageSettings = hasAnyPermission([Permission.SETTINGS_MANAGE]);
 
   // Reactive mobile detection
@@ -117,127 +117,146 @@ export function UserMenu({ onShowProfile }: UserMenuProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  const navItems = [
-    { path: "/chat", label: t("nav.chat"), icon: MessageSquare, show: true },
-    {
-      path: "/skills",
-      label: t("nav.skills"),
-      icon: Sparkles,
-      show: canReadAnySkills,
-      matchPaths: ["/skills", "/marketplace"],
-    },
-    { path: "/mcp", label: t("nav.mcp"), icon: Server, show: canReadMCP },
-    {
-      path: "/channels",
-      label: t("nav.channels"),
-      icon: MessageCircle,
-      show: canReadChannels,
-    },
-    {
-      path: "/memory",
-      label: t("nav.memory"),
-      icon: Brain,
-      show: enableMemory,
-    },
-  ];
-
-  const visibleNav = navItems.filter((i) => i.show);
-
   const menuItemClass =
-    "flex w-full items-center gap-3 px-3 py-1.5 sm:py-2.5 text-left text-sm transition-colors text-[var(--theme-text-secondary)] hover:text-[var(--theme-text)] hover:bg-[var(--theme-primary-light)] active:scale-[0.98]";
+    "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-all duration-150 rounded-lg text-[var(--theme-text-secondary)] hover:text-[var(--theme-text)] hover:bg-[var(--theme-primary-light)] active:scale-[0.98]";
 
-  const renderNavItem = (item: {
-    path: string;
-    label: string;
-    icon: React.ElementType;
-    matchPaths?: string[];
-  }) => (
-    <button
-      key={item.path}
-      type="button"
-      className={`${menuItemClass} ${
-        (item.matchPaths ?? [item.path]).includes(location.pathname)
-          ? "bg-[var(--theme-primary-light)] text-[var(--theme-text)]"
-          : ""
-      }`}
-      onMouseDown={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (item.path !== "/chat") {
-          beginSessionSelectionGuard(item.path);
-        }
-      }}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (item.path !== "/chat") {
-          beginSessionSelectionGuard(item.path);
-        }
-        setShowMenu(false);
-        requestAnimationFrame(() => {
-          navigate(item.path);
-        });
-      }}
-    >
-      <item.icon size={16} strokeWidth={1.8} />
-      <span>{item.label}</span>
-    </button>
-  );
+  const navigateTo = (path: string) => {
+    setShowMenu(false);
+    requestAnimationFrame(() => {
+      navigate(path);
+    });
+  };
+
+  const adminItems = [
+    {
+      path: "/users",
+      label: t("nav.users"),
+      icon: Users,
+      show: canManageUsers,
+    },
+    {
+      path: "/roles",
+      label: t("nav.roles"),
+      icon: Shield,
+      show: canManageRoles,
+    },
+    {
+      path: "/agents",
+      label: t("nav.agents"),
+      icon: Bot,
+      show: canManageAgents,
+    },
+    {
+      path: "/models",
+      label: t("nav.models"),
+      icon: Cpu,
+      show: canManageModels,
+    },
+  ].filter((i) => i.show);
+
+  const sysItems = [
+    {
+      path: "/feedback",
+      label: t("nav.feedback"),
+      icon: Star,
+      show: canViewFeedback,
+    },
+    {
+      path: "/notifications",
+      label: t("nav.notifications"),
+      icon: Bell,
+      show: canManageNotifications,
+    },
+    {
+      path: "/settings",
+      label: t("nav.systemSettings"),
+      icon: Settings,
+      show: canManageSettings,
+    },
+  ].filter((i) => i.show);
+
+  const hasAdminSection = adminItems.length > 0;
+  const hasSysSection = sysItems.length > 0;
 
   const renderMenuContent = () => (
     <>
-      {/* Navigation */}
-      {visibleNav.length > 0 && <div>{visibleNav.map(renderNavItem)}</div>}
-
-      {/* System Settings (only settings page remains here for quick access) */}
-      {canManageSettings && (
+      <div className="py-1.5">
+        {/* Personal section */}
         <button
-          type="button"
-          className={`${menuItemClass} ${
-            location.pathname === "/settings"
-              ? "bg-[var(--theme-primary-light)] text-[var(--theme-text)]"
-              : ""
-          }`}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            beginSessionSelectionGuard("/settings");
-          }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            beginSessionSelectionGuard("/settings");
+          onClick={() => {
+            onShowProfile();
             setShowMenu(false);
-            requestAnimationFrame(() => {
-              navigate("/settings");
-            });
           }}
+          className={menuItemClass}
         >
-          <Settings size={16} strokeWidth={1.8} />
-          <span>{t("nav.systemSettings")}</span>
+          <User size={16} strokeWidth={1.8} />
+          <span>{t("users.user")}</span>
         </button>
-      )}
 
-      <button
-        onClick={() => {
-          onShowProfile();
-          setShowMenu(false);
-        }}
-        className={menuItemClass}
-      >
-        <User size={16} strokeWidth={1.8} />
-        <span>{t("users.user")}</span>
-      </button>
-      <button
-        onClick={() => {
-          logout();
-          setShowMenu(false);
-        }}
-        className={`${menuItemClass} text-red-500/70 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10`}
-      >
-        <LogOut size={16} strokeWidth={1.8} />
-        <span className="flex-1">{t("auth.logout")}</span>
-      </button>
+        {/* Admin section */}
+        {hasAdminSection && (
+          <>
+            <div className="mx-4 my-1.5 border-t border-[var(--theme-border)]" />
+            <div className="px-4 pt-1 pb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--theme-text-secondary)] opacity-40">
+                {t("nav.groupAdmin")}
+              </span>
+            </div>
+            {adminItems.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => navigateTo(item.path)}
+                className={`${menuItemClass} ${
+                  location.pathname === item.path
+                    ? "bg-[var(--theme-primary-light)] text-[var(--theme-text)] font-medium"
+                    : ""
+                }`}
+              >
+                <item.icon size={16} strokeWidth={1.8} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </>
+        )}
+
+        {/* System section */}
+        {hasSysSection && (
+          <>
+            <div className="mx-4 my-1.5 border-t border-[var(--theme-border)]" />
+            <div className="px-4 pt-1 pb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--theme-text-secondary)] opacity-40">
+                {t("nav.groupSystem")}
+              </span>
+            </div>
+            {sysItems.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => navigateTo(item.path)}
+                className={`${menuItemClass} ${
+                  location.pathname === item.path
+                    ? "bg-[var(--theme-primary-light)] text-[var(--theme-text)] font-medium"
+                    : ""
+                }`}
+              >
+                <item.icon size={16} strokeWidth={1.8} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </>
+        )}
+
+        <div className="mx-4 my-1.5 border-t border-[var(--theme-border)]" />
+        <button
+          onClick={() => {
+            logout();
+            setShowMenu(false);
+          }}
+          className={`${menuItemClass} text-red-500/70 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10`}
+        >
+          <LogOut size={16} strokeWidth={1.8} />
+          <span>{t("auth.logout")}</span>
+        </button>
+      </div>
     </>
   );
 
@@ -301,7 +320,7 @@ export function UserMenu({ onShowProfile }: UserMenuProps) {
                 />
                 <div
                   ref={menuRef}
-                  className="fixed z-[301] w-52 rounded-xl shadow-xl border overflow-hidden animate-scale-in"
+                  className="fixed z-[301] w-56 rounded-xl shadow-xl border overflow-hidden animate-scale-in"
                   style={{
                     top: `${menuPosition.top}px`,
                     right: `${menuPosition.right}px`,

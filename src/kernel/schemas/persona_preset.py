@@ -107,6 +107,7 @@ class PersonaPresetUpdate(BaseModel):
     system_prompt: Optional[str] = Field(None, min_length=1)
     starter_prompts: Optional[list[PersonaStarterPrompt]] = None
     skill_names: Optional[list[str]] = None
+    scope: Optional[PersonaPresetScope] = None
     visibility: Optional[PersonaPresetVisibility] = None
     status: Optional[PersonaPresetStatus] = None
 

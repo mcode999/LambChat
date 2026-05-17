@@ -129,9 +129,7 @@ class PromptCachingMiddleware(AgentMiddleware):
         volatile_prefixes = (
             "<memory_index>",
             "## mcp tools (deferred)",
-            "## sandbox runtime",
-            "## sandbox tools",
-            "## available environment variables",
+            "## user runtime context",
         )
         return any(text.startswith(prefix) for prefix in volatile_prefixes)
 

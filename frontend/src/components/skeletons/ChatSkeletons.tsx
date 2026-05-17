@@ -255,7 +255,7 @@ export function WelcomeSkeleton() {
       </div>
 
       {/* Suggestions skeleton */}
-      <div className="welcome-suggestions relative w-[85%] sm:max-w-[38rem] md:max-w-[40rem] lg:max-w-[42rem] xl:max-w-[44rem] 2xl:max-w-[46rem] px-0 sm:px-4 sm:mt-2 md:mt-3 xl:mt-4 2xl:mt-4">
+      <div className="welcome-suggestions relative w-[85%] sm:max-w-[38rem] md:max-w-[40rem] lg:max-w-[42rem] xl:max-w-[44rem] 2xl:max-w-[46rem] px-0 sm:px-4 mt-2 md:mt-3 xl:mt-4 2xl:mt-4">
         {/* Label + refresh */}
         <div className="welcome-suggestions-header flex items-center justify-between mb-2 sm:mb-3 md:mb-3 xl:mb-4 2xl:mb-4 px-2 sm:px-0">
           <div className="flex items-center gap-1">

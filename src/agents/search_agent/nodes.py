@@ -20,7 +20,11 @@ from src.agents.core.node_utils import (
     resolve_fallback_model,
 )
 from src.agents.core.persona import build_persona_prompt_sections
-from src.agents.core.subagent_prompts import SUBAGENT_PROMPT, get_memory_guide
+from src.agents.core.subagent_prompts import (
+    MAIN_AGENT_PROMPT_SECTIONS,
+    SUBAGENT_PROMPT,
+    get_memory_guide,
+)
 from src.agents.core.thinking import build_thinking_config
 from src.agents.search_agent.context import SearchAgentContext
 from src.agents.search_agent.prompt import (
@@ -36,6 +40,7 @@ from src.infra.agent.middleware import (
     SandboxMCPMiddleware,
     SectionPromptMiddleware,
     ToolResultBinaryMiddleware,
+    create_code_interpreter_middleware,
     create_retry_middleware,
 )
 from src.infra.agent.middleware_subagent import SubagentActivityMiddleware
@@ -203,7 +208,11 @@ async def agent_node(state: Dict[str, Any], config: RunnableConfig) -> Dict[str,
     user_middleware.append(ToolResultBinaryMiddleware(base_url=search_base_url))
     # Prompt sections: one SectionPromptMiddleware instance, multiple ordered blocks.
     # Duplicate middleware classes are rejected by langchain's agent factory.
-    _prompt_sections = [s for s in (*persona_sections, skills_prompt, memory_guide) if s]
+    _prompt_sections = [
+        s
+        for s in (*MAIN_AGENT_PROMPT_SECTIONS, *persona_sections, skills_prompt, memory_guide)
+        if s
+    ]
     # Sandbox runtime is user/session-specific; keep it after global-stable blocks.
     if sandbox_backend:
         if sandbox_work_dir:
@@ -232,6 +241,8 @@ async def agent_node(state: Dict[str, Any], config: RunnableConfig) -> Dict[str,
             )
         )
         logger.info("[SearchAgent] Tool search middleware enabled (deferred MCP loading)")
+
+    user_middleware.extend(create_code_interpreter_middleware(agent_options))
 
     # KV cache: tag final system block + last tool AFTER all dynamic injection
     user_middleware.append(PromptCachingMiddleware())

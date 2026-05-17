@@ -76,6 +76,29 @@ Text only. Limits: single file 10MB, batch 100MB/200 files. `/skills/` is virtua
 """
 )
 
+MAIN_AGENT_PROMPT_SECTIONS: tuple[str, ...] = (
+    FILE_WORKSPACE_GUIDE,
+    FILE_REVEAL_GUIDE,
+    SAFETY_AND_VERIFICATION_GUIDE,
+    """
+### File Transfer
+Backends are routed by path prefix:
+- `/skills/*` → skill store (MongoDB)
+- Other paths → active workspace/work_dir
+
+Tools:
+- `transfer_file(src, dst)` — transfer one text file between backends.
+- `transfer_path(src_dir, prefix)` — batch transfer a directory; the directory name becomes the target sub-path (e.g., `/skills/Foo/` → `/home/user/Foo/`).
+
+Text only. Limits: single file 10MB, batch 100MB/200 files. `/skills/` is virtual storage, not a sandbox directory; never execute `/skills/...` directly from shell. Transfer files into the workspace before running them.
+
+### Tool Selection Rules
+- If the needed tool is already loaded, call it directly.
+- If a relevant MCP tool appears in a deferred section, call `search_tools` to load the matching schema, then call that tool directly.
+- If the capability is a sandbox tool, use `execute` with `mcporter list`, then `mcporter list <service> --schema`, before the first `mcporter call`.
+""",
+)
+
 # ---------------------------------------------------------------------------
 # 共享 Memory 段
 # ---------------------------------------------------------------------------
@@ -102,7 +125,11 @@ Each user message includes the user's question timestamp. Subagents do not autom
 `Current task start time: YYYY-MM-DD HH:mm:ss ±HH:MM Timezone`
 
 Before calling `task`, verify that the description includes that exact field. Tell the subagent to use it as the time baseline for relative dates such as "today", "tomorrow", "yesterday", "latest", or "this week", and do not use their own inferred current time. For time-sensitive work, add any extra source-recency constraints after the timestamp line.
+
+In Chinese UI copy, this field may be referred to as 当前任务开始时间, but the subagent description must still include the exact English field label above.
 """
+
+MAIN_AGENT_PROMPT_SECTIONS = (*MAIN_AGENT_PROMPT_SECTIONS, SUBAGENT_TASK_GUIDE)
 
 # ---------------------------------------------------------------------------
 # 子代理系统提示词 — 默认版本（简单任务，不强制保存文件）

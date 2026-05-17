@@ -26,6 +26,12 @@ For MCP servers with many tools, deferred loading reduces prompt size by loading
 |----------|---------|-------------|
 | `ENABLE_SKILLS` | `true` | Enable the skills system. |
 
+## Code Interpreter
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENABLE_CODE_INTERPRETER` | `false` | Enable the experimental QuickJS code interpreter for agent runs. |
+
 ## Audio Transcription
 
 | Variable | Default | Sensitive | Description |
@@ -44,6 +50,9 @@ MCP_ENCRYPTION_SALT=your-random-salt-here
 
 # Skills
 ENABLE_SKILLS=true
+
+# Code Interpreter (optional)
+ENABLE_CODE_INTERPRETER=false
 
 # Audio Transcription (optional)
 ENABLE_AUDIO_TRANSCRIPTION=true

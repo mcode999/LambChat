@@ -177,6 +177,16 @@ select:-webkit-autofill:active {
   }
 }
 
+/* Unified spinner rotation */
+@keyframes spinner-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -315,6 +325,7 @@ html[data-mobile-keyboard="true"] #root {
 
 /* Mobile bottom-sheet drag handle — touch feedback */
 .mobile-drag-handle {
+  width: 2.75rem !important;
   transition:
     opacity 0.15s,
     width 0.15s,
@@ -322,6 +333,6 @@ html[data-mobile-keyboard="true"] #root {
 }
 .mobile-drag-handle:active {
   opacity: 0.6;
-  width: 2.5rem !important;
+  width: 3.25rem !important;
   height: 0.35rem !important;
 }

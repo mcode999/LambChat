@@ -55,6 +55,7 @@ export interface PersonaPresetUpdate {
   system_prompt?: string;
   starter_prompts?: PersonaStarterPrompt[];
   skill_names?: string[];
+  scope?: PersonaPresetScope;
   visibility?: PersonaPresetVisibility;
   status?: PersonaPresetStatus;
 }

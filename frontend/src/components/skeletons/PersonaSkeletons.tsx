@@ -7,7 +7,7 @@ export function PersonaPlazaSkeleton() {
       <PanelHeaderSkeleton hasSearch />
       <div className="skill-content-area flex-1 overflow-y-auto py-2 sm:py-4 px-4 sm:p-6">
         <div className="grid auto-grid-cols gap-4 sm:gap-5">
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="scb">
               {/* Banner */}
               <div

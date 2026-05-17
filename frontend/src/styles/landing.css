@@ -161,6 +161,33 @@ html.dark .blog-float-dot {
   position: relative;
 }
 
+.blog-hero-title::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -0.55rem;
+  width: min(46vw, 18rem);
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(217, 119, 6, 0.32),
+    rgba(56, 189, 248, 0.24),
+    transparent
+  );
+}
+
+html.dark .blog-hero-title::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(251, 191, 36, 0.2),
+    rgba(56, 189, 248, 0.18),
+    transparent
+  );
+}
+
 @media (max-width: 639px) {
   .blog-hero {
     isolation: isolate;
@@ -198,7 +225,6 @@ html.dark .blog-float-dot {
 
   .blog-tech-pill {
     background-color: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(10px);
   }
 
   html.dark .blog-tech-pill {
@@ -299,13 +325,13 @@ html.dark .blog-btn-primary::after {
     border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1),
     background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.02),
-    0 0 0 0 rgba(0, 0, 0, 0);
+    0 1px 2px rgba(0, 0, 0, 0.025),
+    0 12px 32px rgba(120, 113, 108, 0.035);
 }
 .blog-feature-card:hover {
   box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.06),
-    0 2px 8px rgba(0, 0, 0, 0.03);
+    0 18px 46px rgba(0, 0, 0, 0.075),
+    0 4px 12px rgba(0, 0, 0, 0.035);
   border-color: rgba(231, 229, 228, 0.8);
 }
 html.dark .blog-feature-card:hover {
@@ -321,14 +347,63 @@ html.dark .blog-feature-card:hover {
     transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1),
     border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.025),
+    0 16px 46px rgba(120, 113, 108, 0.045);
   border: 1px solid rgba(231, 229, 228, 0.4);
+}
+.blog-screenshot-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.32),
+    transparent 34%,
+    transparent 70%,
+    rgba(251, 191, 36, 0.08)
+  );
+  opacity: 0.66;
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.blog-screenshot-card:hover::before {
+  opacity: 1;
+}
+html.dark .blog-screenshot-card::before {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    transparent 36%,
+    transparent 72%,
+    rgba(251, 191, 36, 0.055)
+  );
 }
 .blog-screenshot-card:hover {
   box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.08),
-    0 8px 20px rgba(0, 0, 0, 0.04);
+    0 24px 70px rgba(0, 0, 0, 0.095),
+    0 8px 22px rgba(0, 0, 0, 0.045);
   border-color: rgba(231, 229, 228, 0.7);
+}
+
+.blog-screenshot-card > div:last-child {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.82),
+    rgba(255, 255, 255, 0.54)
+  );
+}
+
+html.dark .blog-screenshot-card > div:last-child {
+  background: linear-gradient(
+    180deg,
+    rgba(28, 25, 23, 0.66),
+    rgba(28, 25, 23, 0.42)
+  );
 }
 html.dark .blog-screenshot-card:hover {
   box-shadow:
@@ -397,6 +472,7 @@ html.dark .blog-stat-card:hover {
   align-items: center;
   justify-content: center;
   padding: 0 1rem;
+  opacity: 0.86;
 }
 .blog-section-divider::before,
 .blog-section-divider::after {
@@ -484,6 +560,7 @@ html.dark .blog-feature-card::before {
     transparent 1px
   );
   background-size: 24px 24px;
+  border-radius: 1.25rem;
 }
 html.dark .blog-dot-pattern {
   background-image: radial-gradient(

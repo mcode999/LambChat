@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   getPersonaAvatarIcon,
   isPersonaImageAvatar,
@@ -6,6 +5,7 @@ import {
   getEmojiAvatarUrl,
   type PersonaAvatarIconKey,
 } from "../../persona/personaAvatar";
+import { getFluentEmojiCDN } from "@lobehub/fluent-emoji";
 import {
   Code2,
   Database,
@@ -29,31 +29,10 @@ const ICONS: Record<PersonaAvatarIconKey, LucideIcon> = {
   general: Package,
 };
 
-const ICON_SRC = "/icons/icon.svg";
-let cachedDataUrl: string | null = null;
-let pending: Promise<string> | null = null;
-
-function loadDataUrl(): Promise<string> {
-  if (cachedDataUrl) return Promise.resolve(cachedDataUrl);
-  if (pending) return pending;
-  pending = fetch(ICON_SRC)
-    .then((r) => r.text())
-    .then((svg) => {
-      cachedDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-        svg,
-      )}`;
-      pending = null;
-      return cachedDataUrl;
-    })
-    .catch(() => {
-      pending = null;
-      return ICON_SRC;
-    });
-  return pending;
-}
-
-// Pre-fetch on module load
-loadDataUrl();
+const DEFAULT_AVATAR_EMOJI = "🤖";
+const DEFAULT_AVATAR_SRC = getFluentEmojiCDN(DEFAULT_AVATAR_EMOJI, {
+  type: "anim",
+});
 
 export function AssistantAvatar({
   className,
@@ -64,12 +43,6 @@ export function AssistantAvatar({
   personaAvatar?: string | null;
   personaSize?: number;
 }) {
-  const [src, setSrc] = useState(ICON_SRC);
-
-  useEffect(() => {
-    loadDataUrl().then(setSrc);
-  }, []);
-
   const builtInIcon = getPersonaAvatarIcon(personaAvatar);
   if (builtInIcon) {
     const Icon = ICONS[builtInIcon.key];
@@ -117,7 +90,7 @@ export function AssistantAvatar({
 
   return (
     <img
-      src={src}
+      src={DEFAULT_AVATAR_SRC}
       alt="Assistant"
       width={28}
       height={28}

@@ -65,9 +65,9 @@ export function SidebarRail({
           aria-label={t("sidebar.expandSidebar")}
         >
           <img
-            src="/icons/icon.svg"
+            src="/images/lamb.webp"
             alt={APP_NAME}
-            className="size-5 rounded-full object-cover group-hover:hidden"
+            className="size-7 object-contain group-hover:hidden"
           />
           <svg
             xmlns="http://www.w3.org/2000/svg"

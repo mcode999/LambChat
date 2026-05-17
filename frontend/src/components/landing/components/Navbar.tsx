@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "../../common/ThemeToggle";
 import { LanguageToggle } from "../../common/LanguageToggle";
-import { APP_NAME } from "../../../constants";
+import { BrandWordmark } from "../../common/BrandWordmark";
 import { NAV_ITEMS } from "../constants";
 import { CloseIcon, MenuIcon } from "./Icons";
 
@@ -34,17 +34,18 @@ export function Navbar({
     >
       <div className="max-w-full mx-auto px-4 sm:px-8 h-14 flex items-center justify-between">
         <div
-          className="flex items-center gap-2.5 cursor-pointer group"
+          className="flex items-center cursor-pointer group gap-1.5"
           onClick={() => navigate("/")}
         >
           <img
-            src="/icons/icon.svg"
+            src="/images/lamb.webp"
             alt=""
-            className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg transition-transform duration-300 group-hover:scale-105"
+            className="size-8 object-contain transition-transform duration-300 group-hover:scale-105"
           />
-          <span className="text-md sm:text-lg font-bold tracking-tight text-stone-900 dark:text-stone-100 font-serif">
-            {APP_NAME}
-          </span>
+          <BrandWordmark
+            decorative
+            className="w-auto text-stone-900 dark:text-stone-100 h-8"
+          />
         </div>
 
         {/* Desktop nav links */}

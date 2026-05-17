@@ -15,6 +15,7 @@ import { Loading, LoadingSpinner } from "../common/LoadingSpinner";
 import { ContactAdminDialog } from "../common/ContactAdminDialog";
 import { ThemeToggle } from "../common/ThemeToggle";
 import { LanguageToggle } from "../common/LanguageToggle";
+import { BrandWordmark } from "../common/BrandWordmark";
 import { authApi } from "../../services/api";
 import { APP_NAME, GITHUB_URL } from "../../constants";
 import {
@@ -329,15 +330,16 @@ export function AuthPage({ onSuccess, initialMode }: AuthPageProps) {
       {/* Navbar */}
       <nav className="fixed top-0 inset-x-0 z-50 bg-white/90 dark:bg-stone-950/90 border-b border-stone-100/60 dark:border-stone-800/40 transition-shadow duration-300">
         <div className="mx-auto flex h-14 max-w-full items-center justify-between px-4 sm:px-8">
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link to="/" className="flex items-center group  gap-1.5">
             <img
-              src="/icons/icon.svg"
+              src="/images/lamb.webp"
               alt={APP_NAME}
-              className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg transition-transform duration-300 group-hover:scale-105"
+              className="h-8 object-contain transition-transform duration-300 group-hover:scale-105"
             />
-            <span className="text-[15px] sm:text-lg font-bold tracking-tight text-stone-900 dark:text-stone-100 font-serif">
-              {APP_NAME}
-            </span>
+            <BrandWordmark
+              decorative
+              className="w-auto text-stone-900 dark:text-stone-100 h-8"
+            />
           </Link>
           <div className="flex items-center gap-1.5">
             <LanguageToggle />
@@ -351,8 +353,11 @@ export function AuthPage({ onSuccess, initialMode }: AuthPageProps) {
         <div className="w-full max-w-[22.5rem] sm:max-w-[420px] lg:max-w-[450px] 2xl:max-w-[480px]">
           {/* Title area */}
           <div className="mb-5 text-center sm:mb-6">
-            <h1 className="text-[2.65rem] sm:text-4xl lg:text-5xl font-extrabold font-serif tracking-[-0.045em] sm:tracking-[-0.03em] leading-[0.9] sm:leading-[0.95] text-stone-900 dark:text-stone-50 mb-2">
-              {APP_NAME}
+            <h1 className="mb-2 flex justify-center text-stone-900 dark:text-stone-50">
+              <BrandWordmark
+                title={APP_NAME}
+                className="h-auto w-[5.37em] text-[2.65rem] sm:text-4xl lg:text-5xl"
+              />
             </h1>
             <p className="mx-auto max-w-[18rem] text-xs leading-relaxed text-stone-500 dark:text-stone-400 sm:text-[13px] lg:text-sm">
               {mode === "login" ? t("auth.loginHint") : t("auth.registerHint")}
@@ -649,9 +654,9 @@ export function AuthPage({ onSuccess, initialMode }: AuthPageProps) {
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-serif text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200"
+                className="inline-flex align-[-0.25em] text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-200"
               >
-                {APP_NAME}
+                <BrandWordmark decorative className="h-5 w-auto" />
               </a>
             </span>
             <span className="text-stone-300 dark:text-stone-600">·</span>

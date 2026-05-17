@@ -22,6 +22,7 @@ export function usePersonaPresets(options?: {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPresets = useCallback(
@@ -51,6 +52,33 @@ export function usePersonaPresets(options?: {
       }
     },
     [enabled, t],
+  );
+
+  const loadMore = useCallback(
+    async (params: PersonaPresetListParams = {}) => {
+      if (!enabled || isLoadingMore) return;
+      setIsLoadingMore(true);
+      try {
+        const response = await personaPresetApi.list({
+          ...params,
+          skip: presets.length,
+          limit: 12,
+        });
+        setPresets((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const newItems = response.presets.filter(
+            (p) => !existingIds.has(p.id),
+          );
+          return [...prev, ...newItems];
+        });
+        setTotal(response.total);
+      } catch {
+        /* silent — use existing list */
+      } finally {
+        setIsLoadingMore(false);
+      }
+    },
+    [enabled, isLoadingMore, presets.length],
   );
 
   useEffect(() => {
@@ -234,9 +262,11 @@ export function usePersonaPresets(options?: {
     presets,
     total,
     isLoading,
+    isLoadingMore,
     isMutating,
     error,
     fetchPresets,
+    loadMore,
     usePreset,
     updatePreference,
     copyPreset,

@@ -19,6 +19,18 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+DEFERRED_TOOL_SEARCH_GUIDE = (
+    "## MCP Tool Search Guide\n\n"
+    "Deferred MCP tools are available but not yet loaded. "
+    "If one of these tools would help with the current request, call `search_tools` "
+    "first to load its full parameter schema, then use that tool normally. "
+    "`search_tools` only searches deferred MCP tools listed in the dynamic "
+    "`## MCP Tools (Deferred)` section; it does NOT search sandbox tools. "
+    "Sandbox tools are NOT MCP tools — use `execute` with `mcporter` commands "
+    "to discover and call them."
+)
+
+
 def _tool_sort_key(tool: "BaseTool") -> tuple[str, str]:
     return (getattr(tool, "server", "") or "", getattr(tool, "name", "") or "")
 
@@ -199,14 +211,8 @@ class DeferredToolManager:
 
             lines = "\n".join(f"- {s.name}: {s.description}" for s in visible_stubs)
             parts: list[str] = [
-                "## MCP Tools (Deferred)\n\n"
-                "The following tools are available but not yet loaded. "
-                "If one of these tools would help with the current request, call `search_tools` "
-                "first to load its full parameter schema, then use that tool normally. "
-                "`search_tools` only searches the deferred MCP tools listed in this section; "
-                "it does NOT search sandbox tools. Sandbox tools are NOT MCP tools — "
-                "use `execute` with `mcporter` commands to discover and call them.",
-                lines,
+                DEFERRED_TOOL_SEARCH_GUIDE,
+                "## MCP Tools (Deferred)\n\n" + lines,
             ]
             if hidden_count:
                 noun = "tool" if hidden_count == 1 else "tools"

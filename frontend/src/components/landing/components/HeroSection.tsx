@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { APP_NAME, GITHUB_URL } from "../../../constants";
+import { BrandWordmark } from "../../common/BrandWordmark";
 import { TECH_STACK } from "../data";
 import { ArrowIcon, GitHubIcon } from "./Icons";
 import { getHeroSectionClassName } from "./landingHeroLayout";
@@ -56,21 +57,13 @@ export function HeroSection({ onLogin }: HeroSectionProps) {
         <h1
           data-reveal
           data-reveal-delay="1"
-          className="blog-hero-title text-[clamp(3.35rem,18vw,4.6rem)] sm:text-7xl md:text-[5.5rem] lg:text-[6rem] font-extrabold font-serif tracking-[-0.045em] sm:tracking-[-0.035em] leading-[0.88] sm:leading-[0.92] mb-7 sm:mb-10 text-stone-900 dark:text-stone-50"
+          className="blog-hero-title mb-7 flex justify-center text-stone-900 dark:text-stone-50 sm:mb-10"
         >
-          {APP_NAME}
+          <BrandWordmark
+            title={APP_NAME}
+            className="h-auto w-[min(88vw,22rem)] sm:w-[36rem] md:w-[42rem] lg:w-[46rem]"
+          />
         </h1>
-
-        {/* Ornamental divider */}
-        <div
-          data-reveal
-          data-reveal-delay="2"
-          className="flex items-center justify-center gap-3 mb-8 sm:mb-12"
-        >
-          <div className="w-16 sm:w-24 h-px bg-gradient-to-r from-transparent to-stone-300/60 dark:to-stone-600/40" />
-          <div className="blog-ornament-diamond" />
-          <div className="w-16 sm:w-24 h-px bg-gradient-to-l from-transparent to-stone-300/60 dark:to-stone-600/40" />
-        </div>
 
         {/* Description */}
         <p

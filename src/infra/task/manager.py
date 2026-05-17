@@ -9,9 +9,14 @@ Background Task Manager - 后台任务管理器
 import asyncio
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from arq.connections import create_pool
+
 from src.infra.logging import get_logger
 from src.infra.session.storage import SessionStorage
+from src.kernel.config import settings
 
+from .arq_payloads import TaskArqPayloadStore
+from .arq_settings import build_arq_redis_settings
 from .cancellation import TaskCancellation
 from .exceptions import TaskInterruptedError
 from .executor import TaskExecutor
@@ -233,6 +238,97 @@ class BackgroundTaskManager:
         # 返回 run_id，trace_id 将在 _run_task 中创建
         return run_id, ""  # trace_id 由 Presenter 生成，这里先返回空
 
+    async def submit_arq(
+        self,
+        session_id: str,
+        agent_id: str,
+        message: str,
+        user_id: str,
+        executor_key: str,
+        disabled_tools: Optional[List[str]] = None,
+        agent_options: Optional[Dict[str, Any]] = None,
+        attachments: Optional[List[Dict[str, Any]]] = None,
+        run_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        disabled_skills: Optional[List[str]] = None,
+        enabled_skills: Optional[List[str]] = None,
+        persona_system_prompt: Optional[str] = None,
+        disabled_mcp_tools: Optional[List[str]] = None,
+        session_name: Optional[str] = None,
+        display_message: Optional[str] = None,
+        trace_id: Optional[str] = None,
+        user_message_written: bool = False,
+        payload_store: Optional[TaskArqPayloadStore] = None,
+        arq_pool: Any | None = None,
+    ) -> Tuple[str, str]:
+        """Submit a task to arq after persisting serializable task context."""
+        task_executor = self._ensure_executor()
+        run_id = run_id or generate_run_id()
+        trace_id = trace_id or ""
+        payload_store = payload_store or TaskArqPayloadStore()
+
+        async with self._lock:
+            await task_executor.ensure_session(
+                session_id,
+                agent_id,
+                user_id,
+                project_id=project_id,
+                session_name=session_name,
+            )
+            await task_executor._update_session_status(
+                session_id,
+                TaskStatus.QUEUED,
+                run_id=run_id,
+            )
+            await payload_store.save(
+                run_id,
+                {
+                    "session_id": session_id,
+                    "run_id": run_id,
+                    "trace_id": trace_id,
+                    "agent_id": agent_id,
+                    "message": message,
+                    "display_message": display_message,
+                    "user_id": user_id,
+                    "executor_key": executor_key,
+                    "disabled_tools": disabled_tools,
+                    "agent_options": agent_options,
+                    "attachments": attachments,
+                    "disabled_skills": disabled_skills,
+                    "enabled_skills": enabled_skills,
+                    "persona_system_prompt": persona_system_prompt,
+                    "disabled_mcp_tools": disabled_mcp_tools,
+                    "user_message_written": user_message_written,
+                },
+            )
+
+            should_close_pool = False
+            if arq_pool is None:
+                arq_pool = await create_pool(
+                    build_arq_redis_settings(settings),
+                    default_queue_name=settings.ARQ_QUEUE_NAME,
+                )
+                should_close_pool = True
+            try:
+                await arq_pool.enqueue_job("run_agent_task", run_id, _job_id=run_id)
+            finally:
+                if should_close_pool:
+                    close = getattr(arq_pool, "close", None)
+                    if close is not None:
+                        result = close()
+                        if asyncio.iscoroutine(result):
+                            await result
+                    wait_closed = getattr(arq_pool, "wait_closed", None)
+                    if wait_closed is not None:
+                        result = wait_closed()
+                        if asyncio.iscoroutine(result):
+                            await result
+
+        logger.info(
+            "Task submitted to arq: session=%s, run_id=%s, agent=%s", session_id, run_id, agent_id
+        )
+        return run_id, trace_id
+
     def _on_task_done(self, run_id: str, task: asyncio.Task) -> None:
         """任务完成回调"""
         # 清理任务引用
@@ -357,7 +453,7 @@ class BackgroundTaskManager:
             session_id = run_info.get("session_id")
             if session_id:
                 await self._executor._update_session_status(
-                    session_id, TaskStatus.FAILED, "Task cancelled", run_id=run_id
+                    session_id, TaskStatus.CANCELLED, "Task cancelled", run_id=run_id
                 )
 
         return result

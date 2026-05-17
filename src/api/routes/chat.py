@@ -24,6 +24,7 @@ from src.infra.session.manager import SessionManager
 from src.infra.task.concurrency import register_executor
 from src.infra.task.manager import get_task_manager
 from src.infra.task.status import TaskStatus
+from src.kernel.config import settings
 from src.kernel.exceptions import AuthorizationError, NotFoundError
 from src.kernel.schemas.agent import AgentRequest
 from src.kernel.schemas.persona_preset import PersonaPresetSnapshot
@@ -341,7 +342,7 @@ async def chat_stream(
             session_id, agent_id, user.sub, project_id=request.project_id
         )
         await task_manager._executor._update_session_status(
-            session_id, TaskStatus.PENDING, run_id=run_id
+            session_id, TaskStatus.QUEUED, run_id=run_id
         )
 
         # Write user:message event to MongoDB immediately so page refresh can load it
@@ -390,24 +391,44 @@ async def chat_stream(
             "max_concurrent": concurrency_result.max_concurrent,
         }
 
-    # STARTED — 正常提交后台任务
-    _, _ = await task_manager.submit(
-        session_id=session_id,
-        agent_id=agent_id,
-        message=formatted_message,
-        user_id=user.sub,
-        executor=_execute_agent_stream,
-        disabled_tools=request.disabled_tools,
-        agent_options=request.agent_options,
-        attachments=attachments_data,
-        run_id=run_id,
-        project_id=request.project_id,
-        disabled_skills=request.disabled_skills,
-        enabled_skills=request.enabled_skills,
-        persona_system_prompt=request.persona_system_prompt,
-        disabled_mcp_tools=request.disabled_mcp_tools,
-        display_message=request.message,
-    )
+    if settings.TASK_BACKEND == "arq":
+        _, _ = await task_manager.submit_arq(
+            session_id=session_id,
+            agent_id=agent_id,
+            message=formatted_message,
+            user_id=user.sub,
+            executor_key="agent_stream",
+            disabled_tools=request.disabled_tools,
+            agent_options=request.agent_options,
+            attachments=attachments_data,
+            run_id=run_id,
+            project_id=request.project_id,
+            disabled_skills=request.disabled_skills,
+            enabled_skills=request.enabled_skills,
+            persona_system_prompt=request.persona_system_prompt,
+            disabled_mcp_tools=request.disabled_mcp_tools,
+            display_message=request.message,
+            trace_id=trace_id,
+        )
+    else:
+        # STARTED — 正常提交后台任务
+        _, _ = await task_manager.submit(
+            session_id=session_id,
+            agent_id=agent_id,
+            message=formatted_message,
+            user_id=user.sub,
+            executor=_execute_agent_stream,
+            disabled_tools=request.disabled_tools,
+            agent_options=request.agent_options,
+            attachments=attachments_data,
+            run_id=run_id,
+            project_id=request.project_id,
+            disabled_skills=request.disabled_skills,
+            enabled_skills=request.enabled_skills,
+            persona_system_prompt=request.persona_system_prompt,
+            disabled_mcp_tools=request.disabled_mcp_tools,
+            display_message=request.message,
+        )
 
     # 更新 session metadata，存储完整的对话配置
     await _update_session_config(

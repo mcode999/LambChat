@@ -59,7 +59,7 @@ const EditFileItem = memo(function EditFileItem({
               <CopyButton
                 text={oldString}
                 size={14}
-                className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-red-200 dark:!border-red-800"
+                className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md !border !border-red-200 dark:!border-red-800"
               />
             </div>
           </div>
@@ -82,7 +82,7 @@ const EditFileItem = memo(function EditFileItem({
               <CopyButton
                 text={newString}
                 size={14}
-                className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-emerald-200 dark:!border-emerald-800"
+                className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md !border !border-emerald-200 dark:!border-emerald-800"
               />
             </div>
           </div>
@@ -98,7 +98,7 @@ const EditFileItem = memo(function EditFileItem({
                 <CopyButton
                   text={text}
                   size={12}
-                  className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md"
+                  className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md"
                 />
               </div>
             </pre>
@@ -152,7 +152,7 @@ const EditFileItem = memo(function EditFileItem({
                     <CopyButton
                       text={oldString}
                       size={12}
-                      className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-red-200 dark:!border-red-800"
+                      className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md !border !border-red-200 dark:!border-red-800"
                     />
                   </div>
                 </div>
@@ -175,7 +175,7 @@ const EditFileItem = memo(function EditFileItem({
                     <CopyButton
                       text={newString}
                       size={12}
-                      className="!bg-white/80 dark:!bg-stone-800/80 backdrop-blur-sm !rounded-md !border !border-emerald-200 dark:!border-emerald-800"
+                      className="!bg-white/80 dark:!bg-stone-800/80 !rounded-md !border !border-emerald-200 dark:!border-emerald-800"
                     />
                   </div>
                 </div>

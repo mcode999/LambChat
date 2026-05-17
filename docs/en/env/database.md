@@ -1,6 +1,6 @@
 # Database Configuration
 
-LambChat uses MongoDB as the primary database and Redis for caching, SSE events, and pub/sub. PostgreSQL is optional for checkpoint storage.
+LambChat uses MongoDB as the primary database and Redis for caching, SSE events, pub/sub, and optional task queues. PostgreSQL is optional for checkpoint storage.
 
 ## Redis
 
@@ -8,6 +8,18 @@ LambChat uses MongoDB as the primary database and Redis for caching, SSE events,
 |----------|---------|-----------|-------------|
 | `REDIS_URL` | `redis://localhost:6379/0` | Yes | Redis connection URL. |
 | `REDIS_PASSWORD` | _(empty)_ | Yes | Redis authentication password. |
+
+## Task Execution
+
+Use `TASK_BACKEND=arq` to run default chat tasks through a Redis-backed arq queue. This is useful when you want task execution to be handled by workers instead of the local in-process task runner.
+
+| Variable | Default | Sensitive | Description |
+|----------|---------|-----------|-------------|
+| `TASK_BACKEND` | `arq` | No | Task execution backend: `local` or `arq`. |
+| `ARQ_EMBEDDED_WORKER` | `true` | No | Start an embedded arq worker inside each FastAPI process when `TASK_BACKEND=arq`. |
+| `ARQ_QUEUE_NAME` | `lambchat:arq` | No | Redis queue name used by arq for LambChat task jobs. |
+| `ARQ_WORKER_MAX_JOBS` | `64` | No | Maximum concurrent arq jobs per FastAPI process. |
+| `ARQ_JOB_TIMEOUT_SECONDS` | `3600` | No | Maximum runtime for one arq job in seconds. |
 
 ## MongoDB
 
@@ -61,6 +73,13 @@ MongoDB has a 16MB BSON document limit. For long-running agents with large state
 # Redis
 REDIS_URL=redis://localhost:6379/0
 REDIS_PASSWORD=your_redis_password
+
+# Task execution
+TASK_BACKEND=arq
+ARQ_EMBEDDED_WORKER=true
+ARQ_QUEUE_NAME=lambchat:arq
+ARQ_WORKER_MAX_JOBS=64
+ARQ_JOB_TIMEOUT_SECONDS=3600
 
 # MongoDB
 MONGODB_URL=mongodb://localhost:27017

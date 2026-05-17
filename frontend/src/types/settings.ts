@@ -49,6 +49,7 @@ export interface JsonSchemaField {
   placeholder?: string;
   required?: boolean;
   options?: string[];
+  layout_width?: "compact" | "full";
 }
 
 // JSON schema for structured editing of JSON-type settings

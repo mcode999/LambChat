@@ -1,3 +1,4 @@
+import { FluentEmoji } from "@lobehub/fluent-emoji";
 import * as LucideIcons from "lucide-react";
 
 function renderEmojiIcon(
@@ -15,19 +16,14 @@ function renderEmojiIcon(
       ]
         .filter(Boolean)
         .join(" ")}
-      style={{
-        width: size,
-        height: size,
-        fontSize: size,
-        lineHeight: 1,
-      }}
+      style={{ width: size, height: size }}
     >
-      {icon}
+      <FluentEmoji emoji={icon} size={size} type="3d" />
     </span>
   );
 }
 
-// Dynamic icon renderer - supports both lucide icons and emojis
+// Dynamic icon renderer - supports lucide icons, emojis via FluentEmoji, and fallback emoji
 export function DynamicIcon({
   name,
   size,

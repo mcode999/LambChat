@@ -57,6 +57,14 @@ class _FakeDualWriter:
         return True
 
 
+class _FakeStorage:
+    def __init__(self) -> None:
+        self.updates: list[tuple[str, object]] = []
+
+    async def update(self, session_id: str, update) -> None:
+        self.updates.append((session_id, update))
+
+
 @pytest.mark.asyncio
 async def test_task_notification_warns_when_no_websocket_delivery(
     monkeypatch: pytest.MonkeyPatch,
@@ -78,6 +86,28 @@ async def test_task_notification_warns_when_no_websocket_delivery(
 
     assert ws_manager.sent
     assert any("delivered=0" in message for message in fake_logger.warnings)
+
+
+@pytest.mark.asyncio
+async def test_update_session_status_uses_cancelled_task_metadata() -> None:
+    storage = _FakeStorage()
+    executor = TaskExecutor(storage=storage, run_info={}, heartbeat_manager=None)  # type: ignore[arg-type]
+
+    await executor._update_session_status(
+        "session-1",
+        TaskStatus.CANCELLED,
+        "Task cancelled",
+        run_id="run-1",
+    )
+
+    assert storage.updates
+    assert storage.updates[0][0] == "session-1"
+    metadata = storage.updates[0][1].metadata
+    assert metadata["task_status"] == "cancelled"
+    assert metadata["task_error"] == "Task cancelled"
+    assert metadata["task_error_code"] == "cancelled"
+    assert metadata["task_recoverable"] is False
+    assert metadata["current_run_id"] == "run-1"
 
 
 @pytest.mark.asyncio

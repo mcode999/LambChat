@@ -75,7 +75,16 @@ class SearchAgent(BaseGraphAgent):
                 {"value": "high", "label_key": "agentOptions.enableThinking.options.high"},
                 {"value": "max", "label_key": "agentOptions.enableThinking.options.max"},
             ],
-        }
+        },
+        "enable_code_interpreter": {
+            "type": "boolean",
+            "default": False,
+            "label": "Code Interpreter",
+            "label_key": "agentOptions.enableCodeInterpreter.label",
+            "description": "Run lightweight JavaScript/TypeScript in an isolated interpreter",
+            "description_key": "agentOptions.enableCodeInterpreter.description",
+            "icon": "Settings",
+        },
     }
 
     @property

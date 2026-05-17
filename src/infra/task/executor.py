@@ -19,6 +19,7 @@ from src.kernel.schemas.session import SessionCreate, SessionUpdate
 
 from .exceptions import TaskInterruptedError
 from .heartbeat import TaskHeartbeat
+from .state_machine import TaskStateMachine
 from .status import TaskStatus
 
 logger = get_logger(__name__)
@@ -48,6 +49,7 @@ class TaskExecutor:
         self._storage = storage
         self._run_info = run_info
         self._heartbeat = heartbeat_manager
+        self._state_machine = TaskStateMachine()
 
     async def run_task(
         self,
@@ -75,7 +77,7 @@ class TaskExecutor:
         dual_writer = None
 
         try:
-            await self._update_session_status(session_id, TaskStatus.RUNNING, run_id=run_id)
+            await self._update_session_status(session_id, TaskStatus.STARTING, run_id=run_id)
 
             # 启动心跳（传入 user_id 以刷新并发限制条目）
             await self._heartbeat.start(run_id, user_id=user_id)
@@ -113,6 +115,7 @@ class TaskExecutor:
             )
 
             await presenter._ensure_trace()
+            await self._update_session_status(session_id, TaskStatus.RUNNING, run_id=run_id)
 
             # Check if user:message was already written (queued path wrote it to MongoDB)
             # In single-worker, also check _run_info (set by chat.py); in multi-worker, use parameter
@@ -204,7 +207,7 @@ class TaskExecutor:
         """处理任务取消错误"""
 
         await self._update_session_status(
-            session_id, TaskStatus.FAILED, "Task cancelled", run_id=run_id
+            session_id, TaskStatus.CANCELLED, "Task cancelled", run_id=run_id
         )
         # 先刷新所有缓冲，确保已产生的事件不丢失
         if dual_writer is not None:
@@ -240,7 +243,7 @@ class TaskExecutor:
         logger.warning(f"Task cancelled: session={session_id}, run_id={run_id}")
         # 发送任务取消通知
         await self._send_task_notification(
-            session_id, run_id, TaskStatus.FAILED, user_id, "Task cancelled"
+            session_id, run_id, TaskStatus.CANCELLED, user_id, "Task cancelled"
         )
 
     async def _handle_interrupted_error(
@@ -434,20 +437,13 @@ class TaskExecutor:
     ) -> None:
         """更新 session 状态"""
         try:
-            metadata: Dict[str, Any] = {"task_status": status.value}
-            if error:
-                metadata["task_error"] = error
-            else:
-                metadata["task_error"] = None
-            if run_id:
-                metadata["current_run_id"] = run_id
+            metadata: Dict[str, Any] = self._state_machine.build_metadata(
+                status,
+                run_id=run_id,
+                error=error,
+            )
             if status == TaskStatus.COMPLETED:
                 metadata["completed_at"] = utc_now_iso()
-                metadata["task_recoverable"] = False
-                metadata["task_error_code"] = None
-            elif status in {TaskStatus.PENDING, TaskStatus.RUNNING}:
-                metadata["task_recoverable"] = False
-                metadata["task_error_code"] = None
 
             await self._storage.update(
                 session_id,

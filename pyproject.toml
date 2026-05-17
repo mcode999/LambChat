@@ -54,6 +54,8 @@ dependencies = [
     "e2b>=2.15.3",
     "psutil>=7.2.2",
     "apscheduler>=3.11.0",
+    "langchain-quickjs>=0.1.0",
+    "arq>=0.28.0",
 ]
 
 [dependency-groups]

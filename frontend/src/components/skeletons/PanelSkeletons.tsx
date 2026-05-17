@@ -12,7 +12,7 @@ export function SkillsPanelSkeleton() {
       <PanelHeaderSkeleton />
       <div className="skill-content-area flex-1 overflow-y-auto py-2 sm:py-4 px-4">
         <div className="skill-grid grid auto-grid-cols gap-4">
-          {Array.from({ length: 9 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="scb">
               {/* Banner */}
               <div
@@ -242,7 +242,7 @@ export function RolesPanelSkeleton() {
       <PanelHeaderSkeleton />
       <div className="flex-1 overflow-y-auto py-2 sm:py-4 px-4 xl:p-8">
         <div className="grid gap-4 xl:grid-cols-2">
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="glass-card rounded-xl p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">

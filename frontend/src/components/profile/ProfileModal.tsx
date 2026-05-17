@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import { useVersion } from "../../hooks/useVersion";
 import { useAuth } from "../../hooks/useAuth";
+import { BrandWordmark } from "../common/BrandWordmark";
 
-import { APP_NAME } from "../../constants";
 import { ProfileInfoTab } from "./tabs/ProfileInfoTab";
 import { ProfileNotificationTab } from "./tabs/ProfileNotificationTab";
 import { ProfilePreferencesTab } from "./tabs/ProfilePreferencesTab";
@@ -153,9 +153,10 @@ export function ProfileModal({
         onClick={(e) => e.stopPropagation()}
         className="text-[11px] text-stone-400 dark:text-stone-500 tabular-nums hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
       >
-        <span className="font-semibold text-stone-500 dark:text-stone-400 font-serif tracking-tight">
-          {APP_NAME}
-        </span>
+        <BrandWordmark
+          decorative
+          className="inline-block h-4 w-auto align-[-0.2em] text-stone-500 dark:text-stone-400"
+        />
         {versionInfo?.app_version && (
           <span className="ml-1 opacity-70">v{versionInfo.app_version}</span>
         )}

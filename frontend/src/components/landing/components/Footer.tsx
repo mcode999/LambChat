@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { APP_NAME, GITHUB_URL } from "../../../constants";
+import { BrandWordmark } from "../../common/BrandWordmark";
 import { TECH_STACK } from "../data";
 import { NAV_ITEMS } from "../constants";
 import { GitHubIcon } from "./Icons";
@@ -22,13 +23,14 @@ export function Footer({ onScrollToSection }: FooterProps) {
           <div className="sm:col-span-5">
             <div className="flex items-center gap-2.5 mb-5">
               <img
-                src="/icons/icon.svg"
+                src="/images/lamb.webp"
                 alt=""
-                className="w-5 h-5 rounded-md"
+                className="h-6 object-contain"
               />
-              <span className="text-sm font-bold tracking-tight text-stone-900 dark:text-stone-100 font-serif">
-                {APP_NAME}
-              </span>
+              <BrandWordmark
+                decorative
+                className="h-6 w-auto text-stone-900 dark:text-stone-100"
+              />
             </div>
             <p className="text-sm text-stone-400 dark:text-stone-500 leading-[1.75] mb-7 max-w-xs">
               {t("landing.footerTagline")}
