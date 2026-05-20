@@ -305,7 +305,7 @@ async def agent_node(state: Dict[str, Any], config: RunnableConfig) -> Dict[str,
         ):
             await event_processor.process_event(event)
     finally:
-        await event_processor.finalize()
+        await event_processor.flush()
         await emit_token_usage(
             event_processor,
             presenter,

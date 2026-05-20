@@ -23,8 +23,10 @@ class _FakeDeepAgent:
 
 
 class _FakeEventProcessor:
+    next_output_text = ""
+
     def __init__(self, *_args, **_kwargs) -> None:
-        self.output_text = ""
+        self.output_text = self.next_output_text
 
     async def process_event(self, _event) -> None:
         return None
@@ -33,6 +35,7 @@ class _FakeEventProcessor:
         return None
 
     async def finalize(self) -> None:
+        self.output_text = ""
         return None
 
     def clear(self) -> None:
@@ -88,6 +91,10 @@ def _patch_common(monkeypatch: pytest.MonkeyPatch, module, fake_graph: _FakeDeep
     monkeypatch.setattr(module.settings, "ENABLE_SKILLS", False)
 
 
+def _reset_fake_event_processor() -> None:
+    _FakeEventProcessor.next_output_text = ""
+
+
 def _patch_tool_search_middleware(monkeypatch: pytest.MonkeyPatch) -> list[object]:
     from src.infra.agent import middleware as middleware_pkg
 
@@ -106,6 +113,7 @@ def _patch_tool_search_middleware(monkeypatch: pytest.MonkeyPatch) -> list[objec
 async def test_fast_agent_node_propagates_disabled_skills_to_inner_config(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _reset_fake_event_processor()
     from src.agents.fast_agent import nodes as fast_nodes
 
     fake_graph = _FakeDeepAgent()
@@ -137,6 +145,7 @@ async def test_fast_agent_node_propagates_disabled_skills_to_inner_config(
 async def test_fast_agent_node_passes_backend_instance_to_deepagents(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _reset_fake_event_processor()
     from src.agents.fast_agent import nodes as fast_nodes
 
     fake_graph = _FakeDeepAgent()
@@ -178,6 +187,7 @@ async def test_fast_agent_node_passes_backend_instance_to_deepagents(
 async def test_fast_agent_subagent_middleware_retags_prompt_cache_last(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _reset_fake_event_processor()
     from src.agents.fast_agent import nodes as fast_nodes
 
     fake_graph = _FakeDeepAgent()
@@ -209,6 +219,7 @@ async def test_fast_agent_subagent_middleware_retags_prompt_cache_last(
 async def test_fast_agent_subagent_tool_search_uses_isolated_manager(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _reset_fake_event_processor()
     from src.agents.fast_agent import nodes as fast_nodes
 
     fake_graph = _FakeDeepAgent()
@@ -238,9 +249,40 @@ async def test_fast_agent_subagent_tool_search_uses_isolated_manager(
 
 
 @pytest.mark.asyncio
+async def test_fast_agent_node_returns_output_text_before_final_processor_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _reset_fake_event_processor()
+    from src.agents.fast_agent import nodes as fast_nodes
+
+    fake_graph = _FakeDeepAgent()
+    _patch_common(monkeypatch, fast_nodes, fake_graph)
+    monkeypatch.setattr(fast_nodes, "create_persistent_backend_factory", lambda **_kwargs: object())
+    _FakeEventProcessor.next_output_text = "vision answer"
+
+    context = SimpleNamespace(user_id="user-1", skills=[], deferred_manager=None)
+    config = {
+        "configurable": {
+            "context": context,
+            "presenter": object(),
+            "base_url": "",
+            "agent_options": {},
+        }
+    }
+
+    result = await fast_nodes.fast_agent_node(
+        {"input": "hello", "session_id": "session-1", "attachments": []},
+        config,
+    )
+
+    assert result["output"] == "vision answer"
+
+
+@pytest.mark.asyncio
 async def test_search_agent_node_propagates_disabled_skills_to_inner_config(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _reset_fake_event_processor()
     from src.agents.search_agent import nodes as search_nodes
 
     fake_graph = _FakeDeepAgent()
@@ -276,6 +318,7 @@ async def test_search_agent_node_propagates_disabled_skills_to_inner_config(
 async def test_search_agent_node_passes_backend_instance_to_deepagents(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _reset_fake_event_processor()
     from src.agents.search_agent import nodes as search_nodes
 
     fake_graph = _FakeDeepAgent()
@@ -316,6 +359,7 @@ async def test_search_agent_node_passes_backend_instance_to_deepagents(
 async def test_search_agent_subagent_middleware_retags_prompt_cache_last(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _reset_fake_event_processor()
     from src.agents.search_agent import nodes as search_nodes
 
     fake_graph = _FakeDeepAgent()
@@ -351,6 +395,7 @@ async def test_search_agent_subagent_middleware_retags_prompt_cache_last(
 async def test_search_agent_subagent_tool_search_uses_isolated_manager(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _reset_fake_event_processor()
     from src.agents.search_agent import nodes as search_nodes
 
     fake_graph = _FakeDeepAgent()
@@ -381,3 +426,37 @@ async def test_search_agent_subagent_tool_search_uses_isolated_manager(
     assert deferred_manager.fork_calls == ["subagent:general-purpose"]
     assert captured_managers[0] is deferred_manager.forked
     assert captured_managers[1] is deferred_manager
+
+
+@pytest.mark.asyncio
+async def test_search_agent_node_returns_output_text_before_final_processor_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _reset_fake_event_processor()
+    from src.agents.search_agent import nodes as search_nodes
+
+    fake_graph = _FakeDeepAgent()
+    _patch_common(monkeypatch, search_nodes, fake_graph)
+    _FakeEventProcessor.next_output_text = "vision answer"
+
+    async def fake_create_backend_and_prompt(**_kwargs):
+        return object(), "system prompt", object(), None, None
+
+    monkeypatch.setattr(search_nodes, "_create_backend_and_prompt", fake_create_backend_and_prompt)
+
+    context = SimpleNamespace(user_id="user-1", skills=[], deferred_manager=None)
+    config = {
+        "configurable": {
+            "context": context,
+            "presenter": object(),
+            "base_url": "",
+            "agent_options": {},
+        }
+    }
+
+    result = await search_nodes.agent_node(
+        {"input": "hello", "session_id": "session-1", "attachments": []},
+        config,
+    )
+
+    assert result["output"] == "vision answer"

@@ -300,6 +300,30 @@ class LLMClient:
                 from src.infra.llm.models_service import set_cached_api_key
 
                 set_cached_api_key(db_model.value, db_model.api_key)
+            if not api_key:
+                from src.infra.llm.models_service import get_cached_api_key, set_cached_api_key
+
+                cached_key = get_cached_api_key(db_model.value)
+                if cached_key:
+                    api_key = cached_key
+                else:
+                    try:
+                        from src.infra.agent.model_storage import get_model_storage
+
+                        storage = get_model_storage()
+                        stored_model = (
+                            await storage.get(db_model.id)
+                            if db_model.id
+                            else await storage.get_by_value(db_model.value)
+                        )
+                        if stored_model and stored_model.api_key:
+                            api_key = stored_model.api_key
+                            set_cached_api_key(db_model.value, stored_model.api_key)
+                    except Exception as e:
+                        logger.debug(
+                            f"Failed to fetch api_key from DB for sanitized model config "
+                            f"{db_model.value}: {e}"
+                        )
             if not api_base and db_model.api_base:
                 api_base = db_model.api_base
             if db_model.temperature is not None:
