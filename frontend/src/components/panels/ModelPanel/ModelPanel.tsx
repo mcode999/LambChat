@@ -41,6 +41,7 @@ export function ModelPanel() {
       id: string;
       value: string;
       provider?: string;
+      icon?: string;
       label: string;
       description?: string;
     }[]
@@ -78,6 +79,7 @@ export function ModelPanel() {
               id: m.id || "",
               value: m.value,
               provider: m.provider,
+              icon: m.icon,
               label: m.label,
               description: m.description,
             })),

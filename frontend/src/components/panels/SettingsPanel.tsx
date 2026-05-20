@@ -178,6 +178,7 @@ export function SettingsPanel() {
                 id: model.id || "",
                 value: model.value,
                 provider: model.provider,
+                icon: model.icon,
                 label: model.label,
                 description: model.description,
                 profile: model.profile,

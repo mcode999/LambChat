@@ -22,6 +22,7 @@ export interface ModelOption {
   id: string;
   value: string;
   provider?: string;
+  icon?: string;
   label: string;
   description?: string;
   profile?: ModelProfile;
@@ -31,6 +32,7 @@ export interface ModelConfig {
   id?: string;
   value: string;
   provider?: ProviderType;
+  icon?: string;
   label: string;
   description?: string;
   api_key?: string;
@@ -48,6 +50,7 @@ export interface ModelConfig {
 export interface ModelConfigCreate {
   value: string;
   provider?: ProviderType;
+  icon?: string;
   label: string;
   description?: string;
   api_key?: string;
@@ -62,6 +65,7 @@ export interface ModelConfigCreate {
 
 export interface ModelConfigUpdate {
   provider?: ProviderType;
+  icon?: string;
   label?: string;
   description?: string;
   api_key?: string;

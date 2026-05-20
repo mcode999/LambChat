@@ -10,6 +10,7 @@ export interface TokenUsageModelDetails {
   name: string;
   value: string;
   provider?: string;
+  icon?: string;
 }
 
 export function resolveTokenUsageModelName({
@@ -43,6 +44,7 @@ export function resolveTokenUsageModelDetails({
         name: matchedModel.label || matchedModel.value || matchedModel.id,
         value: matchedModel.value,
         provider: matchedModel.provider,
+        icon: matchedModel.icon,
       };
     }
   }

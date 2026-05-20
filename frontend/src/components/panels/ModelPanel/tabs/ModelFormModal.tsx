@@ -14,6 +14,7 @@ import type {
   ModelProfile,
   ProviderType,
 } from "../../../../services/api/model";
+import { ModelIconSelect } from "./ModelIconSelect";
 
 interface ModelFormModalProps {
   model: ModelConfig | null; // null = creating, non-null = editing
@@ -51,6 +52,7 @@ export const ModelFormModal = ({
     Boolean(model?.profile?.supports_vision),
   );
   const [formProvider, setFormProvider] = useState(model?.provider || "");
+  const [formIcon, setFormIcon] = useState(model?.icon || "");
   const [formFallbackModel, setFormFallbackModel] = useState(
     model?.fallback_model || "",
   );
@@ -98,6 +100,7 @@ export const ModelFormModal = ({
       if (isEditing && model?.id) {
         const update: ModelConfigUpdate = {
           provider: (formProvider || undefined) as ProviderType | undefined,
+          icon: formIcon || undefined,
           label: formLabel.trim(),
           description: formDescription.trim() || undefined,
           ...(formApiKey.trim() && !isMaskedApiKey(formApiKey.trim())
@@ -115,6 +118,7 @@ export const ModelFormModal = ({
         const data: ModelConfigCreate = {
           value: formValue.trim(),
           provider: (formProvider || undefined) as ProviderType | undefined,
+          icon: formIcon || undefined,
           label: formLabel.trim(),
           description: formDescription.trim() || undefined,
           api_key: formApiKey.trim() || undefined,
@@ -145,6 +149,7 @@ export const ModelFormModal = ({
     formMaxInputTokens,
     formSupportsVision,
     formProvider,
+    formIcon,
     formFallbackModel,
     isEditing,
     model,
@@ -248,6 +253,15 @@ export const ModelFormModal = ({
                 placeholder={t("agentConfig.providerAuto")}
               />
               <p className="es-hint">{t("agentConfig.providerHint")}</p>
+            </div>
+            <div className="es-field">
+              <label className="es-label">{t("agentConfig.modelIcon")}</label>
+              <ModelIconSelect
+                value={formIcon}
+                onChange={setFormIcon}
+                placeholder={t("agentConfig.iconAuto")}
+              />
+              <p className="es-hint">{t("agentConfig.iconHint")}</p>
             </div>
             <div className="es-field">
               <label className="es-label">

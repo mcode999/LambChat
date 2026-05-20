@@ -205,6 +205,7 @@ const ModelCard = React.memo(function ModelCard({
             <ModelIconImg
               model={model.value}
               provider={model.provider}
+              icon={model.icon}
               size={22}
             />
             <h4 className="text-sm font-semibold text-stone-900 dark:text-stone-100 truncate">
@@ -284,6 +285,7 @@ const ModelCard = React.memo(function ModelCard({
             <ModelIconImg
               model={model.value}
               provider={model.provider}
+              icon={model.icon}
               size={24}
             />
             <div className="min-w-0 flex-1">

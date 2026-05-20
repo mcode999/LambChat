@@ -194,6 +194,7 @@ export function RolesModelTab({
                       <ModelIconImg
                         model={model.value}
                         provider={model.provider}
+                        icon={model.icon}
                         size={20}
                       />
                       <div className="min-w-0 flex-1">

@@ -29,6 +29,10 @@ class ModelConfig(BaseModel):
         None,
         description="Explicit LLM provider (e.g. openai/anthropic/google/deepseek). Auto-detected from value if not set.",
     )
+    icon: Optional[str] = Field(
+        None,
+        description="Explicit display icon slug. Falls back to provider/model inference when not set.",
+    )
     label: str = Field(..., description="Display name for the model")
     description: Optional[str] = Field(None, description="Model description")
     api_key: Optional[str] = Field(None, description="Per-model API key override")
@@ -53,6 +57,10 @@ class ModelConfigCreate(BaseModel):
         None,
         description="Explicit LLM provider (e.g. openai/anthropic/google/deepseek). Auto-detected from value if not set.",
     )
+    icon: Optional[str] = Field(
+        None,
+        description="Explicit display icon slug. Falls back to provider/model inference when not set.",
+    )
     label: str = Field(..., description="Display name for the model")
     description: Optional[str] = Field(None, description="Model description")
     api_key: Optional[str] = Field(None, description="Per-model API key override")
@@ -71,6 +79,7 @@ class ModelConfigUpdate(BaseModel):
     """Update an existing model configuration."""
 
     provider: Optional[str] = Field(None, description="Explicit LLM provider override")
+    icon: Optional[str] = Field(None, description="Explicit display icon slug override")
     label: Optional[str] = Field(None, description="Display name for the model")
     description: Optional[str] = Field(None, description="Model description")
     api_key: Optional[str] = Field(None, description="Per-model API key override")
@@ -101,6 +110,7 @@ class AvailableModel(BaseModel):
     id: Optional[str] = Field(None, description="Model ID")
     value: str = Field(..., description="Model identifier")
     provider: Optional[str] = Field(None, description="LLM provider")
+    icon: Optional[str] = Field(None, description="Explicit display icon slug")
     label: str = Field(..., description="Display name for the model")
     description: Optional[str] = Field(None, description="Model description")
     profile: Optional[ModelProfile] = Field(None, description="Per-model profile settings")
@@ -126,6 +136,7 @@ def to_available_model(model: ModelConfig) -> AvailableModel:
         id=model.id,
         value=model.value,
         provider=model.provider,
+        icon=model.icon,
         label=model.label,
         description=model.description,
         profile=model.profile,

@@ -5,15 +5,16 @@ Checkpoint 存储实现
 
 用户通过 CHECKPOINT_BACKEND 配置选择后端：
 - "mongodb": 使用 MongoDBSaver（默认，受 16MB 文档大小限制）
-- "postgres": 使用 AsyncPostgresSaver（无文档大小限制，需 PostgreSQL 连接参数）
+- "postgres": 使用 AsyncPostgresSaver + 连接池（无文档大小限制，需 PostgreSQL 连接参数）
 
 两者都不可用时回退到 MemorySaver（内存存储，重启丢失）。
 """
 
+import asyncio
 import copy
 import time
 from collections import OrderedDict
-from typing import Any, AsyncContextManager, Optional
+from typing import Any, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
@@ -40,7 +41,16 @@ _mongo_checkpointer: Optional[BaseCheckpointSaver[Any]] = None
 
 # PostgreSQL Checkpointer 单例
 _pg_checkpointer: Optional[BaseCheckpointSaver[Any]] = None
-_pg_checkpointer_ctx: Optional[AsyncContextManager[Any]] = None
+_pg_checkpointer_pool: Any | None = None
+_pg_checkpointer_lock: asyncio.Lock | None = None
+
+
+def _get_pg_checkpointer_lock() -> asyncio.Lock:
+    global _pg_checkpointer_lock
+
+    if _pg_checkpointer_lock is None:
+        _pg_checkpointer_lock = asyncio.Lock()
+    return _pg_checkpointer_lock
 
 
 def _cleanup_memory_saver_cache(now: float | None = None) -> int:
@@ -140,35 +150,63 @@ async def get_pg_checkpointer() -> BaseCheckpointSaver[Any] | None:
     """
     获取 PostgreSQL checkpointer 单例（异步）
 
-    使用 AsyncPostgresSaver.from_conn_string()，无 16MB 文档大小限制。
+    使用 AsyncPostgresSaver + AsyncConnectionPool，无 16MB 文档大小限制。
     仅需 CHECKPOINT_BACKEND=postgres，独立于 ENABLE_POSTGRES_STORAGE。
 
     Returns:
         AsyncPostgresSaver 实例，如果创建失败则返回 None
     """
-    global _pg_checkpointer, _pg_checkpointer_ctx
+    global _pg_checkpointer, _pg_checkpointer_pool
 
     if _pg_checkpointer is not None:
         return _pg_checkpointer
 
+    async with _get_pg_checkpointer_lock():
+        if _pg_checkpointer is not None:
+            return _pg_checkpointer
+
+        return await _create_pg_checkpointer()
+
+
+async def _create_pg_checkpointer() -> BaseCheckpointSaver[Any] | None:
+    global _pg_checkpointer, _pg_checkpointer_pool
+
     try:
         from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+        from psycopg import AsyncConnection
+        from psycopg.rows import dict_row
+        from psycopg_pool import AsyncConnectionPool
 
-        ctx = AsyncPostgresSaver.from_conn_string(settings.checkpoint_postgres_url)
+        pool: AsyncConnectionPool[AsyncConnection[dict[str, Any]]] = AsyncConnectionPool(
+            settings.checkpoint_postgres_url,
+            min_size=settings.CHECKPOINT_PG_POOL_MIN_SIZE,
+            max_size=settings.CHECKPOINT_PG_POOL_MAX_SIZE,
+            kwargs={
+                "autocommit": True,
+                "prepare_threshold": 0,
+                "row_factory": dict_row,
+            },
+            open=False,
+        )
         try:
-            cp = await ctx.__aenter__()
+            await pool.open(wait=True)
         except Exception:
-            await ctx.__aexit__(None, None, None)
+            await pool.close()
             raise
 
+        cp = AsyncPostgresSaver(pool)
         try:
             await cp.setup()
-            logger.info("PostgreSQL checkpointer created (AsyncPostgresSaver via from_conn_string)")
-            _pg_checkpointer_ctx = ctx
+            logger.info(
+                "PostgreSQL checkpointer created (AsyncPostgresSaver via connection pool, min=%d, max=%d)",
+                settings.CHECKPOINT_PG_POOL_MIN_SIZE,
+                settings.CHECKPOINT_PG_POOL_MAX_SIZE,
+            )
+            _pg_checkpointer_pool = pool
             _pg_checkpointer = cp
             return _pg_checkpointer
         except Exception:
-            await ctx.__aexit__(None, None, None)
+            await pool.close()
             raise
 
     except ImportError as e:
@@ -185,17 +223,22 @@ async def close_pg_checkpointer():
 
     应在应用关闭时调用。
     """
-    global _pg_checkpointer, _pg_checkpointer_ctx
-    ctx = _pg_checkpointer_ctx
-    if _pg_checkpointer is not None and ctx is not None:
+    global _pg_checkpointer, _pg_checkpointer_pool
+
+    async with _get_pg_checkpointer_lock():
+        pool = _pg_checkpointer_pool
+        if _pg_checkpointer is None and pool is None:
+            return
+
         try:
-            await ctx.__aexit__(None, None, None)
+            if pool is not None:
+                await pool.close()
             logger.info("PostgreSQL checkpointer closed")
         except Exception as e:
             logger.warning(f"Error closing PostgreSQL checkpointer: {e}")
         finally:
             _pg_checkpointer = None
-            _pg_checkpointer_ctx = None
+            _pg_checkpointer_pool = None
 
 
 async def get_async_checkpointer(thread_id: str | None = None) -> BaseCheckpointSaver[Any]:

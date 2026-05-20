@@ -39,6 +39,7 @@ export function ProfileModelsTab() {
                 <ModelIconImg
                   model={model.value}
                   provider={model.provider}
+                  icon={model.icon}
                   size={22}
                 />
                 <span className="flex-1 min-w-0 text-sm font-medium text-stone-800 dark:text-stone-200 truncate">

@@ -13,3 +13,10 @@ test("model form persists the supports vision profile flag", () => {
   assert.match(source, /supports_vision:\s*formSupportsVision/);
   assert.match(source, /max_input_tokens:\s*maxInputTokens/);
 });
+
+test("model form persists an explicit model icon selection", () => {
+  assert.match(source, /formIcon/);
+  assert.match(source, /model\?\.icon/);
+  assert.match(source, /icon:\s*formIcon\s*\|\|\s*undefined/);
+  assert.match(source, /<ModelIconSelect/);
+});

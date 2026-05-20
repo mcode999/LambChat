@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Routes, Route, useParams, useNavigate } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
+import { Toaster, ToastBar, toast } from "react-hot-toast";
+import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { ChatPageSkeleton, FilesPageSkeleton } from "./components/skeletons";
@@ -334,7 +335,35 @@ function App() {
               },
             },
           }}
-        />
+        >
+          {(currentToast) => {
+            if (currentToast.type === "custom") {
+              return <ToastBar toast={currentToast} />;
+            }
+
+            return (
+              <ToastBar toast={currentToast}>
+                {({ icon, message }) => (
+                  <div className="flex w-full items-center gap-3 text-left">
+                    <span className="flex shrink-0 items-center">{icon}</span>
+                    <div className="min-w-0 flex-1 leading-snug">{message}</div>
+                    <button
+                      type="button"
+                      className="-mr-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                      aria-label={t("common.dismiss", "关闭")}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toast.dismiss(currentToast.id);
+                      }}
+                    >
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </ToastBar>
+            );
+          }}
+        </Toaster>
         <PwaStatusToasts />
         <SelectionActionPopover />
         <Suspense fallback={<ChatPageSkeleton />}>

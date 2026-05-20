@@ -57,6 +57,8 @@ const providerMap: Record<string, string> = {
   hunyuan: tencent,
 };
 
+export const modelIconSlugs = Object.keys(providerMap);
+
 // model name prefix → provider icon (fallback when no provider prefix)
 const modelPrefixMap: Record<string, string> = {
   gpt: "openai",
@@ -147,7 +149,10 @@ function resolveIcon(model: string): string | null {
 export function getModelIconUrl(
   model: string,
   provider?: string,
+  explicitIcon?: string,
 ): string | null {
+  if (explicitIcon && providerMap[explicitIcon])
+    return providerMap[explicitIcon];
   if (provider && providerMap[provider]) return providerMap[provider];
   return resolveIcon(model);
 }

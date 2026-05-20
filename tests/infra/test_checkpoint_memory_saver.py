@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 import src.infra.storage.checkpoint as checkpoint_mod
+
+_ORIGINAL_GET_PG_CHECKPOINTER = checkpoint_mod.get_pg_checkpointer
 
 
 @pytest.fixture(autouse=True)
 def _reset_memory_saver_state(monkeypatch: pytest.MonkeyPatch) -> None:
     checkpoint_mod._mongo_checkpointer = None
     checkpoint_mod._pg_checkpointer = None
-    checkpoint_mod._pg_checkpointer_ctx = None
+    checkpoint_mod._pg_checkpointer_pool = None
+    if hasattr(checkpoint_mod, "_pg_checkpointer_lock"):
+        checkpoint_mod._pg_checkpointer_lock = None
 
     if hasattr(checkpoint_mod.get_async_checkpointer, "_memory_saver"):
         delattr(checkpoint_mod.get_async_checkpointer, "_memory_saver")
@@ -49,3 +55,57 @@ async def test_memory_saver_fallback_bounds_cached_threads() -> None:
     assert len(cache) == 3
     assert "session-0" not in cache
     assert "session-1" not in cache
+
+
+@pytest.mark.asyncio
+async def test_pg_checkpointer_initializes_once_under_concurrency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        checkpoint_mod,
+        "get_pg_checkpointer",
+        _ORIGINAL_GET_PG_CHECKPOINTER,
+    )
+
+    open_count = 0
+    close_count = 0
+    saver_inputs = []
+
+    class _FakePool:
+        def __init__(self, *args, **kwargs) -> None:
+            self.args = args
+            self.kwargs = kwargs
+
+        async def open(self, wait: bool = False) -> None:
+            nonlocal open_count
+            open_count += 1
+            await asyncio.sleep(0.01)
+
+        async def close(self) -> None:
+            nonlocal close_count
+            close_count += 1
+
+    class _FakeSaver:
+        def __init__(self, conn) -> None:
+            saver_inputs.append(conn)
+
+        async def setup(self) -> None:
+            await asyncio.sleep(0)
+
+    monkeypatch.setattr(checkpoint_mod.settings, "CHECKPOINT_PG_POOL_MIN_SIZE", 1)
+    monkeypatch.setattr(checkpoint_mod.settings, "CHECKPOINT_PG_POOL_MAX_SIZE", 3)
+    monkeypatch.setattr(
+        "langgraph.checkpoint.postgres.aio.AsyncPostgresSaver",
+        _FakeSaver,
+    )
+    monkeypatch.setattr("psycopg_pool.AsyncConnectionPool", _FakePool)
+
+    savers = await asyncio.gather(*(checkpoint_mod.get_pg_checkpointer() for _ in range(5)))
+
+    assert savers == [savers[0]] * 5
+    assert open_count == 1
+    assert close_count == 0
+    assert len(saver_inputs) == 1
+    assert isinstance(saver_inputs[0], _FakePool)
+    assert saver_inputs[0].kwargs["min_size"] == 1
+    assert saver_inputs[0].kwargs["max_size"] == 3

@@ -97,6 +97,7 @@ function TokenDetailsButton({
     name: string;
     value: string;
     provider?: string;
+    icon?: string;
   } | null;
   isLastMessage?: boolean;
 }) {
@@ -215,6 +216,7 @@ function TokenDetailsButton({
                   <ModelIconImg
                     model={modelDetails.value}
                     provider={modelDetails.provider}
+                    icon={modelDetails.icon}
                     size={16}
                   />
                   <span>{modelDetails.name}</span>

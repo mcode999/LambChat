@@ -17,6 +17,7 @@ export interface AvailableModel {
   id: string;
   value: string;
   provider?: string;
+  icon?: string;
   label: string;
   description?: string;
   profile?: ModelProfile;
@@ -85,6 +86,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
               id: m.id || "",
               value: m.value,
               provider: m.provider,
+              icon: m.icon,
               label: m.label,
               description: m.description,
               profile: m.profile,
