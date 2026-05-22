@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, get_args, get_origin
 
 from langchain_core.tools import BaseTool
 
@@ -78,6 +78,70 @@ def _is_tool_allowed(
     return bool(set(user_roles or []).intersection(policy.allowed_roles))
 
 
+def _schema_type_from_annotation(annotation: Any) -> str:
+    origin = get_origin(annotation)
+    args = [arg for arg in get_args(annotation) if arg is not type(None)]
+    if origin is not None and args:
+        if origin in (list, tuple, set):
+            return "array"
+        return _schema_type_from_annotation(args[0])
+    if annotation in (list, tuple, set):
+        return "array"
+    if annotation is int:
+        return "integer"
+    if annotation is float:
+        return "number"
+    if annotation is bool:
+        return "boolean"
+    if annotation is dict:
+        return "object"
+    return "string"
+
+
+def _extract_tool_parameters(tool: BaseTool) -> list[dict[str, Any]]:
+    args_schema = getattr(tool, "args_schema", None)
+    if not args_schema:
+        return []
+
+    try:
+        schema = args_schema if isinstance(args_schema, dict) else args_schema.schema()
+        properties = schema.get("properties", {})
+        required = set(schema.get("required", []))
+        parameters = []
+        for param_name, param_info in properties.items():
+            if param_name == "runtime" or not isinstance(param_info, dict):
+                continue
+            parameters.append(
+                {
+                    "name": param_name,
+                    "type": param_info.get("type", "string"),
+                    "description": param_info.get("description", ""),
+                    "required": param_name in required,
+                    "default": param_info.get("default"),
+                }
+            )
+        return parameters
+    except Exception:
+        pass
+
+    model_fields = getattr(args_schema, "model_fields", {})
+    parameters = []
+    for param_name, field in model_fields.items():
+        if param_name == "runtime":
+            continue
+        default = None if field.is_required() else field.default
+        parameters.append(
+            {
+                "name": param_name,
+                "type": _schema_type_from_annotation(field.annotation),
+                "description": field.description or "",
+                "required": field.is_required(),
+                "default": default,
+            }
+        )
+    return parameters
+
+
 async def get_internal_tool_policies() -> dict[str, MCPToolPolicy]:
     """Load explicit tool policies for the internal virtual server."""
     try:
@@ -133,29 +197,7 @@ async def get_internal_tool_infos(
         if not _is_tool_allowed(policy=policy, user_roles=user_roles, is_admin=is_admin):
             continue
 
-        parameters: list[dict[str, Any]] = []
-        try:
-            if hasattr(tool, "args_schema") and tool.args_schema:
-                schema = (
-                    tool.args_schema
-                    if isinstance(tool.args_schema, dict)
-                    else tool.args_schema.schema()
-                )
-                properties = schema.get("properties", {})
-                required = set(schema.get("required", []))
-                for param_name, param_info in properties.items():
-                    if isinstance(param_info, dict):
-                        parameters.append(
-                            {
-                                "name": param_name,
-                                "type": param_info.get("type", "string"),
-                                "description": param_info.get("description", ""),
-                                "required": param_name in required,
-                                "default": param_info.get("default"),
-                            }
-                        )
-        except Exception:
-            parameters = []
+        parameters = _extract_tool_parameters(tool)
 
         infos.append(
             MCPToolInfo(

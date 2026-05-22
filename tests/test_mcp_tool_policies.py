@@ -99,3 +99,44 @@ async def test_internal_tool_policies_filter_blocked_tools(
     )
 
     assert [tool.name for tool in tools] == ["env_var_list"]
+
+
+@pytest.mark.asyncio
+async def test_internal_image_generate_tool_infos_include_supported_parameters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.infra.tool import internal_registry
+    from src.infra.tool.image_generation_tool import get_image_generation_tool
+
+    async def _empty_policies():
+        return {}
+
+    monkeypatch.setattr(internal_registry, "get_internal_tool_policies", _empty_policies)
+    monkeypatch.setattr(
+        internal_registry,
+        "build_internal_tools",
+        lambda: [get_image_generation_tool()],
+    )
+
+    infos = await internal_registry.get_internal_tool_infos(
+        user_id="admin-1",
+        user_roles=["admin"],
+        is_admin=True,
+    )
+
+    params = {param["name"]: param for param in infos[0].parameters}
+
+    for name in (
+        "prompt",
+        "input_images",
+        "background",
+        "input_fidelity",
+        "size",
+        "quality",
+        "n",
+        "output_format",
+    ):
+        assert name in params
+        assert params[name]["description"]
+    assert "runtime" not in params
+    assert "mask_url" not in params

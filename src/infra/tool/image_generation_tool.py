@@ -379,6 +379,7 @@ async def image_generate(
     Use prompt alone for text-to-image. Add input_images to switch to image-to-image.
     """
     try:
+        safe_n = 1
         if input_images:
             result = await _call_edit_api(
                 prompt=prompt,
@@ -387,7 +388,7 @@ async def image_generate(
                 input_fidelity=input_fidelity,
                 size=size,
                 quality=quality,
-                n=1,
+                n=safe_n,
                 output_format=output_format,
                 runtime=runtime,
             )
@@ -397,7 +398,7 @@ async def image_generate(
                 background=background,
                 size=size,
                 quality=quality,
-                n=1,
+                n=safe_n,
                 output_format=output_format,
                 runtime=runtime,
             )
