@@ -15,7 +15,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { Server, Brain, MessageCircle, Sparkles } from "lucide-react";
+import { Server, Brain, MessageCircle, Sparkles, Users } from "lucide-react";
 import { sessionApi, type BackendSession } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
 import { useSettingsContext } from "../../contexts/SettingsContext";
@@ -141,6 +141,12 @@ export const SessionSidebar = forwardRef<
       label: t("nav.memory"),
       icon: Brain,
       show: canReadMemory,
+    },
+    {
+      path: "/team",
+      label: t("nav.team", "Team Builder"),
+      icon: Users,
+      show: true,
     },
   ];
 

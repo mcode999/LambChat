@@ -193,8 +193,14 @@ export function ChatInputSelectors({
         <>
           <button
             type="button"
-            className="chat-tool-btn"
-            title={selectedTeamId ? "Team selected" : "Select team"}
+            className={`chat-tool-btn ${
+              !selectedTeamId ? "text-amber-500 ring-1 ring-amber-400/50" : ""
+            }`}
+            title={
+              selectedTeamId
+                ? "Change team"
+                : "Select a team to use with the team agent"
+            }
             onClick={() => setTeamPickerOpen(true)}
             data-active={selectedTeamId ? "" : undefined}
           >

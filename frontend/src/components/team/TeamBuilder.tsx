@@ -142,6 +142,7 @@ export function TeamBuilder({ teamId, onSave, onClose }: TeamBuilderProps) {
 
   const handleDelete = async () => {
     if (!existingTeamId) return;
+    if (!window.confirm("Are you sure you want to delete this team?")) return;
     try {
       await teamApi.delete(existingTeamId);
       onClose?.();
