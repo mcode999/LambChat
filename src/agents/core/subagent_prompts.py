@@ -208,3 +208,58 @@ Keep each field factual and brief. Use `None` when a field does not apply."""
 # 默认导出 — 子代理默认使用详细记录版本，确保中间产物不丢失
 # ---------------------------------------------------------------------------
 SUBAGENT_PROMPT = DETAILED_SUBAGENT_PROMPT
+
+
+def build_role_subagent_prompt(
+    role_name: str,
+    role_system_prompt: str,
+    team_name: str | None = None,
+    team_instructions: str | None = None,
+    task_objective: str | None = None,
+) -> str:
+    """
+    Build a role-aware subagent prompt for team agent.
+
+    Order: role identity -> shared workflow -> team context -> handoff format.
+    Preserves the Handoff Notes contract for compatibility with the main agent.
+    """
+    parts = [
+        f"You are a subagent in the role of **{role_name}**.",
+        "",
+        role_system_prompt,
+        "",
+    ]
+
+    parts.append(FILE_WORKSPACE_GUIDE)
+    parts.append(FILE_REVEAL_GUIDE)
+    parts.append(SAFETY_AND_VERIFICATION_GUIDE)
+
+    if team_name:
+        parts.append(f"\n### Team: {team_name}")
+    if team_instructions:
+        parts.append(f"\n### Team Instructions\n{team_instructions}")
+
+    if task_objective:
+        parts.append(f"\n### Task Objective\n{task_objective}")
+
+    parts.append("""
+
+Stay within the assigned objective. Do not make final promises to the user; return evidence and handoff notes for the main agent to synthesize. Run relevant verification when you change files or make claims that can be checked.
+
+Return a concise answer followed by this structured handoff:
+
+## Handoff Notes
+- Goal:
+- What I checked:
+- Key findings:
+- Files / tools touched:
+- Decisions or assumptions:
+- Risks / blockers:
+- Checks run:
+- Unchecked items:
+- Suggested next step:
+- Memory-worthy notes:
+
+Keep each field factual and brief. Use `None` when a field does not apply.""")
+
+    return "\n".join(parts)
