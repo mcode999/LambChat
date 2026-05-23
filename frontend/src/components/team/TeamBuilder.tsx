@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Save, Copy, Trash2 } from "lucide-react";
+import { Copy, MessageSquareText, Save, Trash2, Users } from "lucide-react";
 import { teamApi } from "../../services/api/team";
 import { personaPresetApi } from "../../services/api/personaPreset";
 import type { PersonaPreset } from "../../types";
@@ -109,6 +109,7 @@ export function TeamBuilder({ teamId, onSave, onClose }: TeamBuilderProps) {
         team_instructions: teamInstructions,
         default_member_id: defaultMemberId,
         members: members.map((m, idx) => ({
+          member_id: m.member_id,
           persona_preset_id: m.persona_preset_id,
           role_instructions: m.role_instructions,
           position: idx,
@@ -152,84 +153,110 @@ export function TeamBuilder({ teamId, onSave, onClose }: TeamBuilderProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-border">
-        <input
-          type="text"
-          value={teamName}
-          onChange={(e) => setTeamName(e.target.value)}
-          placeholder="Team name..."
-          className="text-lg font-semibold bg-transparent border-none outline-none flex-1"
-        />
-        <div className="flex gap-2">
+    <div className="flex h-full min-h-0 flex-col">
+      {/* Header bar */}
+      <div className="flex items-center justify-between border-b border-[var(--theme-border)] px-4 py-2.5 sm:px-5">
+        <div className="flex items-center gap-2">
+          <Users size={16} className="text-[var(--theme-text-secondary)]" />
+          <span className="text-sm font-semibold text-[var(--theme-text)]">
+            {existingTeamId ? "Edit Team" : "New Team"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
           <button
             onClick={handleSave}
             disabled={saving || !teamName.trim()}
-            className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+            className="btn-primary h-8 text-xs disabled:opacity-50"
           >
-            <Save className="h-4 w-4 inline mr-1" />
+            <Save size={14} />
             {saving ? "Saving..." : "Save"}
           </button>
           {existingTeamId && (
             <>
               <button
                 onClick={handleClone}
-                className="p-1.5 rounded-lg hover:bg-accent"
+                className="btn-secondary h-8 px-2.5 text-xs"
                 title="Clone team"
               >
-                <Copy className="h-4 w-4" />
+                <Copy size={14} />
               </button>
               <button
                 onClick={handleDelete}
-                className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                className="btn-secondary h-8 px-2.5 text-xs text-red-600 hover:text-red-700 dark:text-red-400"
                 title="Delete team"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 size={14} />
               </button>
             </>
           )}
         </div>
       </div>
 
-      {/* Description + Instructions */}
-      <div className="p-4 border-b border-border space-y-2">
-        <input
-          type="text"
-          value={teamDescription}
-          onChange={(e) => setTeamDescription(e.target.value)}
-          placeholder="Team description..."
-          className="w-full text-sm bg-transparent border-none outline-none"
-        />
-        <textarea
-          value={teamInstructions}
-          onChange={(e) => setTeamInstructions(e.target.value)}
-          placeholder="Team-wide instructions (applied to all members)..."
-          className="w-full text-xs p-2 rounded-lg bg-muted resize-none"
-          rows={2}
-        />
+      {/* Form area */}
+      <div className="border-b border-[var(--theme-border)] px-4 py-3 sm:px-5">
+        <div className="team-editor-summary">
+          <label className="ppe-field">
+            <span className="ppe-label text-[0.6875rem] uppercase tracking-wider">
+              Team name
+            </span>
+            <input
+              type="text"
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              placeholder="My team..."
+              className="ppe-input text-base font-semibold"
+            />
+          </label>
+          <label className="ppe-field">
+            <span className="ppe-label text-[0.6875rem] uppercase tracking-wider">
+              Description
+            </span>
+            <input
+              type="text"
+              value={teamDescription}
+              onChange={(e) => setTeamDescription(e.target.value)}
+              placeholder="What this team does..."
+              className="ppe-input"
+            />
+          </label>
+        </div>
+        <label className="ppe-field mt-3">
+          <span className="ppe-label text-[0.6875rem] uppercase tracking-wider">
+            <MessageSquareText size={12} className="ppe-label-icon" />
+            Team-wide instructions
+          </span>
+          <textarea
+            value={teamInstructions}
+            onChange={(e) => setTeamInstructions(e.target.value)}
+            placeholder="Shared instructions applied to every member..."
+            className="ppe-textarea min-h-[3.5rem]"
+            rows={2}
+          />
+        </label>
       </div>
 
       {/* Two-pane layout */}
-      <div className="flex-1 flex min-h-0">
-        <div className="w-1/2 border-r border-border">
-          <RoleSquare
-            presets={presets}
-            loading={presetsLoading}
-            onAddRole={handleAddRole}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-          />
-        </div>
-        <div className="w-1/2 overflow-y-auto">
-          <TeamRoster
-            members={members}
-            defaultMemberId={defaultMemberId}
-            onRemoveMember={handleRemoveMember}
-            onSetDefault={setDefaultMemberId}
-            onToggleEnabled={handleToggleEnabled}
-            onInstructionsChange={handleInstructionsChange}
-          />
+      <div className="flex-1 overflow-hidden">
+        <div className="team-builder-layout h-full">
+          <section className="team-builder-pane">
+            <RoleSquare
+              presets={presets}
+              loading={presetsLoading}
+              onAddRole={handleAddRole}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+            />
+          </section>
+          <section className="team-builder-pane">
+            <TeamRoster
+              members={members}
+              defaultMemberId={defaultMemberId}
+              onRemoveMember={handleRemoveMember}
+              onSetDefault={setDefaultMemberId}
+              onToggleEnabled={handleToggleEnabled}
+              onInstructionsChange={handleInstructionsChange}
+            />
+          </section>
         </div>
       </div>
     </div>
