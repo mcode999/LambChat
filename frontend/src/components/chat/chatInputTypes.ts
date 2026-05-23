@@ -73,6 +73,10 @@ export interface ChatInputProps {
   agents?: { id: string; name: string; description: string }[];
   currentAgent?: string;
   onSelectAgent?: (id: string) => void;
+  // Team picker
+  selectedTeamId?: string | null;
+  onSelectTeam?: (teamId: string | null) => void;
+  onOpenTeamBuilder?: () => void;
   attachments?: MessageAttachment[];
   onAttachmentsChange?: (
     attachments:

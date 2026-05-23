@@ -74,6 +74,7 @@ export function buildSubmitChatBody({
   personaPresetId,
   disabledMcpTools,
   userTimezone,
+  teamId,
 }: {
   message: string;
   sessionId?: string;
@@ -85,6 +86,7 @@ export function buildSubmitChatBody({
   personaPresetId?: string | null;
   disabledMcpTools?: string[];
   userTimezone?: string;
+  teamId?: string | null;
 }): Record<string, unknown> {
   const body: Record<string, unknown> = {
     message,
@@ -102,6 +104,9 @@ export function buildSubmitChatBody({
   }
   if (projectId) {
     body.project_id = projectId;
+  }
+  if (teamId) {
+    body.team_id = teamId;
   }
   return body;
 }
@@ -296,6 +301,7 @@ export const sessionApi = {
     disabledMcpTools?: string[],
     personaPresetId?: string | null,
     enabledSkills?: string[],
+    teamId?: string | null,
   ): Promise<{
     session_id: string;
     run_id: string;
@@ -313,6 +319,7 @@ export const sessionApi = {
       personaPresetId,
       disabledMcpTools,
       userTimezone: getBrowserTimezone(),
+      teamId,
     });
     return authFetch(`${API_BASE}/api/chat/stream?agent_id=${agentId}`, {
       method: "POST",

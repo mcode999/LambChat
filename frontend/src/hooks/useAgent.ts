@@ -70,6 +70,7 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
     useState<BackendSession | null>(null);
   const [isInitializingSandbox, setIsInitializingSandbox] = useState(false);
   const [sandboxError, setSandboxError] = useState<string | null>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
   // Refs for connection management
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -557,6 +558,7 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
           disabledMcpTools,
           personaPresetId,
           enabledSkills,
+          selectedTeamId,
         )) as {
           session_id: string;
           run_id: string;
@@ -718,6 +720,7 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
       createSSEContext,
       newlyCreatedSession?.metadata,
       options,
+      selectedTeamId,
     ],
   );
 
@@ -783,6 +786,11 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
   // Switch agent without clearing messages (for mode toggling)
   const switchAgent = useCallback((agentId: string) => {
     setCurrentAgent(agentId);
+  }, []);
+
+  // Select a team for team-mode agent
+  const selectTeam = useCallback((teamId: string | null) => {
+    setSelectedTeamId(teamId);
   }, []);
 
   // Reconnect function
@@ -863,6 +871,8 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
     clearMessages,
     selectAgent,
     switchAgent,
+    selectTeam,
+    selectedTeamId,
     refreshAgents: fetchAgents,
     loadHistory,
     reconnectSSE: handleReconnectSSE,

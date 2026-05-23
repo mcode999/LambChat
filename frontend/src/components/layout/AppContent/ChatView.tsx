@@ -152,6 +152,10 @@ interface ChatViewProps {
   agents: { id: string; name: string; description: string }[];
   currentAgent: string;
   onSelectAgent: (id: string) => void;
+  // Team picker
+  selectedTeamId: string | null;
+  onSelectTeam: (teamId: string | null) => void;
+  onOpenTeamBuilder?: () => void;
   approvals: PendingApproval[];
   onRespondApproval: (
     id: string,
@@ -226,6 +230,9 @@ export function ChatView({
   agents,
   currentAgent,
   onSelectAgent,
+  selectedTeamId,
+  onSelectTeam,
+  onOpenTeamBuilder,
   approvals,
   onRespondApproval,
   approvalLoading,
@@ -746,6 +753,9 @@ export function ChatView({
     agents,
     currentAgent,
     onSelectAgent,
+    selectedTeamId,
+    onSelectTeam,
+    onOpenTeamBuilder,
     attachments,
     onAttachmentsChange,
   };

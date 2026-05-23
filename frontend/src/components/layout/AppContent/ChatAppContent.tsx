@@ -172,6 +172,8 @@ export function ChatAppContent({
     stopGeneration,
     clearMessages,
     switchAgent,
+    selectTeam,
+    selectedTeamId,
     loadHistory,
     setPendingProjectId,
     autoExpandProjectId,
@@ -802,6 +804,8 @@ export function ChatAppContent({
           agents={agents}
           currentAgent={currentAgent}
           onSelectAgent={switchAgent}
+          selectedTeamId={selectedTeamId}
+          onSelectTeam={selectTeam}
           approvals={approvals}
           onRespondApproval={respondToApproval}
           approvalLoading={approvalLoading}

@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Users } from "lucide-react";
 import { ToolSelector } from "../selectors/ToolSelector";
 import { SkillSelector } from "../selectors/SkillSelector";
 import { AgentModeSelector } from "../selectors/AgentModeSelector";
 import { PersonaPresetSelector } from "../persona/PersonaPresetSelector";
 import { AgentOptionButton } from "./AgentOptionButton";
+import { TeamPickerModal } from "../team/TeamPickerModal";
 import type { FeaturePanel } from "../selectors/FeatureMenu";
 import type {
   ToolState,
@@ -68,6 +71,10 @@ export interface ChatInputSelectorsProps {
   agentOptions?: Record<string, AgentOption>;
   agentOptionValues?: Record<string, boolean | string | number>;
   onToggleAgentOption?: (key: string, value: boolean | string | number) => void;
+  // Team picker
+  selectedTeamId?: string | null;
+  onSelectTeam?: (teamId: string | null) => void;
+  onOpenTeamBuilder?: () => void;
 }
 
 export function ChatInputSelectors({
@@ -110,8 +117,12 @@ export function ChatInputSelectors({
   agentOptions,
   agentOptionValues = {},
   onToggleAgentOption,
+  selectedTeamId,
+  onSelectTeam,
+  onOpenTeamBuilder,
 }: ChatInputSelectorsProps) {
   const navigate = useNavigate();
+  const [teamPickerOpen, setTeamPickerOpen] = useState(false);
 
   return (
     <>
@@ -178,6 +189,32 @@ export function ChatInputSelectors({
         isOpen={activePanel === "agent"}
         onOpenChange={(open) => onActivePanelChange(open ? "agent" : null)}
       />
+      {currentAgent === "team" && onSelectTeam && (
+        <>
+          <button
+            type="button"
+            className="chat-tool-btn"
+            title={selectedTeamId ? "Team selected" : "Select team"}
+            onClick={() => setTeamPickerOpen(true)}
+            data-active={selectedTeamId ? "" : undefined}
+          >
+            <Users size={18} />
+          </button>
+          <TeamPickerModal
+            isOpen={teamPickerOpen}
+            selectedTeamId={selectedTeamId ?? null}
+            onSelect={onSelectTeam}
+            onClose={() => setTeamPickerOpen(false)}
+            onCreateNew={() => {
+              if (onOpenTeamBuilder) {
+                onOpenTeamBuilder();
+              } else {
+                navigate("/team");
+              }
+            }}
+          />
+        </>
+      )}
       {agentOptions &&
         onToggleAgentOption &&
         Object.keys(agentOptions).length > 0 &&

@@ -74,6 +74,9 @@ export const ChatInput = memo(function ChatInput({
   agents = [],
   currentAgent,
   onSelectAgent,
+  selectedTeamId,
+  onSelectTeam,
+  onOpenTeamBuilder,
   attachments: externalAttachments,
   onAttachmentsChange: externalOnAttachmentsChange,
   onMentionQueryChange,
@@ -588,6 +591,9 @@ export const ChatInput = memo(function ChatInput({
         agents={agents}
         currentAgent={currentAgent}
         onSelectAgent={onSelectAgent}
+        selectedTeamId={selectedTeamId}
+        onSelectTeam={onSelectTeam}
+        onOpenTeamBuilder={onOpenTeamBuilder}
         agentOptions={agentOptions}
         agentOptionValues={agentOptionValues}
         onToggleAgentOption={onToggleAgentOption}

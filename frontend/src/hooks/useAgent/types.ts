@@ -205,6 +205,8 @@ export interface UseAgentReturn {
   clearMessages: () => void;
   selectAgent: (agentId: string) => void;
   switchAgent: (agentId: string) => void;
+  selectTeam: (teamId: string | null) => void;
+  selectedTeamId: string | null;
   refreshAgents: () => Promise<void>;
   loadHistory: (
     targetSessionId: string,
