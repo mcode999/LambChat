@@ -289,14 +289,14 @@ export const WelcomePage = memo(function WelcomePage({
   const showStarterPrompts =
     isAgentReady &&
     currentAgent !== "team" &&
-    (!!selectedPersonaPresetId
+    (selectedPersonaPresetId
       ? personaStarterPrompts.length > 0
       : !personaPresetsLoading &&
         roleCards.length === 0 &&
         defaultSuggestions.length > 0);
   const showTeamStarterPrompts =
     currentAgent === "team" &&
-    (!!selectedTeamId
+    (selectedTeamId
       ? teamStarterPrompts.length > 0
       : !teamCardsLoading &&
         welcomeTeamCards.length === 0 &&
