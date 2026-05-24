@@ -11,6 +11,7 @@ import {
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { PanelHeader } from "../common/PanelHeader";
+import { PanelSearchInput } from "../common/PanelSearchInput";
 import { MarketplacePanelSkeleton } from "../skeletons";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { SkillFormSidebar } from "./SkillsPanel/SkillFormSidebar";
@@ -335,7 +336,10 @@ export function MarketplacePanel({ embedded = false }: MarketplacePanelProps) {
     </>
   );
 
-  if (isLoading) {
+  const isInitialLoading =
+    isLoading && skills.length === 0 && !hasActiveFilters;
+
+  if (isInitialLoading) {
     return embedded ? (
       <div className="[&_.panel-header]:hidden">
         <MarketplacePanelSkeleton />
@@ -356,10 +360,10 @@ export function MarketplacePanel({ embedded = false }: MarketplacePanelProps) {
                   size={18}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500"
                 />
-                <input
+                <PanelSearchInput
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onValueChange={setSearchQuery}
                   className="panel-search h-10"
                   placeholder={t("marketplace.searchPlaceholder")}
                 />

@@ -165,11 +165,14 @@ async def fast_agent_node(state: Dict[str, Any], config: RunnableConfig) -> Dict
 
     # 自定义子代理配置 - 强制将所有中间信息保存到文件
     subagent_base_url = configurable.get("base_url", "")
+    subagent_prompt_sections = [s for s in (*persona_sections, skills_prompt, memory_guide) if s]
     subagent_middleware = [
         *create_retry_middleware(fallback_model=fallback_model_value, thinking=thinking_config),
         ToolResultBinaryMiddleware(base_url=subagent_base_url),
         SubagentActivityMiddleware(backend=backend),
     ]
+    if subagent_prompt_sections:
+        subagent_middleware.append(SectionPromptMiddleware(sections=subagent_prompt_sections))
     if context.deferred_manager is not None:
         from src.infra.agent.middleware import ToolSearchMiddleware
 

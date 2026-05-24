@@ -210,56 +210,62 @@ Keep each field factual and brief. Use `None` when a field does not apply."""
 SUBAGENT_PROMPT = DETAILED_SUBAGENT_PROMPT
 
 
-def build_role_subagent_prompt(
+def build_role_subagent_section(
     role_name: str,
     role_system_prompt: str,
     team_name: str | None = None,
     team_instructions: str | None = None,
+    role_instructions: str | None = None,
     task_objective: str | None = None,
 ) -> str:
-    """
-    Build a role-aware subagent prompt for team agent.
-
-    Order: role identity -> shared workflow -> team context -> handoff format.
-    Preserves the Handoff Notes contract for compatibility with the main agent.
-    """
+    """Build the role/persona section injected into a role subagent."""
     parts = [
+        "## Persona",
+        "",
         f"You are a subagent in the role of **{role_name}**.",
         "",
         role_system_prompt,
         "",
     ]
 
-    parts.append(FILE_WORKSPACE_GUIDE)
-    parts.append(FILE_REVEAL_GUIDE)
-    parts.append(SAFETY_AND_VERIFICATION_GUIDE)
-
     if team_name:
         parts.append(f"\n### Team: {team_name}")
     if team_instructions:
         parts.append(f"\n### Team Instructions\n{team_instructions}")
 
+    if role_instructions:
+        parts.append(f"\n### Role Instructions\n{role_instructions}")
+
     if task_objective:
         parts.append(f"\n### Task Objective\n{task_objective}")
 
-    parts.append("""
-
-Stay within the assigned objective. Do not make final promises to the user; return evidence and handoff notes for the main agent to synthesize. Run relevant verification when you change files or make claims that can be checked.
-
-Return a concise answer followed by this structured handoff:
-
-## Handoff Notes
-- Goal:
-- What I checked:
-- Key findings:
-- Files / tools touched:
-- Decisions or assumptions:
-- Risks / blockers:
-- Checks run:
-- Unchecked items:
-- Suggested next step:
-- Memory-worthy notes:
-
-Keep each field factual and brief. Use `None` when a field does not apply.""")
-
     return "\n".join(parts)
+
+
+def build_subagent_system_prompt(base_prompt: str, *sections: str | None) -> str:
+    """Append additional prompt sections to a subagent's own system prompt."""
+    parts = [base_prompt.strip()]
+    parts.extend(section.strip() for section in sections if section and section.strip())
+    return "\n\n".join(parts)
+
+
+def build_role_subagent_prompt(
+    role_name: str,
+    role_system_prompt: str,
+    team_name: str | None = None,
+    team_instructions: str | None = None,
+    role_instructions: str | None = None,
+    task_objective: str | None = None,
+) -> str:
+    """Legacy full role subagent prompt. Prefer section injection in new code."""
+    return build_subagent_system_prompt(
+        SUBAGENT_PROMPT,
+        build_role_subagent_section(
+            role_name=role_name,
+            role_system_prompt=role_system_prompt,
+            team_name=team_name,
+            team_instructions=team_instructions,
+            role_instructions=role_instructions,
+            task_objective=task_objective,
+        ),
+    )

@@ -86,7 +86,10 @@ export function PersonaPlazaPanel() {
     isImporting,
   } = usePersonaPlaza();
 
-  if (isLoading) return <PersonaPlazaSkeleton />;
+  const isInitialLoading =
+    isLoading && presets.length === 0 && !hasActiveFilters;
+
+  if (isInitialLoading) return <PersonaPlazaSkeleton />;
 
   return (
     <div className="skill-theme-shell flex h-full min-h-0 flex-col">

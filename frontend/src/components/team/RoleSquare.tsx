@@ -3,6 +3,7 @@ import { Search, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PersonaPreset } from "../../types";
 import { nameToGradient } from "../common/cardUtils";
+import { PanelSearchInput } from "../common/PanelSearchInput";
 import {
   PersonaAvatarIcon,
   PersonaAvatarImage,
@@ -85,11 +86,11 @@ export function RoleSquare({
       <div className="team-pane-tools">
         <div className="team-pane-search">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--theme-text-secondary)] pointer-events-none" />
-          <input
+          <PanelSearchInput
             type="text"
             placeholder={t("team.searchRoles")}
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onValueChange={onSearchChange}
             className="panel-search"
           />
         </div>

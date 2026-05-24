@@ -381,7 +381,10 @@ export function MCPPanel() {
     );
   }
 
-  if (isLoading) {
+  const isInitialLoading =
+    isLoading && servers.length === 0 && searchQuery.trim().length === 0;
+
+  if (isInitialLoading) {
     return <MCPPanelSkeleton />;
   }
 

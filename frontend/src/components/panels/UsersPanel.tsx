@@ -434,7 +434,10 @@ export function UsersPanel() {
     setEditingUser(null);
   };
 
-  if (isLoading) {
+  const isInitialLoading =
+    isLoading && users.length === 0 && searchQuery.trim().length === 0;
+
+  if (isInitialLoading) {
     return <UsersPanelSkeleton />;
   }
 

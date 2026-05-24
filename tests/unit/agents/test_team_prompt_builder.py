@@ -30,6 +30,17 @@ def test_includes_team_context():
     assert "TypeScript" in prompt
 
 
+def test_includes_role_instructions_as_system_constraints():
+    prompt = build_role_subagent_prompt(
+        role_name="Writer",
+        role_system_prompt="You are a writer.",
+        role_instructions="Always write in Xiaohongshu style with emoji.",
+    )
+
+    assert "### Role Instructions" in prompt
+    assert "Always write in Xiaohongshu style with emoji." in prompt
+
+
 def test_without_team_context():
     prompt = build_role_subagent_prompt(
         role_name="Coder",

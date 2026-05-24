@@ -180,12 +180,17 @@ async def agent_node(state: Dict[str, Any], config: RunnableConfig) -> Dict[str,
 
     # 自定义子代理配置 - 强制将所有中间信息保存到文件
     search_base_url = configurable.get("base_url", "")
+    subagent_prompt_sections = [s for s in (*persona_sections, skills_prompt, memory_guide) if s]
+    if sandbox_backend and sandbox_work_dir:
+        subagent_prompt_sections.append(SANDBOX_RUNTIME_SECTION.format(work_dir=sandbox_work_dir))
     subagent_middleware = [
         *create_retry_middleware(fallback_model=fallback_model_value, thinking=thinking_config),
         MCPQuotaMiddleware(user_id=context.user_id),
         ToolResultBinaryMiddleware(base_url=search_base_url),
         SubagentActivityMiddleware(backend=backend),
     ]
+    if subagent_prompt_sections:
+        subagent_middleware.append(SectionPromptMiddleware(sections=subagent_prompt_sections))
     if sandbox_backend:
         subagent_middleware.append(EnvVarPromptMiddleware(user_id=context.user_id or "default"))
     if context.deferred_manager is not None:

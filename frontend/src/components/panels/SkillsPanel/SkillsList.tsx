@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { PanelHeader } from "../../common/PanelHeader";
+import { PanelSearchInput } from "../../common/PanelSearchInput";
 import { SkillsPanelSkeleton } from "../../skeletons";
 import { Pagination } from "../../common/Pagination";
 import { SkillCard } from "../../skill/SkillCard";
@@ -100,7 +101,12 @@ export function SkillsList({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [isFilterOpen, setIsFilterOpen]);
 
-  if (isLoading && filteredSkills.length === 0) {
+  const hasActiveFilters =
+    searchQuery.trim().length > 0 || selectedTags.length > 0;
+  const isInitialLoading =
+    isLoading && filteredSkills.length === 0 && !hasActiveFilters;
+
+  if (isInitialLoading) {
     return embedded ? (
       <div className="[&_.panel-header]:hidden">
         <SkillsPanelSkeleton />
@@ -109,9 +115,6 @@ export function SkillsList({
       <SkillsPanelSkeleton />
     );
   }
-
-  const hasActiveFilters =
-    searchQuery.trim().length > 0 || selectedTags.length > 0;
 
   const filterMenu = availableTags.length > 0 && (
     <div className="relative shrink-0" ref={filterRef}>
@@ -210,10 +213,10 @@ export function SkillsList({
                   size={18}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500"
                 />
-                <input
+                <PanelSearchInput
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onValueChange={setSearchQuery}
                   className="panel-search h-10"
                   placeholder={t("skills.searchPlaceholder")}
                 />

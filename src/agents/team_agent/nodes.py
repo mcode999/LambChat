@@ -24,7 +24,7 @@ from src.agents.core.persona import build_persona_prompt_sections
 from src.agents.core.subagent_prompts import (
     MAIN_AGENT_PROMPT_SECTIONS,
     SUBAGENT_PROMPT,
-    build_role_subagent_prompt,
+    build_role_subagent_section,
     get_memory_guide,
 )
 from src.agents.core.thinking import build_thinking_config
@@ -120,7 +120,7 @@ async def team_router_node(state: Dict[str, Any], config: RunnableConfig) -> Dic
 
     特点：
     - 解析团队配置，按角色构建子代理
-    - 使用 build_role_subagent_prompt() 为每个角色生成提示词
+    - 使用 SectionPromptMiddleware 为每个角色注入角色、技能、记忆和运行时提示
     - 无团队时回退到单代理模式
     """
     start_time = time.time()
@@ -190,6 +190,7 @@ async def team_router_node(state: Dict[str, Any], config: RunnableConfig) -> Dic
 
     memory_guide = get_memory_guide() if settings.ENABLE_MEMORY else ""
     role_system_prompts: dict[str, str] = {}
+    role_skill_prompts: dict[str, str] = {}
     role_summaries: dict[str, str] = {}
 
     if team and team.active_members:
@@ -204,6 +205,14 @@ async def team_router_node(state: Dict[str, Any], config: RunnableConfig) -> Dic
                     is_admin=False,
                 )
                 role_system_prompts[member.member_id] = preset_snapshot.system_prompt
+                role_skill_names = set(getattr(preset_snapshot, "skill_names", []) or [])
+                if role_skill_names:
+                    role_skills = [
+                        skill for skill in context.skills if skill.get("name") in role_skill_names
+                    ]
+                    role_skill_prompts[member.member_id] = await build_skills_prompt(role_skills)
+                else:
+                    role_skill_prompts[member.member_id] = skills_prompt
                 summary = summarize_role_system_prompt(preset_snapshot.system_prompt)
                 if summary:
                     role_summaries[member.member_id] = summary
@@ -325,13 +334,18 @@ async def team_router_node(state: Dict[str, Any], config: RunnableConfig) -> Dic
     # ── 子代理配置 ──
     subagent_base_url = configurable.get("base_url", "")
 
-    def _build_subagent_middleware(subagent_type: str = "general-purpose") -> list:
+    def _build_subagent_middleware(
+        subagent_type: str = "general-purpose",
+        prompt_sections: list[str] | None = None,
+    ) -> list:
         """Build the middleware stack for a single subagent."""
         mw = [
             *create_retry_middleware(fallback_model=fallback_model_value, thinking=thinking_config),
             ToolResultBinaryMiddleware(base_url=subagent_base_url),
             SubagentActivityMiddleware(backend=backend),
         ]
+        if prompt_sections:
+            mw.append(SectionPromptMiddleware(sections=prompt_sections))
         if sandbox_backend:
             mw.append(EnvVarPromptMiddleware(user_id=context.user_id or "default"))
         if context.deferred_manager is not None:
@@ -352,6 +366,11 @@ async def team_router_node(state: Dict[str, Any], config: RunnableConfig) -> Dic
     custom_subagents: list[SubAgent | CompiledSubAgent] = []
     subagent_display_names: dict[str, str] = {}
     subagent_avatars: dict[str, str] = {}
+    subagent_runtime_section = (
+        SEARCH_SANDBOX_RUNTIME_SECTION.format(work_dir=sandbox_work_dir)
+        if sandbox_backend and sandbox_work_dir
+        else None
+    )
 
     if team and team.active_members:
         # ── 多角色子代理 ──
@@ -362,11 +381,35 @@ async def team_router_node(state: Dict[str, Any], config: RunnableConfig) -> Dic
             for member in team.active_members:
                 subagent_type = build_team_member_subagent_type(member)
                 role_name = member.role_name or subagent_type
-                role_prompt = build_role_subagent_prompt(
+                role_section = build_role_subagent_section(
                     role_name=role_name,
                     role_system_prompt=role_system_prompts[member.member_id],
                     team_name=team.name,
                     team_instructions=team.team_instructions or None,
+                    role_instructions=member.role_instructions or None,
+                )
+                role_prompt_sections = [
+                    s
+                    for s in (
+                        role_section,
+                        role_skill_prompts.get(member.member_id, skills_prompt),
+                        memory_guide,
+                        subagent_runtime_section,
+                    )
+                    if s
+                ]
+                logger.info(
+                    "[TeamAgent] Role subagent prompt built: type=%s role=%s "
+                    "section_chars=%d has_role_prompt=%s has_role_instructions=%s "
+                    "has_skills=%s",
+                    subagent_type,
+                    role_name,
+                    sum(len(s) for s in role_prompt_sections),
+                    bool(role_system_prompts[member.member_id].strip())
+                    and role_system_prompts[member.member_id].strip() in role_section,
+                    bool((member.role_instructions or "").strip())
+                    and (member.role_instructions or "").strip() in role_section,
+                    any("## Skills System" in s for s in role_prompt_sections),
                 )
 
                 custom_subagents.append(
@@ -378,8 +421,11 @@ async def team_router_node(state: Dict[str, Any], config: RunnableConfig) -> Dic
                             f"Dispatch tasks matching this role's expertise."
                             + (f" {member.role_instructions}" if member.role_instructions else "")
                         ),
-                        "system_prompt": role_prompt,
-                        "middleware": _build_subagent_middleware(subagent_type),
+                        "system_prompt": SUBAGENT_PROMPT,
+                        "middleware": _build_subagent_middleware(
+                            subagent_type,
+                            prompt_sections=role_prompt_sections,
+                        ),
                     }
                 )
 
@@ -392,12 +438,19 @@ async def team_router_node(state: Dict[str, Any], config: RunnableConfig) -> Dic
 
     # Fallback: single general-purpose subagent
     if not custom_subagents:
+        subagent_prompt_sections = [
+            s
+            for s in (*persona_sections, skills_prompt, memory_guide, subagent_runtime_section)
+            if s
+        ]
         custom_subagents = [
             {
                 "name": "general-purpose",
                 "description": "General-purpose agent for researching complex questions, searching for files and content, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you. This agent has access to all tools as the main agent.",
                 "system_prompt": SUBAGENT_PROMPT,
-                "middleware": _build_subagent_middleware(),
+                "middleware": _build_subagent_middleware(
+                    prompt_sections=subagent_prompt_sections,
+                ),
             }
         ]
 

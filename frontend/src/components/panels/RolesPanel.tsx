@@ -624,7 +624,10 @@ export function RolesPanel() {
     setEditingRole(null);
   };
 
-  if (isLoading) {
+  const isInitialLoading =
+    isLoading && roles.length === 0 && searchQuery.trim().length === 0;
+
+  if (isInitialLoading) {
     return <RolesPanelSkeleton />;
   }
 

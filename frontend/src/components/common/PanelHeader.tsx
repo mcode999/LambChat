@@ -5,6 +5,7 @@
 
 import { type ReactNode } from "react";
 import { Search } from "lucide-react";
+import { PanelSearchInput } from "./PanelSearchInput";
 
 interface PanelHeaderProps {
   /** 面板标题 */
@@ -76,10 +77,10 @@ export function PanelHeader({
               size={18}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-tertiary"
             />
-            <input
+            <PanelSearchInput
               type="text"
               value={searchValue}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onValueChange={onSearchChange}
               className="panel-search h-10"
               placeholder={searchPlaceholder}
             />

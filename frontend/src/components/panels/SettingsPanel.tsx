@@ -14,6 +14,7 @@ import { AboutDialog } from "../common/AboutDialog";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { GlassSelect } from "../common/GlassSelect";
 import { LoadingSpinner } from "../common/LoadingSpinner";
+import { PanelSearchInput } from "../common/PanelSearchInput";
 import { PanelLoadingState } from "../common/PanelLoadingState";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -591,11 +592,11 @@ export function SettingsPanel() {
                   size={18}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500"
                 />
-                <input
+                <PanelSearchInput
                   type="text"
                   placeholder={t("settings.searchPlaceholder")}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onValueChange={setSearchQuery}
                   className="panel-search h-10"
                 />
               </div>
