@@ -36,6 +36,7 @@ _backend_lock: Optional[asyncio.Lock] = None
 _backend_lock_loop: Optional[asyncio.AbstractEventLoop] = None
 _background_tasks: set[asyncio.Task] = set()
 _auto_capture_user_locks: dict[str, asyncio.Lock] = {}
+_AUTO_CAPTURE_LOCKS_MAX = 500  # Prevent unbounded lock accumulation
 
 
 def _get_auto_capture_lock_fns():
@@ -51,6 +52,19 @@ def _cleanup_local_auto_capture_lock(user_id: str, lock: asyncio.Lock) -> None:
         current = _auto_capture_user_locks.get(user_id)
         if current is lock:
             _auto_capture_user_locks.pop(user_id, None)
+
+
+def _evict_idle_auto_capture_locks() -> None:
+    """Evict idle locks when the dict grows too large."""
+    if len(_auto_capture_user_locks) <= _AUTO_CAPTURE_LOCKS_MAX:
+        return
+    idle_users = [
+        uid
+        for uid, lock in _auto_capture_user_locks.items()
+        if not lock.locked() and not getattr(lock, "_waiters", None)
+    ]
+    for uid in idle_users[: len(_auto_capture_user_locks) // 4]:
+        _auto_capture_user_locks.pop(uid, None)
 
 
 def _get_backend_lock() -> asyncio.Lock:
@@ -253,6 +267,7 @@ async def _auto_retain_user_memory(user_id: str, user_input: str) -> None:
         return
     lock = _auto_capture_user_locks.get(user_id)
     if lock is None:
+        _evict_idle_auto_capture_locks()
         lock = asyncio.Lock()
         _auto_capture_user_locks[user_id] = lock
     try:

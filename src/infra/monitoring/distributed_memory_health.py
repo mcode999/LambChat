@@ -282,11 +282,22 @@ async def publish_instance_snapshot(
     return serialized_snapshot
 
 
+async def _scan_keys(client: Any, pattern: str, *, count: int = 100) -> list[str]:
+    """Collect matching Redis keys with SCAN to avoid blocking Redis."""
+    cursor: int | str = 0
+    keys: list[str] = []
+    while True:
+        cursor, batch = await client.scan(cursor=cursor, match=pattern, count=count)
+        keys.extend(str(key) for key in batch)
+        if int(cursor) == 0:
+            return keys
+
+
 async def load_cluster_snapshots(*, redis_client: Any | None = None) -> list[dict[str, Any]]:
     """Load all known instance snapshots from Redis."""
     client = redis_client or get_redis_client()
     try:
-        keys = await client.keys(f"{_INSTANCE_KEY_PREFIX}*")
+        keys = await _scan_keys(client, f"{_INSTANCE_KEY_PREFIX}*")
         snapshots_by_instance_id: dict[str, dict[str, Any]] = {}
         for key in sorted(keys):
             try:

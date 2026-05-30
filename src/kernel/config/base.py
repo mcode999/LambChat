@@ -12,11 +12,12 @@ from pydantic_settings import BaseSettings
 
 from src.infra.logging import get_logger
 
-from .constants import JWT_SECRET_KEY_MIN_LENGTH
+from .constants import JWT_SECRET_KEY_MIN_LENGTH, MCP_ENCRYPTION_SALT_MIN_LENGTH
 from .utils import (
     COMMIT_HASH,
     GIT_TAG,
     PROJECT_ROOT,
+    expand_encryption_salt,
     expand_jwt_secret_key,
     get_app_version,
 )
@@ -328,11 +329,6 @@ class Settings(BaseSettings):
                 "JWT_SECRET_KEY not set or using placeholder value. "
                 f"Generated random secret key: {self.JWT_SECRET_KEY[:8]}..."
             )
-
-        # Generate random MCP_ENCRYPTION_SALT if not set
-        if not self.MCP_ENCRYPTION_SALT:
-            self.MCP_ENCRYPTION_SALT = secrets.token_urlsafe(16)
-            logger.info("MCP_ENCRYPTION_SALT not set, generated random salt")
         # Expand short JWT_SECRET_KEY to meet minimum length requirement
         elif len(self.JWT_SECRET_KEY) < JWT_SECRET_KEY_MIN_LENGTH:
             original_key = self.JWT_SECRET_KEY
@@ -341,6 +337,20 @@ class Settings(BaseSettings):
                 f"JWT_SECRET_KEY too short ({len(original_key)} bytes). "
                 f"Expanded to meet minimum {JWT_SECRET_KEY_MIN_LENGTH} bytes requirement. "
                 f"Expanded key prefix: {self.JWT_SECRET_KEY[:8]}..."
+            )
+
+        # Generate random MCP_ENCRYPTION_SALT if not set
+        if not self.MCP_ENCRYPTION_SALT:
+            self.MCP_ENCRYPTION_SALT = secrets.token_urlsafe(16)
+            logger.info("MCP_ENCRYPTION_SALT not set, generated random salt")
+        # Expand short MCP_ENCRYPTION_SALT to meet minimum length requirement
+        elif len(self.MCP_ENCRYPTION_SALT) < MCP_ENCRYPTION_SALT_MIN_LENGTH:
+            original_salt = self.MCP_ENCRYPTION_SALT
+            self.MCP_ENCRYPTION_SALT = expand_encryption_salt(self.MCP_ENCRYPTION_SALT)
+            logger.warning(
+                f"MCP_ENCRYPTION_SALT too short ({len(original_salt)} bytes). "
+                f"Expanded to meet minimum {MCP_ENCRYPTION_SALT_MIN_LENGTH} bytes requirement. "
+                f"Expanded salt prefix: {self.MCP_ENCRYPTION_SALT[:8]}..."
             )
 
         # Set version info from git (if not already set via env)

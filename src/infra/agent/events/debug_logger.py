@@ -18,6 +18,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from src.infra.async_utils import run_blocking_io
+
 _ENABLED: bool | None = None
 _LOG_FILE: Any = None  # TextIO | None
 
@@ -46,6 +48,18 @@ def _get_log_file() -> Any:
         path = log_dir / f"stream_events_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
         _LOG_FILE = open(path, "a", encoding="utf-8")
     return _LOG_FILE
+
+
+def shutdown() -> None:
+    """Close the log file handle. Call during application shutdown."""
+    global _LOG_FILE
+    if _LOG_FILE is not None:
+        try:
+            _LOG_FILE.flush()
+            _LOG_FILE.close()
+        except Exception:
+            pass
+        _LOG_FILE = None
 
 
 _SANITIZE_MAX_DEPTH = 10
@@ -84,6 +98,8 @@ async def debug_log_event(event: Any) -> None:
     Every field of the LangChain stream event is preserved so nothing is
     lost.  Non-serialisable objects (Pydantic models, ``AIMessage``, etc.)
     are converted via ``model_dump()`` / ``vars()`` fallback.
+
+    File writes are offloaded to a thread to avoid blocking the event loop.
     """
     if not _is_enabled():
         return
@@ -94,5 +110,15 @@ async def debug_log_event(event: Any) -> None:
     record.update(_sanitize(event))
 
     line = json.dumps(record, ensure_ascii=False, default=str) + "\n"
-    _get_log_file().write(line)
-    _get_log_file().flush()
+    log_file = _get_log_file()
+
+    await run_blocking_io(_write_line, log_file, line, timeout=1.0)
+
+
+def _write_line(log_file: Any, line: str) -> None:
+    """Synchronous file write."""
+    try:
+        log_file.write(line)
+        log_file.flush()
+    except (ValueError, OSError):
+        pass  # File closed or invalid — silently skip

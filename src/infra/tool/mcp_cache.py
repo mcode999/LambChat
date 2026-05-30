@@ -14,7 +14,7 @@ import hashlib
 import json
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Optional, Set
 
 from langchain_core.tools import BaseTool
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -31,6 +31,9 @@ CACHE_TTL = 900
 # 最大缓存条目数（防止内存泄漏）
 MAX_CACHE_ENTRIES = 100
 
+# 最大缓存锁数（防止锁泄漏，通常不需要大于缓存条目数）
+MAX_CACHE_LOCKS = 200
+
 # Redis 缓存键前缀
 CONFIG_HASH_KEY_PREFIX = "mcp_config_hash:"
 
@@ -43,15 +46,52 @@ _cache_locks: dict[str, asyncio.Lock] = {}
 # 全局清理锁，防止并发清理
 _cleanup_lock = asyncio.Lock()
 
+# Track deferred client close tasks so shutdown can wait for resources to release.
+_background_tasks: Set[asyncio.Task] = set()
+
+
+def _track_background_task(task: asyncio.Task) -> None:
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
+
+def _schedule_client_close(client: MultiServerMCPClient) -> None:
+    try:
+        task = asyncio.create_task(_close_client(client))
+    except RuntimeError:
+        return
+    _track_background_task(task)
+
+
+async def drain_background_tasks(timeout: float = 10.0) -> None:
+    """Wait for deferred MCP client close tasks during graceful shutdown."""
+    if not _background_tasks:
+        return
+    try:
+        await asyncio.wait_for(
+            asyncio.gather(*list(_background_tasks), return_exceptions=True),
+            timeout=timeout,
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "[MCP Cache] %s background close tasks did not finish in %ss",
+            len(_background_tasks),
+            timeout,
+        )
+
 
 async def _close_client(client: MultiServerMCPClient) -> None:
     """Close MCP client connections."""
     try:
         # MultiServerMCPClient may have cleanup methods
         if hasattr(client, "close"):
-            await client.close()
+            result = client.close()
+            if asyncio.iscoroutine(result):
+                await result
         elif hasattr(client, "__aexit__"):
-            await client.__aexit__(None, None, None)  # type: ignore[misc, func-returns-value]
+            result = client.__aexit__(None, None, None)  # type: ignore[func-returns-value]
+            if asyncio.iscoroutine(result):
+                await result
     except Exception as e:
         logger.debug(f"Error closing MCP client: {e}")
 
@@ -79,11 +119,7 @@ def _cleanup_expired_cache() -> int:
     for user_id in expired_users:
         entry = _tools_cache.pop(user_id, None)
         if entry and entry.client:
-            try:
-                # Close MCP client to release connections
-                asyncio.create_task(_close_client(entry.client))
-            except Exception as e:
-                logger.debug(f"Failed to close MCP client for {user_id}: {e}")
+            _schedule_client_close(entry.client)
         _remove_lock_if_idle(user_id)
     # 清理没有对应缓存条目的孤立 lock
     orphan_locks = [uid for uid in _cache_locks if uid not in _tools_cache]
@@ -106,10 +142,7 @@ def _cleanup_excess_cache() -> int:
     for user_id, entry in sorted_entries[:to_remove]:
         _tools_cache.pop(user_id, None)
         if entry and entry.client:
-            try:
-                asyncio.create_task(_close_client(entry.client))
-            except Exception as e:
-                logger.debug(f"Failed to close MCP client for {user_id}: {e}")
+            _schedule_client_close(entry.client)
         _remove_lock_if_idle(user_id)
 
     # 清理没有对应缓存条目的孤立 lock
@@ -158,6 +191,17 @@ def _get_cache_lock(user_id: str) -> asyncio.Lock:
         removed = _cleanup_excess_cache()
         if removed > 0:
             logger.info(f"[MCP Cache] Removed {removed} excess cache entries (LRU)")
+
+    # 清理孤立的锁，防止 _cache_locks 无限增长
+    if len(_cache_locks) > MAX_CACHE_LOCKS:
+        orphan_locks = [uid for uid in _cache_locks if uid not in _tools_cache]
+        for uid in orphan_locks:
+            _remove_lock_if_idle(uid)
+        if len(_cache_locks) > MAX_CACHE_LOCKS:
+            logger.debug(
+                "[MCP Cache] %s cache locks remain after cleanup (some may be in use)",
+                len(_cache_locks),
+            )
 
     # 使用 setdefault 确保原子性
     return _cache_locks.setdefault(user_id, asyncio.Lock())
@@ -324,14 +368,21 @@ async def invalidate_all_cache() -> int:
     Returns:
         int: 被失效的缓存数量
     """
-    # 清除 Redis 中所有配置哈希
+    # 清除 Redis 中所有配置哈希（使用 SCAN 代替 KEYS 避免阻塞）
     try:
         redis_client = get_redis_client()
-        keys = await redis_client.keys(f"{CONFIG_HASH_KEY_PREFIX}*")
-        if keys:
-            for key in keys:
-                await redis_client.delete(key)
-            logger.info(f"[MCP Cache] Invalidated {len(keys)} Redis hash entries")
+        cursor = 0
+        all_keys = []
+        while True:
+            cursor, keys = await redis_client.scan(
+                cursor=cursor, match=f"{CONFIG_HASH_KEY_PREFIX}*", count=100
+            )
+            all_keys.extend(keys)
+            if cursor == 0:
+                break
+        if all_keys:
+            await redis_client.delete(*all_keys)
+            logger.info(f"[MCP Cache] Invalidated {len(all_keys)} Redis hash entries")
     except Exception as e:
         logger.warning(f"[MCP Cache] Redis keys/delete failed: {e}")
 
@@ -379,11 +430,19 @@ async def get_cache_stats() -> dict[str, Any]:
             }
         )
 
-    # Redis 哈希键统计
+    # Redis 哈希键统计（使用 SCAN 代替 KEYS 避免阻塞）
     try:
         redis_client = get_redis_client()
-        keys = await redis_client.keys(f"{CONFIG_HASH_KEY_PREFIX}*")
-        stats["redis_hash_keys"] = len(keys)
+        cursor = 0
+        total_keys = 0
+        while True:
+            cursor, keys = await redis_client.scan(
+                cursor=cursor, match=f"{CONFIG_HASH_KEY_PREFIX}*", count=100
+            )
+            total_keys += len(keys)
+            if cursor == 0:
+                break
+        stats["redis_hash_keys"] = total_keys
     except Exception as e:
         stats["redis_hash_error"] = str(e)
 

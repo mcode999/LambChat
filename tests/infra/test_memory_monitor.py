@@ -18,6 +18,21 @@ def _enable_memory_monitor(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(Process=lambda _pid: object()),
     )
 
+    async def _noop_publish_instance_snapshot(
+        snapshot: dict[str, object],
+        *,
+        interval_seconds: float,
+        redis_client: object | None = None,
+    ) -> dict[str, object]:
+        del interval_seconds, redis_client
+        return snapshot
+
+    monkeypatch.setattr(
+        distributed_memory_health,
+        "publish_instance_snapshot",
+        _noop_publish_instance_snapshot,
+    )
+
 
 @pytest.mark.asyncio
 async def test_monitor_marks_suspicious_growth_when_rss_keeps_rising() -> None:
@@ -53,6 +68,7 @@ async def test_monitor_marks_suspicious_growth_when_rss_keeps_rising() -> None:
 
     monitor._collect_process_sample = _fake_process_sample  # type: ignore[method-assign]
     monitor._capture_diagnostics_snapshot = _fake_capture_diagnostics  # type: ignore[method-assign]
+    monitor._build_distributed_snapshot_locked = lambda: asyncio.sleep(0, result=None)  # type: ignore[method-assign]
 
     await monitor._sample_once()
     await monitor._sample_once()
@@ -63,7 +79,7 @@ async def test_monitor_marks_suspicious_growth_when_rss_keeps_rising() -> None:
 
     assert summary["suspected_leak"] is True
     assert summary["growth_bytes"] == 130 * 1024 * 1024
-    assert diagnostics_calls == [1, 1, 1]
+    assert diagnostics_calls == [1]
     assert diagnostics["last_alert"]["top_growth"][0]["location"] == "src/example.py:10"
 
 
@@ -101,6 +117,7 @@ async def test_monitor_logs_hotspot_summary_when_alert_fires(
 
     monitor._collect_process_sample = _fake_process_sample  # type: ignore[method-assign]
     monitor._capture_diagnostics_snapshot = _fake_capture_diagnostics  # type: ignore[method-assign]
+    monitor._build_distributed_snapshot_locked = lambda: asyncio.sleep(0, result=None)  # type: ignore[method-assign]
 
     with caplog.at_level("WARNING", logger="src.infra.monitoring.memory"):
         await monitor._sample_once()
@@ -155,6 +172,7 @@ async def test_reset_baseline_reanchors_growth_window() -> None:
     )
 
     monitor._collect_process_sample = lambda: next(samples)  # type: ignore[method-assign]
+    monitor._build_distributed_snapshot_locked = lambda: asyncio.sleep(0, result=None)  # type: ignore[method-assign]
 
     await monitor._sample_once()
     await monitor._sample_once()
@@ -183,6 +201,7 @@ async def test_reset_baseline_clears_previous_alert_state() -> None:
         "thread_count": 12,
         "open_file_count": 4,
     }  # type: ignore[method-assign]
+    monitor._build_distributed_snapshot_locked = lambda: asyncio.sleep(0, result=None)  # type: ignore[method-assign]
     monitor._last_alert = {"captured_at": "2026-04-30T03:24:00+00:00"}
     monitor._last_alert_at = reset_timestamp - timedelta(minutes=1)
 
@@ -265,7 +284,7 @@ async def test_reset_baseline_publishes_fresh_instance_snapshot(
     await monitor.reset_baseline()
 
     assert len(built_snapshots) == 1
-    assert built_snapshots[0]["captured_at"] == "2026-04-30T03:25:30+00:00"
+    assert built_snapshots[0]["captured_at"] == "2026-04-30T03:25:00+00:00"
     assert built_snapshots[0]["summary"] == {
         "available": True,
         "rss_bytes": 220 * 1024 * 1024,
@@ -283,10 +302,12 @@ async def test_reset_baseline_publishes_fresh_instance_snapshot(
         "last_error": None,
     }
     assert built_snapshots[0]["details"] == {
-        "captured_at": "2026-04-30T03:25:30+00:00",
-        "top_growth": [{"location": "src/reset.py:10", "size_diff_bytes": 1024}],
-        "top_allocations": [{"location": "src/reset.py:10", "size_bytes": 2048}],
-        "top_object_types": [{"type": "dict", "count": 10}],
+        "captured_at": "2026-04-30T03:25:00+00:00",
+        "heavy_diagnostics_enabled": False,
+        "reason": "heavy_diagnostics_disabled",
+        "top_growth": [],
+        "top_allocations": [],
+        "top_object_types": [],
     }
     assert published_calls == [(built_snapshots[0], 45.0)]
 
@@ -362,7 +383,7 @@ async def test_sample_once_publishes_current_snapshot_when_no_alert(
     await monitor._sample_once()
 
     assert len(built_snapshots) == 1
-    assert built_snapshots[0]["captured_at"] == "2026-04-30T03:25:30+00:00"
+    assert built_snapshots[0]["captured_at"] == "2026-04-30T03:25:00+00:00"
     assert built_snapshots[0]["summary"] == {
         "available": True,
         "rss_bytes": 220 * 1024 * 1024,
@@ -380,10 +401,12 @@ async def test_sample_once_publishes_current_snapshot_when_no_alert(
         "last_error": None,
     }
     assert built_snapshots[0]["details"] == {
-        "captured_at": "2026-04-30T03:25:30+00:00",
-        "top_growth": [{"location": "src/current.py:10", "size_diff_bytes": 4096}],
-        "top_allocations": [{"location": "src/current.py:10", "size_bytes": 8192}],
-        "top_object_types": [{"type": "list", "count": 6}],
+        "captured_at": "2026-04-30T03:25:00+00:00",
+        "heavy_diagnostics_enabled": False,
+        "reason": "heavy_diagnostics_disabled",
+        "top_growth": [],
+        "top_allocations": [],
+        "top_object_types": [],
     }
     assert published_calls == [(built_snapshots[0], 60.0)]
 
@@ -480,7 +503,7 @@ async def test_sample_once_publishes_last_alert_snapshot_when_alert_fires(
     await monitor._sample_once()
     await monitor._sample_once()
 
-    assert diagnostics_calls == [1, 1]
+    assert diagnostics_calls == [1]
     assert len(built_snapshots) == 2
     assert built_snapshots[-1]["captured_at"] == "2026-04-30T03:26:30+00:00"
     assert built_snapshots[-1]["summary"] == {

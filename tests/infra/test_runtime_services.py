@@ -124,6 +124,9 @@ async def test_stop_runtime_services_stops_all_distributed_listeners(
     arq_runtime = SimpleNamespace(stop_calls=0)
     lag_monitor = SimpleNamespace(stop_calls=0)
     shutdown_calls = SimpleNamespace(count=0)
+    mcp_cache_drain = SimpleNamespace(calls=0)
+    mcp_global_drain = SimpleNamespace(calls=0)
+    mcp_pool_close = SimpleNamespace(calls=0)
 
     async def _memory_shutdown() -> None:
         memory_shutdown.calls += 1
@@ -136,6 +139,15 @@ async def test_stop_runtime_services_stops_all_distributed_listeners(
 
     def _shutdown_blocking_io_executor() -> None:
         shutdown_calls.count += 1
+
+    async def _drain_mcp_cache_background_tasks() -> None:
+        mcp_cache_drain.calls += 1
+
+    async def _drain_mcp_global_background_tasks() -> None:
+        mcp_global_drain.calls += 1
+
+    async def _close_mcp_pool_connections() -> None:
+        mcp_pool_close.calls += 1
 
     monkeypatch.setattr(runtime_services, "get_task_manager", lambda: task_manager)
     monkeypatch.setattr(runtime_services, "stop_arq_runtime", _stop_arq_runtime)
@@ -163,6 +175,24 @@ async def test_stop_runtime_services_stops_all_distributed_listeners(
     monkeypatch.setattr(runtime_services, "memory_shutdown", _memory_shutdown)
     monkeypatch.setattr(
         runtime_services,
+        "drain_mcp_cache_background_tasks",
+        _drain_mcp_cache_background_tasks,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        runtime_services,
+        "drain_mcp_global_background_tasks",
+        _drain_mcp_global_background_tasks,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        runtime_services,
+        "close_mcp_pool_connections",
+        _close_mcp_pool_connections,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        runtime_services,
         "get_runtime_scheduler",
         lambda: SimpleNamespace(
             stop=lambda: _increment_scheduler_stop(scheduler),
@@ -182,6 +212,9 @@ async def test_stop_runtime_services_stops_all_distributed_listeners(
     assert channel_pubsub.stop_calls == 1
     assert tool_cache_pubsub.stop_calls == 1
     assert mcp_cache_pubsub.stop_calls == 1
+    assert mcp_cache_drain.calls == 1
+    assert mcp_global_drain.calls == 1
+    assert mcp_pool_close.calls == 1
     assert memory_shutdown.calls == 1
     assert scheduler.stop_calls == 1
     assert shutdown_calls.count == 1

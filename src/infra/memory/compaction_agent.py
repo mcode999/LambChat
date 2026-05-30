@@ -265,6 +265,7 @@ class MemoryCompactionAgent:
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
         self._after_write_tasks_by_user.clear()
+        self._last_attempt_by_user.clear()
 
     async def compact_user_memories(self, backend: Any, user_id: str) -> dict[str, Any]:
         """Run the DeepAgent memory compactor for one user's automatic memories."""
@@ -608,6 +609,16 @@ class MemoryCompactionAgent:
     async def _mark_attempt(self, user_id: str) -> None:
         self._last_attempt_by_user[user_id] = time.monotonic()
         await mark_compaction_cooldown(user_id, self.min_interval_seconds)
+        self._evict_stale_attempt_timestamps()
+
+    def _evict_stale_attempt_timestamps(self) -> None:
+        """Remove entries older than min_interval to prevent unbounded growth."""
+        if len(self._last_attempt_by_user) <= 500:
+            return
+        cutoff = time.monotonic() - self.min_interval_seconds
+        stale = [uid for uid, ts in self._last_attempt_by_user.items() if ts < cutoff]
+        for uid in stale:
+            self._last_attempt_by_user.pop(uid, None)
 
 
 def get_memory_compaction_agent() -> MemoryCompactionAgent:

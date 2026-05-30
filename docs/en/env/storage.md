@@ -22,6 +22,11 @@ File storage and upload settings. LambChat supports local filesystem storage and
 
 ## Local Storage
 
+Local storage is for single-instance development or testing only. In a
+multi-replica deployment, use S3-compatible object storage and set
+`ENABLE_LOCAL_FILESYSTEM_FALLBACK=false` so one pod never writes files that
+another pod cannot read.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LOCAL_STORAGE_PATH` | `./uploads` | Path for local file storage. Used when `S3_ENABLED=false`. |

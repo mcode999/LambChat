@@ -1,6 +1,8 @@
 # Docker Deployment
 
-The recommended way to deploy LambChat in production.
+Use Docker Compose for a single application replica on one host. For
+multi-replica or distributed production deployments, use Kubernetes or another
+orchestrator with shared MongoDB, Redis, and S3-compatible object storage.
 
 ## Quick Start
 
@@ -19,7 +21,7 @@ docker compose -f deploy/docker-compose.yml up -d
 
 ## Architecture
 
-Docker Compose starts three services:
+Docker Compose starts three services for a single-node stack:
 
 | Service | Image | Port | Description |
 |---------|-------|------|-------------|
@@ -122,3 +124,8 @@ Docker Compose uses named volumes for data persistence:
 - `uploads` — Uploaded files (local storage mode)
 
 These volumes persist across container restarts and recreations.
+
+Do not scale the `lambchat` Compose service to multiple replicas while using the
+local `uploads` volume. Multiple replicas need shared object storage
+(`S3_ENABLED=true`) and a load-balanced service without fixed container names or
+host port conflicts.

@@ -26,7 +26,12 @@ from src.infra.settings.pubsub import get_settings_pubsub
 from src.infra.task.arq_runtime import start_arq_runtime, stop_arq_runtime
 from src.infra.task.manager import get_task_manager
 from src.infra.tool.cache_pubsub import get_tool_cache_pubsub
+from src.infra.tool.mcp_cache import drain_background_tasks as drain_mcp_cache_background_tasks
+from src.infra.tool.mcp_global import (
+    drain_background_tasks as drain_mcp_global_background_tasks,
+)
 from src.infra.tool.mcp_global import get_mcp_cache_pubsub
+from src.infra.tool.mcp_pool import close_all_connections as close_mcp_pool_connections
 from src.infra.websocket import get_connection_manager
 
 
@@ -67,11 +72,22 @@ async def stop_runtime_services() -> None:
     """Stop distributed runtime listeners in reverse dependency order."""
     await stop_event_loop_lag_monitor()
 
+    # Close debug log file handle to prevent FD leak
+    try:
+        from src.infra.agent.events.debug_logger import shutdown as debug_logger_shutdown
+
+        debug_logger_shutdown()
+    except Exception:
+        pass
+
     websocket_manager = get_connection_manager()
     await websocket_manager.stop_pubsub_listener()
 
     mcp_cache_pubsub = get_mcp_cache_pubsub()
     await mcp_cache_pubsub.stop_listener()
+    await drain_mcp_cache_background_tasks()
+    await drain_mcp_global_background_tasks()
+    await close_mcp_pool_connections()
 
     tool_cache_pubsub = get_tool_cache_pubsub()
     await tool_cache_pubsub.stop_listener()

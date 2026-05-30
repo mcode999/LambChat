@@ -25,6 +25,17 @@ WS_ROUTE_TTL_SECONDS = 60
 WS_ROUTE_REFRESH_INTERVAL = 20
 
 
+async def _scan_redis_keys(redis_client, pattern: str, *, count: int = 100) -> list[str]:
+    """Collect matching Redis keys with SCAN to avoid blocking Redis."""
+    cursor: int | str = 0
+    keys: list[str] = []
+    while True:
+        cursor, batch = await redis_client.scan(cursor=cursor, match=pattern, count=count)
+        keys.extend(str(key) for key in batch)
+        if int(cursor) == 0:
+            return keys
+
+
 class ConnectionManager:
     """
     WebSocket 连接管理器
@@ -244,7 +255,7 @@ class ConnectionManager:
         """
         try:
             redis_client = self._get_redis()
-            route_keys = await redis_client.keys(f"{WS_ROUTE_PREFIX}:{user_id}:*")
+            route_keys = await _scan_redis_keys(redis_client, f"{WS_ROUTE_PREFIX}:{user_id}:*")
             payload = json.dumps(
                 {
                     "user_id": user_id,

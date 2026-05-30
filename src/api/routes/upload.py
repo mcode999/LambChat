@@ -6,6 +6,7 @@ Provides endpoints for file uploads to S3-compatible storage.
 
 import asyncio
 import base64
+import hashlib
 import uuid
 from typing import Any
 
@@ -42,6 +43,8 @@ from src.kernel.schemas.user import TokenPayload
 logger = get_logger(__name__)
 
 _file_record_storage = FileRecordStorage()
+
+UPLOAD_READ_CHUNK_SIZE = 1024 * 1024
 
 
 def _parse_bool(value: Any) -> bool:
@@ -112,6 +115,34 @@ def _build_upload_response(
     if exists:
         payload["exists"] = True
     return payload
+
+
+async def _read_upload_file_limited(
+    file: Any,
+    *,
+    max_size_bytes: int,
+    max_size_mb: int,
+    purpose: str = "File",
+    chunk_size: int = UPLOAD_READ_CHUNK_SIZE,
+) -> bytes:
+    """Read an UploadFile in chunks and stop as soon as the configured limit is exceeded."""
+    chunks: list[bytes] = []
+    total_size = 0
+
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+
+        total_size += len(chunk)
+        if total_size > max_size_bytes:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{purpose} size exceeds maximum of {max_size_mb}MB",
+            )
+        chunks.append(chunk)
+
+    return b"".join(chunks)
 
 
 def get_s3_enabled() -> bool:
@@ -303,13 +334,12 @@ async def upload_file(
             detail=f"File extension '.{ext}' is not allowed for {category.value} files",
         )
 
-    # Upload - stream file directly to S3 without buffering in memory
-    # Upload - use user_id as folder
-    import hashlib
-
     try:
-        # Read file content to compute hash
-        file_data = await file.read()
+        file_data = await _read_upload_file_limited(
+            file,
+            max_size_bytes=max_size_bytes,
+            max_size_mb=max_size_mb,
+        )
         file_hash = hashlib.sha256(file_data).hexdigest()
 
         # Check if hash already exists (race condition guard)
@@ -430,16 +460,14 @@ async def upload_avatar(
     Returns:
         Avatar data URI
     """
-    # Read file content
-    content = await file.read()
-
     # Validate file size (max 2MB for avatar)
     max_size = 2 * 1024 * 1024  # 2MB
-    if len(content) > max_size:
-        raise HTTPException(
-            status_code=400,
-            detail="Avatar file size exceeds maximum of 2MB",
-        )
+    content = await _read_upload_file_limited(
+        file,
+        max_size_bytes=max_size,
+        max_size_mb=2,
+        purpose="Avatar file",
+    )
 
     # Validate file type
     allowed_image_extensions = ["jpg", "jpeg", "png", "gif", "webp"]

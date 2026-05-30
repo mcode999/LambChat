@@ -28,6 +28,7 @@ _memory_cache: Optional[list[dict[str, Any]]] = None
 
 # In-process api_key cache (per-process, not shared via Redis)
 _api_key_cache: dict[str, str] = {}
+_API_KEY_CACHE_MAX_SIZE = 500  # Prevent unbounded growth
 
 
 def set_memory_cache(models: list[dict[str, Any]]) -> None:
@@ -53,7 +54,10 @@ def get_cached_api_key(model_value: str) -> Optional[str]:
 
 
 def set_cached_api_key(model_value: str, api_key: str) -> None:
-    """Store api_key in the in-process cache."""
+    """Store api_key in the in-process cache with a max-size guard."""
+    if len(_api_key_cache) >= _API_KEY_CACHE_MAX_SIZE and model_value not in _api_key_cache:
+        # Evict oldest entries by clearing and letting them reload on next access
+        _api_key_cache.clear()
     _api_key_cache[model_value] = api_key
 
 

@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 
 from src.api.deps import require_permissions
+from src.api.routes.upload import _read_upload_file_limited
 from src.infra.skill.binary import guess_mime_type, is_binary_file, parse_binary_ref
 from src.infra.skill.marketplace import MarketplaceStorage
 from src.infra.skill.storage import SkillStorage
@@ -48,6 +49,14 @@ def sanitize_file_path(path: str) -> str:
     return "/".join(parts)
 
 
+def _get_skill_upload_max_size() -> tuple[int, int]:
+    if settings.S3_ENABLED:
+        max_size_bytes = int(settings.S3_MAX_FILE_SIZE)
+    else:
+        max_size_bytes = int(settings.FILE_UPLOAD_MAX_SIZE_DOCUMENT) * 1024 * 1024
+    return max_size_bytes, max_size_bytes // (1024 * 1024)
+
+
 class UpdateFileRequest(BaseModel):
     """更新文件内容的请求"""
 
@@ -63,11 +72,9 @@ def _parse_zip_skills(
     Returns:
         list of (skill_name, text_files_dict, binary_files_dict) tuples
     """
-    max_file_size = int(settings.FILE_UPLOAD_MAX_SIZE_DOCUMENT) * 1024 * 1024  # MB → bytes
-    if settings.S3_ENABLED:
-        max_file_size = int(settings.S3_MAX_FILE_SIZE)  # already in bytes
+    max_file_size, max_file_size_mb = _get_skill_upload_max_size()
     if len(zip_content) > max_file_size:
-        raise ValueError(f"ZIP file too large (max {max_file_size // (1024 * 1024)}MB)")
+        raise ValueError(f"ZIP file too large (max {max_file_size_mb}MB)")
 
     try:
         zf = zipfile.ZipFile(io.BytesIO(zip_content))
@@ -206,7 +213,13 @@ async def preview_zip_skills(
         raise HTTPException(status_code=400, detail="File must be a ZIP archive")
 
     try:
-        content = await file.read()
+        max_size_bytes, max_size_mb = _get_skill_upload_max_size()
+        content = await _read_upload_file_limited(
+            file,
+            max_size_bytes=max_size_bytes,
+            max_size_mb=max_size_mb,
+            purpose="ZIP file",
+        )
     except Exception:
         raise HTTPException(status_code=400, detail="Failed to read file content")
 
@@ -263,7 +276,13 @@ async def upload_skill_from_zip(
         raise HTTPException(status_code=400, detail="File must be a ZIP archive")
 
     try:
-        content = await file.read()
+        max_size_bytes, max_size_mb = _get_skill_upload_max_size()
+        content = await _read_upload_file_limited(
+            file,
+            max_size_bytes=max_size_bytes,
+            max_size_mb=max_size_mb,
+            purpose="ZIP file",
+        )
     except Exception:
         raise HTTPException(status_code=400, detail="Failed to read file content")
 
@@ -555,16 +574,13 @@ async def upload_skill_binary_file(
     if safe_path != path:
         raise HTTPException(status_code=400, detail="Invalid file path")
 
-    # 读取文件内容
-    data = await file.read()
-    max_file_size = int(settings.FILE_UPLOAD_MAX_SIZE_DOCUMENT) * 1024 * 1024  # MB → bytes
-    if settings.S3_ENABLED:
-        max_file_size = int(settings.S3_MAX_FILE_SIZE)  # already in bytes
-    if len(data) > max_file_size:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Binary file too large (max {max_file_size // (1024 * 1024)}MB)",
-        )
+    max_file_size, max_file_size_mb = _get_skill_upload_max_size()
+    data = await _read_upload_file_limited(
+        file,
+        max_size_bytes=max_file_size,
+        max_size_mb=max_file_size_mb,
+        purpose="Binary file",
+    )
 
     if len(data) == 0:
         raise HTTPException(status_code=400, detail="Empty file")

@@ -52,9 +52,48 @@ class _FakeRedisClient:
             return sorted(key for key in self.values if key.startswith(prefix))
         return [pattern] if pattern in self.values else []
 
+    async def scan(
+        self,
+        cursor: int = 0,
+        match: str | None = None,
+        count: int | None = None,
+    ) -> tuple[int, list[str]]:
+        del count
+        if not match:
+            return 0, []
+        keys = await self.keys(match)
+        if cursor == 0:
+            midpoint = max(1, len(keys) // 2)
+            return (1 if len(keys) > midpoint else 0), keys[:midpoint]
+        return 0, keys[max(1, len(keys) // 2) :]
+
     async def publish(self, channel: str, message: str) -> int:
         self.published.append((channel, message))
         return self.publish_subscriber_count
+
+
+class _ScanOnlyRedisClient(_FakeRedisClient):
+    async def keys(self, pattern: str) -> list[str]:
+        raise AssertionError(f"Redis KEYS must not be used for pattern {pattern}")
+
+    async def scan(
+        self,
+        cursor: int = 0,
+        match: str | None = None,
+        count: int | None = None,
+    ) -> tuple[int, list[str]]:
+        del count
+        if not match:
+            return 0, []
+        if match.endswith("*"):
+            prefix = match[:-1]
+            keys = sorted(key for key in self.values if key.startswith(prefix))
+        else:
+            keys = [match] if match in self.values else []
+        if cursor == 0:
+            midpoint = max(1, len(keys) // 2)
+            return (1 if len(keys) > midpoint else 0), keys[:midpoint]
+        return 0, keys[max(1, len(keys) // 2) :]
 
 
 class _FakeHub:
@@ -164,6 +203,33 @@ async def test_send_to_user_uses_instance_targeted_channels(
         ),
     ]
     assert isolated_pool_flags == [True]
+
+
+@pytest.mark.asyncio
+async def test_send_to_user_scans_routes_without_blocking_redis_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_redis = _ScanOnlyRedisClient()
+    fake_redis.values["ws:route:user-1:instance-a"] = "1"
+    fake_redis.values["ws:route:user-1:instance-b"] = "2"
+    monkeypatch.setattr(
+        "src.infra.websocket.create_redis_client",
+        lambda isolated_pool=False: fake_redis,
+    )
+
+    manager = ConnectionManager()
+    manager._instance_id = "instance-a"
+
+    sent = await manager.send_to_user_with_broadcast(
+        "user-1",
+        {"type": "task:complete", "data": {"run_id": "run-1"}},
+    )
+
+    assert sent == 2
+    assert [channel for channel, _ in fake_redis.published] == [
+        "ws:deliver:instance-a",
+        "ws:deliver:instance-b",
+    ]
 
 
 @pytest.mark.asyncio

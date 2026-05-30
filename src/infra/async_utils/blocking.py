@@ -20,6 +20,7 @@ _BLOCKING_IO_EXECUTOR = ThreadPoolExecutor(
     max_workers=int(os.getenv("BLOCKING_IO_MAX_WORKERS", _DEFAULT_MAX_WORKERS)),
     thread_name_prefix="blocking-io",
 )
+_POLL_INTERVAL_SECONDS = 0.01
 
 
 async def run_blocking_io(
@@ -29,14 +30,28 @@ async def run_blocking_io(
     **kwargs: Any,
 ) -> T:
     """Run a synchronous IO callable without blocking the current event loop."""
-    loop = asyncio.get_running_loop()
     call = functools.partial(func, *args, **kwargs)
-    future = loop.run_in_executor(_BLOCKING_IO_EXECUTOR, call)
+    future = _BLOCKING_IO_EXECUTOR.submit(call)
+
+    async def _poll_result() -> T:
+        while True:
+            if future.done():
+                return future.result()
+            await asyncio.sleep(_POLL_INTERVAL_SECONDS)
+
     if timeout is not None:
-        return await asyncio.wait_for(future, timeout=timeout)
-    return await future
+        try:
+            return await asyncio.wait_for(_poll_result(), timeout=timeout)
+        except asyncio.TimeoutError:
+            future.cancel()
+            raise
+    return await _poll_result()
 
 
 def shutdown_blocking_io_executor() -> None:
-    """Release worker threads during process shutdown."""
+    """Release worker threads during process shutdown.
+
+    Do not wait here: shutdown runs on the application stop path and must not
+    hang behind a third-party SDK or filesystem call that failed to return.
+    """
     _BLOCKING_IO_EXECUTOR.shutdown(wait=False, cancel_futures=True)

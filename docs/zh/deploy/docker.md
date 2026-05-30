@@ -1,6 +1,7 @@
 # Docker 部署
 
-推荐的 LambChat 生产环境部署方式。
+Docker Compose 适合在单台主机上运行单个应用副本。多副本或分布式生产部署请使用
+Kubernetes 或其他编排系统，并配置共享 MongoDB、Redis 和 S3 兼容对象存储。
 
 ## 快速开始
 
@@ -19,7 +20,7 @@ docker compose -f deploy/docker-compose.yml up -d
 
 ## 架构
 
-Docker Compose 启动三个服务：
+Docker Compose 为单节点服务栈启动三个服务：
 
 | 服务 | 镜像 | 端口 | 说明 |
 |------|------|------|------|
@@ -122,3 +123,7 @@ Docker Compose 使用命名卷来持久化数据：
 - `uploads` — 上传的文件（本地存储模式）
 
 这些卷在容器重启和重建时保持不变。
+
+使用本地 `uploads` 卷时，不要把 `lambchat` Compose 服务扩展为多个副本。多副本
+部署需要共享对象存储（`S3_ENABLED=true`），并使用不会冲突固定容器名和主机端口的
+负载均衡服务。

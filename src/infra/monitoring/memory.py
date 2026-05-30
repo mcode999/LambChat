@@ -22,6 +22,8 @@ except ImportError:  # pragma: no cover - dependency is expected to be installed
 
 logger = get_logger(__name__)
 
+_BLOCKING_SAMPLE_TIMEOUT_SECONDS = 10.0
+
 
 def _format_trace_location(trace: tracemalloc.Frame) -> str:
     return f"{trace.filename}:{trace.lineno}"
@@ -103,6 +105,11 @@ class MemoryMonitor:
         self._last_alert_at: datetime | None = None
         self._last_error: str | None = None
 
+    async def _run_monitor_blocking(
+        self, func, *, timeout: float = _BLOCKING_SAMPLE_TIMEOUT_SECONDS
+    ):
+        return await run_blocking_io(func, timeout=timeout)
+
     async def start(self) -> None:
         """Start the background monitor if enabled."""
         if self._running or not settings.MEMORY_MONITOR_ENABLED:
@@ -168,7 +175,7 @@ class MemoryMonitor:
     async def _sample_once(self) -> None:
         distributed_snapshot: dict[str, Any] | None = None
         async with self._state_lock:
-            sample = await run_blocking_io(self._collect_process_sample)
+            sample = await self._run_monitor_blocking(self._collect_process_sample)
             sample.setdefault("timestamp", utc_now())
             self._history.append(sample)
 
@@ -177,7 +184,9 @@ class MemoryMonitor:
                 if self._should_emit_alert(now):
                     self._last_alert = None
                     if self.heavy_diagnostics_enabled:
-                        self._last_alert = await run_blocking_io(self._capture_diagnostics_snapshot)
+                        self._last_alert = await self._run_monitor_blocking(
+                            self._capture_diagnostics_snapshot
+                        )
                     self._last_alert_at = now
                     logger.warning(
                         "[MemoryMonitor] suspicious memory growth detected rss=%s growth=%s top_growth=%s top_allocations=%s top_objects=%s",
@@ -222,12 +231,14 @@ class MemoryMonitor:
         """Re-anchor growth tracking to the current process state."""
         distributed_snapshot: dict[str, Any] | None = None
         async with self._state_lock:
-            sample = await run_blocking_io(self._collect_process_sample)
+            sample = await self._run_monitor_blocking(self._collect_process_sample)
             sample.setdefault("timestamp", utc_now())
 
             if tracemalloc.is_tracing():
                 try:
-                    self._baseline_snapshot = await run_blocking_io(tracemalloc.take_snapshot)
+                    self._baseline_snapshot = await self._run_monitor_blocking(
+                        tracemalloc.take_snapshot
+                    )
                 except RuntimeError:
                     self._baseline_snapshot = None
             else:
@@ -373,9 +384,13 @@ class MemoryMonitor:
             "last_error": self._last_error,
         }
 
-    def _build_disabled_current_snapshot_locked(self) -> dict[str, Any]:
+    def _build_disabled_current_snapshot_locked(
+        self,
+        *,
+        captured_at: datetime | None = None,
+    ) -> dict[str, Any]:
         return {
-            "captured_at": utc_now().isoformat(),
+            "captured_at": (captured_at or utc_now()).isoformat(),
             "heavy_diagnostics_enabled": False,
             "reason": "heavy_diagnostics_disabled",
             "top_growth": [],
@@ -388,9 +403,10 @@ class MemoryMonitor:
             return None
         if self._last_alert is not None:
             return self._last_alert
-        if self.heavy_diagnostics_enabled:
-            return await run_blocking_io(self._capture_diagnostics_snapshot)
-        return self._build_disabled_current_snapshot_locked()
+        latest = self._history[-1]
+        return self._build_disabled_current_snapshot_locked(
+            captured_at=latest.get("timestamp") if isinstance(latest, dict) else None
+        )
 
     async def _build_distributed_snapshot_locked(self) -> dict[str, Any] | None:
         if not self._history:
@@ -434,7 +450,9 @@ class MemoryMonitor:
             summary = self._get_summary_locked()
             current_snapshot = self._last_alert
             if refresh and self._history and self.heavy_diagnostics_enabled:
-                current_snapshot = await run_blocking_io(self._capture_diagnostics_snapshot)
+                current_snapshot = await self._run_monitor_blocking(
+                    self._capture_diagnostics_snapshot
+                )
             elif refresh and self._history and not self.heavy_diagnostics_enabled:
                 current_snapshot = self._build_disabled_current_snapshot_locked()
 

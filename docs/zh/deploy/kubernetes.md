@@ -1,6 +1,7 @@
 # Kubernetes 部署
 
-使用提供的清单将 LambChat 部署到 Kubernetes 集群。
+使用提供的清单将 LambChat 部署到 Kubernetes 集群。该清单面向多副本应用
+Pod，要求使用外部或托管的 MongoDB、Redis 和 S3 兼容对象存储。
 
 ## 快速开始
 
@@ -11,7 +12,6 @@ kubectl apply -f k8s/lambchat.yaml
 # 检查部署状态
 kubectl get pods -n lambchat
 kubectl get svc -n lambchat
-kubectl get ingress -n lambchat
 ```
 
 ## 架构
@@ -21,13 +21,11 @@ K8s 清单（`k8s/lambchat.yaml`）创建以下资源：
 | 资源 | 名称 | 说明 |
 |------|------|------|
 | 命名空间 | `lambchat` | 所有资源的隔离命名空间 |
-| Deployment | `mongodb` | MongoDB 7 单节点 |
-| Deployment | `redis` | Redis 7 单节点 |
-| Deployment | `lambchat` | LambChat 应用 |
-| Service | `mongo-svc` | MongoDB ClusterIP（端口 27017） |
-| Service | `redis-svc` | Redis ClusterIP（端口 6379） |
-| Service | `lambchat-svc` | LambChat ClusterIP（端口 8000） |
-| Ingress | `lambchat-ingress` | Traefik IngressRoute |
+| Deployment | `lambchat` | LambChat 应用 Pod |
+| Service | `lambchat` | 应用服务 |
+
+生产扩容时，请将 MongoDB 和 Redis 部署为托管服务或独立的高可用工作负载。
+多副本部署不要使用每个 Pod 各自的本地上传目录；应配置 S3 兼容对象存储。
 
 ## 配置
 
@@ -40,9 +38,15 @@ env:
   - name: JWT_SECRET_KEY
     value: "your-stable-secret-key"
   - name: MONGODB_URL
-    value: "mongodb://mongo_lambchat:mongo_lambchat_123@mongo-svc:27017"
+    value: "mongodb://mongo.example.internal:27017"
   - name: REDIS_URL
-    value: "redis://redis-svc:6379/0"
+    value: "redis://redis.example.internal:6379/0"
+  - name: TASK_BACKEND
+    value: "arq"
+  - name: S3_ENABLED
+    value: "true"
+  - name: ENABLE_LOCAL_FILESYSTEM_FALLBACK
+    value: "false"
   - name: APP_BASE_URL
     value: "https://lambchat.example.com"
 ```
@@ -60,7 +64,8 @@ env:
 
 ### Ingress
 
-默认清单使用 Traefik IngressRoute。根据你的 Ingress 控制器进行调整：
+默认清单暴露 Kubernetes Service。对外发布应用时，请按你的 Ingress 控制器添加
+Ingress：
 
 **nginx Ingress 示例：**
 
@@ -86,7 +91,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: lambchat-svc
+                name: lambchat
                 port:
                   number: 8000
 ```
@@ -98,9 +103,15 @@ spec:
 kubectl scale deployment lambchat --replicas=3 -n lambchat
 ```
 
-::: warning
-扩展到多个副本时，如果使用本地文件存储，需确保配置了会话亲和性。生产环境建议使用 S3 存储（`S3_ENABLED=true`）而非本地存储。
-:::
+多副本部署需要共享后端服务：
+
+- MongoDB：持久化应用数据。
+- Redis：发布/订阅、WebSocket 路由、任务队列、分布式锁和缓存。
+- S3 兼容对象存储：上传文件和生成产物。
+- 稳定共享密钥，例如 `JWT_SECRET_KEY` 和 `MCP_ENCRYPTION_SALT`。
+
+运行多个应用 Pod 时，不要使用本地上传存储，也不要开启
+`ENABLE_LOCAL_FILESYSTEM_FALLBACK=true`。
 
 ## 管理
 

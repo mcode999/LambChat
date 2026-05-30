@@ -1,6 +1,8 @@
 # Kubernetes Deployment
 
-Deploy LambChat to a Kubernetes cluster using the provided manifests.
+Deploy LambChat to a Kubernetes cluster using the provided manifests. The provided
+manifest is intended for multi-replica application pods and expects external or
+managed MongoDB, Redis, and S3-compatible object storage.
 
 ## Quick Start
 
@@ -11,7 +13,6 @@ kubectl apply -f k8s/lambchat.yaml
 # Check deployment status
 kubectl get pods -n lambchat
 kubectl get svc -n lambchat
-kubectl get ingress -n lambchat
 ```
 
 ## Architecture
@@ -21,13 +22,12 @@ The K8s manifest (`k8s/lambchat.yaml`) creates:
 | Resource | Name | Description |
 |----------|------|-------------|
 | Namespace | `lambchat` | Isolated namespace for all resources |
-| Deployment | `mongodb` | MongoDB 7 standalone |
-| Deployment | `redis` | Redis 7 standalone |
-| Deployment | `lambchat` | LambChat application |
-| Service | `mongo-svc` | MongoDB ClusterIP (port 27017) |
-| Service | `redis-svc` | Redis ClusterIP (port 6379) |
-| Service | `lambchat-svc` | LambChat ClusterIP (port 8000) |
-| Ingress | `lambchat-ingress` | Traefik IngressRoute for HTTP |
+| Deployment | `lambchat` | LambChat application pods |
+| Service | `lambchat` | Application service |
+
+For production scaling, run MongoDB and Redis as managed services or separate
+high-availability workloads. Do not use per-pod local uploads for multi-replica
+deployments; configure S3-compatible object storage instead.
 
 ## Configuration
 
@@ -40,9 +40,15 @@ env:
   - name: JWT_SECRET_KEY
     value: "your-stable-secret-key"
   - name: MONGODB_URL
-    value: "mongodb://mongo_lambchat:mongo_lambchat_123@mongo-svc:27017"
+    value: "mongodb://mongo.example.internal:27017"
   - name: REDIS_URL
-    value: "redis://redis-svc:6379/0"
+    value: "redis://redis.example.internal:6379/0"
+  - name: TASK_BACKEND
+    value: "arq"
+  - name: S3_ENABLED
+    value: "true"
+  - name: ENABLE_LOCAL_FILESYSTEM_FALLBACK
+    value: "false"
   - name: APP_BASE_URL
     value: "https://lambchat.example.com"
 ```
@@ -60,7 +66,8 @@ env:
 
 ### Ingress
 
-The default manifest uses Traefik IngressRoute. Adapt it for your ingress controller:
+The default manifest exposes a Kubernetes Service. Add an Ingress that matches
+your ingress controller when publishing the app externally:
 
 **nginx Ingress example:**
 
@@ -86,7 +93,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: lambchat-svc
+                name: lambchat
                 port:
                   number: 8000
 ```
@@ -98,9 +105,15 @@ spec:
 kubectl scale deployment lambchat --replicas=3 -n lambchat
 ```
 
-::: warning
-When scaling to multiple replicas, ensure session affinity is configured if using local file storage. For production, use S3 storage (`S3_ENABLED=true`) instead of local storage.
-:::
+Multi-replica deployments require shared backing services:
+
+- MongoDB for persistent application data.
+- Redis for pub/sub, WebSocket routing, task queueing, distributed locks, and caches.
+- S3-compatible object storage for uploads and generated artifacts.
+- Stable shared secrets such as `JWT_SECRET_KEY` and `MCP_ENCRYPTION_SALT`.
+
+Do not use local upload storage or `ENABLE_LOCAL_FILESYSTEM_FALLBACK=true` when
+running more than one application pod.
 
 ## Managing
 

@@ -20,6 +20,29 @@ logger = get_logger(__name__)
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 
 
+def _deterministic_expand(key: str, min_length: int = 32) -> str:
+    """Deterministically expand a short key to at least min_length characters.
+
+    Uses iterated SHA-256 hashing to derive a key of sufficient length.
+    The same input always produces the same output.
+
+    Args:
+        key: The original key string.
+        min_length: Minimum required length of the output.
+
+    Returns:
+        A URL-safe base64-encoded string of at least min_length characters.
+    """
+    if len(key) >= min_length:
+        return key
+
+    result = key.encode("utf-8")
+    while len(result) < min_length:
+        result = hashlib.sha256(result).digest()
+
+    return base64.urlsafe_b64encode(result).decode("utf-8").rstrip("=")
+
+
 def expand_jwt_secret_key(key: str, min_length: int = 32) -> str:
     """Expand a short JWT secret key to the minimum required length.
 
@@ -33,17 +56,23 @@ def expand_jwt_secret_key(key: str, min_length: int = 32) -> str:
     Returns:
         A 32-byte URL-safe base64-encoded key
     """
-    if len(key) >= min_length:
-        return key
+    return _deterministic_expand(key, min_length)
 
-    # Use SHA-256 to deterministically expand the key
-    # Repeatedly hash until we get 32 bytes
-    result = key.encode("utf-8")
-    while len(result) < 32:
-        result = hashlib.sha256(result).digest()
 
-    # Encode to URL-safe base64 (produces ~43-44 characters)
-    return base64.urlsafe_b64encode(result).decode("utf-8").rstrip("=")
+def expand_encryption_salt(salt: str, min_length: int = 16) -> str:
+    """Expand a short encryption salt to the minimum required length.
+
+    Uses deterministic SHA-256 hashing to expand short salts.
+    This ensures the same input always produces the same output.
+
+    Args:
+        salt: The original encryption salt (can be any length)
+        min_length: Minimum required length
+
+    Returns:
+        A URL-safe base64-encoded string of at least min_length characters
+    """
+    return _deterministic_expand(salt, min_length)
 
 
 def get_app_version() -> str:

@@ -1,6 +1,14 @@
 ---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lambchat
+
+---
 # LambChat App Deployment
-# Replace HOST_IP with your actual host IP (e.g., 192.168.1.100)
+# Production multi-replica mode expects external or managed MongoDB, Redis, and
+# S3-compatible object storage. Replace the placeholder values before applying.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -40,7 +48,7 @@ spec:
               key: mcp-encryption-salt
         # --- MongoDB ---
         - name: MONGODB_URL
-          value: "mongodb://HOST_IP:27017"
+          value: "mongodb://MONGO_HOST:27017"
         - name: MONGODB_DB
           value: "agent_state"
         - name: MONGODB_ENABLED
@@ -59,7 +67,7 @@ spec:
           value: "admin"
         # --- Redis ---
         - name: REDIS_URL
-          value: "redis://:CHANGE_ME@HOST_IP:6379/3"
+          value: "redis://REDIS_HOST:6379/3"
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -67,6 +75,35 @@ spec:
               key: redis-password
         - name: SESSION_BACKEND
           value: "redis"
+        - name: TASK_BACKEND
+          value: "arq"
+        - name: ARQ_EMBEDDED_WORKER
+          value: "true"
+        # --- Object Storage (required for multi-replica deployments) ---
+        - name: S3_ENABLED
+          value: "true"
+        - name: S3_PROVIDER
+          value: "custom"
+        - name: S3_ENDPOINT_URL
+          value: "https://s3.example.com"
+        - name: S3_BUCKET_NAME
+          value: "lambchat-files"
+        - name: S3_REGION
+          value: "us-east-1"
+        - name: S3_PATH_STYLE
+          value: "false"
+        - name: ENABLE_LOCAL_FILESYSTEM_FALLBACK
+          value: "false"
+        - name: S3_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lambchat-secrets
+              key: s3-access-key
+        - name: S3_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lambchat-secrets
+              key: s3-secret-key
         resources:
           requests:
             memory: "512Mi"
@@ -93,12 +130,8 @@ spec:
         volumeMounts:
         - name: workspace
           mountPath: /app/workspace
-        - name: uploads
-          mountPath: /app/uploads
       volumes:
       - name: workspace
-        emptyDir: {}
-      - name: uploads
         emptyDir: {}
 
 ---

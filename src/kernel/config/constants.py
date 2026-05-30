@@ -3,6 +3,9 @@
 # Minimum JWT secret key length (32 bytes for HS256)
 JWT_SECRET_KEY_MIN_LENGTH = 32
 
+# Minimum MCP encryption salt length (16 bytes for KDF security)
+MCP_ENCRYPTION_SALT_MIN_LENGTH = 16
+
 # ============================================
 # Settings that require server restart to take effect
 # ============================================

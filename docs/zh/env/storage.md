@@ -22,6 +22,10 @@
 
 ## 本地存储
 
+本地存储仅适用于单实例开发或测试。多副本部署必须使用 S3 兼容对象存储，并设置
+`ENABLE_LOCAL_FILESYSTEM_FALLBACK=false`，避免某个 Pod 写入的文件无法被另一个
+Pod 读取。
+
 | 变量名 | 默认值 | 说明 |
 |--------|--------|------|
 | `LOCAL_STORAGE_PATH` | `./uploads` | 本地文件存储路径。当 `S3_ENABLED=false` 时使用。 |

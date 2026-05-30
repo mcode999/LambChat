@@ -25,9 +25,36 @@ class _FakeRedisClient:
         assert pattern == "health:memory:instance:*"
         return sorted(self.values)
 
+    async def scan(
+        self,
+        cursor: int = 0,
+        match: str | None = None,
+        count: int | None = None,
+    ) -> tuple[int, list[str]]:
+        assert match == "health:memory:instance:*"
+        del count
+        keys = sorted(self.values)
+        if cursor == 0:
+            midpoint = max(1, len(keys) // 2)
+            return (1 if len(keys) > midpoint else 0), keys[:midpoint]
+        return 0, keys[max(1, len(keys) // 2) :]
+
+
+class _ScanOnlyRedisClient(_FakeRedisClient):
+    async def keys(self, pattern: str) -> list[str]:
+        raise AssertionError(f"Redis KEYS must not be used for pattern {pattern}")
+
 
 class _FailingRedisClient:
     async def keys(self, pattern: str) -> list[str]:
+        raise RuntimeError("redis unavailable")
+
+    async def scan(
+        self,
+        cursor: int = 0,
+        match: str | None = None,
+        count: int | None = None,
+    ) -> tuple[int, list[str]]:
         raise RuntimeError("redis unavailable")
 
 
@@ -281,6 +308,21 @@ async def test_publish_and_load_cluster_snapshots_use_redis_safe_payloads() -> N
     loaded = await memory_health.load_cluster_snapshots(redis_client=redis_client)
 
     assert loaded == [snapshot]
+
+
+@pytest.mark.asyncio
+async def test_load_cluster_snapshots_scans_without_blocking_redis_keys() -> None:
+    redis_client = _ScanOnlyRedisClient()
+    instance_a = _build_payload(instance_id="instance-a")
+    instance_b = _build_payload(instance_id="instance-b")
+    redis_client.values = {
+        "health:memory:instance:instance-b": json.dumps(instance_b),
+        "health:memory:instance:instance-a": json.dumps(instance_a),
+    }
+
+    loaded = await memory_health.load_cluster_snapshots(redis_client=redis_client)
+
+    assert loaded == [instance_a, instance_b]
 
 
 @pytest.mark.asyncio
