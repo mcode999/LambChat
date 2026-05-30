@@ -97,6 +97,7 @@ export const ChatInput = memo(function ChatInput({
   goalLabel,
   goalDurationLabel,
   goalClearLabel,
+  showHelpMenu,
 }: ChatInputProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
@@ -817,7 +818,7 @@ export const ChatInput = memo(function ChatInput({
         onToggleAgentOption={onToggleAgentOption}
       />
 
-      <ChatInputHelpMenu />
+      {showHelpMenu && <ChatInputHelpMenu />}
 
       {imageViewerSrc && (
         <ImageViewer

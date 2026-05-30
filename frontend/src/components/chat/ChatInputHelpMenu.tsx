@@ -108,7 +108,7 @@ export function ChatInputHelpMenu() {
   return createPortal(
     <div
       ref={ref}
-      className="fixed bottom-1 right-1 sm:bottom-2 sm:right-2 z-50"
+      className="fixed bottom-1 right-1 sm:bottom-2 sm:right-2 z-50 sm:hidden"
     >
       <button
         type="button"

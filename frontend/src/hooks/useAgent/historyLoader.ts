@@ -54,8 +54,15 @@ function parseEventTimestamp(
   return timestamp ? parseDate(timestamp) : new Date(fallbackMs);
 }
 
-function shouldAttachToPreviousAssistant(eventType: string): boolean {
-  return eventType === "token:usage";
+function canAttachEventTypeToPreviousAssistant(eventType: string): boolean {
+  return (
+    eventType !== "user:message" &&
+    eventType !== "user:cancel" &&
+    eventType !== "metadata" &&
+    eventType !== "done" &&
+    eventType !== "goal:updated" &&
+    eventType !== "approval_required"
+  );
 }
 
 function canAttachToPreviousAssistant(
@@ -232,6 +239,8 @@ export function reconstructMessagesFromEvents(
 
   const reconstructedMessages: Message[] = [];
   let currentAssistantMessage: Message | null = null;
+  const seenUserMessageIds = new Set<string>();
+  const seenUserMessageRunIds = new Set<string>();
 
   for (const event of sortedEvents) {
     const eventType = event.event_type;
@@ -239,13 +248,29 @@ export function reconstructMessagesFromEvents(
 
     // Handle user message separately
     if (eventType === "user:message") {
+      const userMessageId = resolveUserMessageId(event, eventData);
+      const userMessageRunId =
+        typeof event.run_id === "string" && event.run_id.trim()
+          ? event.run_id
+          : null;
+      if (
+        seenUserMessageIds.has(userMessageId) ||
+        (userMessageRunId && seenUserMessageRunIds.has(userMessageRunId))
+      ) {
+        continue;
+      }
+      seenUserMessageIds.add(userMessageId);
+      if (userMessageRunId) {
+        seenUserMessageRunIds.add(userMessageRunId);
+      }
+
       if (currentAssistantMessage) {
         reconstructedMessages.push(currentAssistantMessage);
         currentAssistantMessage = null;
       }
       const userAttachments = convertAttachments(eventData.attachments);
       reconstructedMessages.push({
-        id: resolveUserMessageId(event, eventData),
+        id: userMessageId,
         role: "user",
         content: eventData.content || "",
         timestamp: parseEventTimestamp(event.timestamp, Date.now()),
@@ -295,7 +320,7 @@ export function reconstructMessagesFromEvents(
 
     if (
       !currentAssistantMessage &&
-      shouldAttachToPreviousAssistant(eventType)
+      canAttachEventTypeToPreviousAssistant(eventType)
     ) {
       const lastMessageIndex = reconstructedMessages.length - 1;
       const lastMessage = reconstructedMessages[lastMessageIndex];

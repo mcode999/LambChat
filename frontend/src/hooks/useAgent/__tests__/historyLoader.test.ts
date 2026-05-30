@@ -60,6 +60,164 @@ test("reconstructMessagesFromEvents ignores goal update events as message conten
   assert.equal(messages[0]?.role, "user");
 });
 
+test("reconstructMessagesFromEvents does not create duplicate assistant ids for goal lifecycle events", () => {
+  const runId = "run_20260530120841_cf52eb51";
+  const messages = reconstructMessagesFromEvents(
+    [
+      {
+        id: "event-user",
+        event_type: "user:message",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:41.000Z",
+        data: {
+          content: "start",
+          message_id: `${runId}:user`,
+          attachments: [],
+        },
+      },
+      {
+        id: "event-thinking",
+        event_type: "thinking",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:42.000Z",
+        data: {
+          content: "working",
+        },
+      },
+      {
+        id: "event-goal-start",
+        event_type: "goal:start",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:43.000Z",
+        data: {
+          started_at: "2026-05-30T12:08:43.000Z",
+          goal: { objective: "finish the task" },
+        },
+      },
+    ] satisfies HistoryEvent[],
+    new Set<string>(),
+    { activeSubagentStack: [] },
+  );
+
+  assert.deepEqual(
+    messages.map((message) => message.id),
+    [`${runId}:user`, runId],
+  );
+});
+
+test("reconstructMessagesFromEvents ignores duplicate persisted user messages for the same run", () => {
+  const runId = "run_20260530120841_cf52eb51";
+  const messages = reconstructMessagesFromEvents(
+    [
+      {
+        id: "event-user-1",
+        event_type: "user:message",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:41.000Z",
+        data: {
+          content: "hello",
+          message_id: `${runId}:user`,
+          attachments: [],
+        },
+      },
+      {
+        id: "event-thinking-1",
+        event_type: "thinking",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:42.000Z",
+        data: {
+          content: "working",
+        },
+      },
+      {
+        id: "event-user-2",
+        event_type: "user:message",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:43.000Z",
+        data: {
+          content: "hello",
+          message_id: `${runId}:user`,
+          attachments: [],
+        },
+      },
+      {
+        id: "event-thinking-2",
+        event_type: "thinking",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:44.000Z",
+        data: {
+          content: " more",
+        },
+      },
+    ] satisfies HistoryEvent[],
+    new Set<string>(),
+    { activeSubagentStack: [] },
+  );
+
+  assert.deepEqual(
+    messages.map((message) => message.id),
+    [`${runId}:user`, runId],
+  );
+});
+
+test("reconstructMessagesFromEvents ignores duplicate user messages with different ids for the same run", () => {
+  const runId = "run_20260530120841_cf52eb51";
+  const messages = reconstructMessagesFromEvents(
+    [
+      {
+        id: "event-user-1",
+        event_type: "user:message",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:41.000Z",
+        data: {
+          content: "hello",
+          message_id: "user-message-a",
+          attachments: [],
+        },
+      },
+      {
+        id: "event-thinking-1",
+        event_type: "thinking",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:42.000Z",
+        data: {
+          content: "working",
+        },
+      },
+      {
+        id: "event-user-2",
+        event_type: "user:message",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:43.000Z",
+        data: {
+          content: "hello",
+          message_id: "user-message-b",
+          attachments: [],
+        },
+      },
+      {
+        id: "event-thinking-2",
+        event_type: "thinking",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:44.000Z",
+        data: {
+          content: " more",
+        },
+      },
+    ] satisfies HistoryEvent[],
+    new Set<string>(),
+    { activeSubagentStack: [] },
+  );
+
+  assert.deepEqual(
+    messages.map((message) => [message.id, message.role]),
+    [
+      ["user-message-a", "user"],
+      [runId, "assistant"],
+    ],
+  );
+});
+
 test("reconstructMessagesFromEvents treats timezone-less backend timestamps as UTC", () => {
   const originalTimezone = process.env.TZ;
   process.env.TZ = "Asia/Shanghai";
@@ -172,4 +330,64 @@ test("reconstructMessagesFromEvents keeps token usage after cancel on the cancel
   assert.equal(messages[1]?.cancelled, true);
   assert.equal(messages[1]?.tokenUsage?.total_tokens, 15649);
   assert.equal(messages[1]?.duration, 24927.353858947754);
+});
+
+test("reconstructMessagesFromEvents keeps late run events after cancel on the cancelled assistant", () => {
+  const runId = "run_20260530120841_cf52eb51";
+  const messages = reconstructMessagesFromEvents(
+    [
+      {
+        id: "event-user",
+        event_type: "user:message",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:41.000Z",
+        data: {
+          content: "hello",
+          message_id: `${runId}:user`,
+          attachments: [],
+        },
+      },
+      {
+        id: "event-sandbox-ready",
+        event_type: "sandbox:ready",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:42.000Z",
+        data: {
+          sandbox_id: "sandbox-1",
+          work_dir: "/tmp/work",
+        },
+      },
+      {
+        id: "event-cancel",
+        event_type: "user:cancel",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:43.000Z",
+        data: {
+          run_id: runId,
+        },
+      },
+      {
+        id: "event-thinking-late",
+        event_type: "thinking",
+        run_id: runId,
+        timestamp: "2026-05-30T12:08:44.000Z",
+        data: {
+          content: "late thought",
+        },
+      },
+    ] satisfies HistoryEvent[],
+    new Set<string>(),
+    { activeSubagentStack: [] },
+  );
+
+  assert.deepEqual(
+    messages.map((message) => message.id),
+    [`${runId}:user`, runId],
+  );
+  assert.equal(messages[1]?.cancelled, true);
+  assert.deepEqual(messages[1]?.parts?.map((part) => part.type), [
+    "sandbox",
+    "cancelled",
+    "thinking",
+  ]);
 });

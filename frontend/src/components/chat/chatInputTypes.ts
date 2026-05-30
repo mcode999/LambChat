@@ -97,6 +97,9 @@ export interface ChatInputProps {
   goalDurationLabel?: string;
   goalClearLabel?: string;
 
+  /** Show the help (?) button — defaults to false. */
+  showHelpMenu?: boolean;
+
   /** INTERNAL: panel state lifted from ChatInput for ChatView layout. */
   activePanel?: FeaturePanel;
   onActivePanelChange?: (panel: FeaturePanel) => void;
