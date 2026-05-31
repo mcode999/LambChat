@@ -38,6 +38,7 @@ class _FakeDualWriter:
     def __init__(self) -> None:
         self.events: list[dict] = []
         self.completed: list[tuple[str, str, dict | None]] = []
+        self.expired_streams: list[tuple[str, str, int]] = []
 
     async def create_trace(self, **kwargs):
         return True
@@ -54,6 +55,12 @@ class _FakeDualWriter:
 
     async def complete_trace(self, trace_id: str, status: str, metadata=None):
         self.completed.append((trace_id, status, metadata))
+        return True
+
+    async def expire_stream(
+        self, session_id: str, run_id: str | None = None, ttl_seconds: int = 60
+    ):
+        self.expired_streams.append((session_id, run_id, ttl_seconds))
         return True
 
 
@@ -196,3 +203,30 @@ async def test_cancelled_task_emits_usage_then_done_before_terminal_cleanup(
     assert [event["event_type"] for event in writer.events[:2]] == ["token:usage", "done"]
     assert [event["trace_id"] for event in writer.events[:2]] == ["trace-1", "trace-1"]
     assert [event["run_id"] for event in writer.events[:2]] == ["run-1", "run-1"]
+    assert writer.expired_streams == [("session-1", "run-1", 60)]
+
+
+@pytest.mark.asyncio
+async def test_failed_task_shortens_terminal_stream_ttl(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    storage = _FakeStorage()
+    writer = _FakeDualWriter()
+    executor = TaskExecutor(storage=storage, run_info={}, heartbeat_manager=None)  # type: ignore[arg-type]
+
+    async def _no_op(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(executor, "_send_task_notification", _no_op)
+
+    await executor._handle_generic_error(
+        "session-1",
+        "run-1",
+        "user-1",
+        RuntimeError("boom"),
+        writer,
+        None,
+    )
+
+    assert writer.events[-1]["event_type"] == "error"
+    assert writer.expired_streams == [("session-1", "run-1", 60)]

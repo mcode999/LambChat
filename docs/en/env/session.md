@@ -15,7 +15,7 @@ Settings for managing chat sessions, event streaming, and session titles.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ENABLE_MESSAGE_HISTORY` | `true` | Enable message history storage. |
-| `SSE_CACHE_TTL` | `3600` | Redis TTL for SSE events in seconds (1 hour). |
+| `SSE_CACHE_TTL` | `86400` | Redis TTL for live SSE events in seconds (24 hours); terminal streams are shortened to 60 seconds. |
 
 ## Event Merger
 
@@ -43,7 +43,7 @@ You can use a cheaper/faster model (like `gpt-4o-mini`) for session title genera
 # .env
 SESSION_MAX_RUNS_PER_SESSION=100
 ENABLE_MESSAGE_HISTORY=true
-SSE_CACHE_TTL=3600
+SSE_CACHE_TTL=86400
 ENABLE_EVENT_MERGER=true
 EVENT_MERGE_INTERVAL=300.0
 SESSION_TITLE_MODEL=gpt-4o-mini

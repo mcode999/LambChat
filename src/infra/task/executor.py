@@ -24,6 +24,7 @@ from .state_machine import TaskStateMachine
 from .status import TaskStatus
 
 logger = get_logger(__name__)
+_TERMINAL_STREAM_TTL_SECONDS = 60
 
 
 def should_schedule_recommend_questions() -> bool:
@@ -191,6 +192,7 @@ class TaskExecutor:
             logger.info(f"Task completed: session={session_id}, run_id={run_id}")
             # 发送任务完成通知
             await self._send_task_notification(session_id, run_id, TaskStatus.COMPLETED, user_id)
+            await self._expire_terminal_stream(session_id, run_id, dual_writer)
 
         except asyncio.CancelledError:
             if recommendation_task and not recommendation_task.done():
@@ -266,6 +268,7 @@ class TaskExecutor:
         await self._send_task_notification(
             session_id, run_id, TaskStatus.CANCELLED, user_id, "Task cancelled"
         )
+        await self._expire_terminal_stream(session_id, run_id, dual_writer)
 
     async def _handle_interrupted_error(
         self,
@@ -322,6 +325,7 @@ class TaskExecutor:
         await self._send_task_notification(
             session_id, run_id, TaskStatus.CANCELLED, user_id, "Task interrupted"
         )
+        await self._expire_terminal_stream(session_id, run_id, dual_writer)
 
     async def _handle_generic_error(
         self,
@@ -373,6 +377,28 @@ class TaskExecutor:
         await self._send_task_notification(
             session_id, run_id, TaskStatus.FAILED, user_id, error_msg
         )
+        await self._expire_terminal_stream(session_id, run_id, dual_writer)
+
+    async def _expire_terminal_stream(
+        self,
+        session_id: str,
+        run_id: str,
+        dual_writer: Any,
+    ) -> None:
+        """Shorten terminal run streams without failing the completed task path."""
+        try:
+            if dual_writer is None:
+                dual_writer = get_dual_writer()
+            expire_stream = getattr(dual_writer, "expire_stream", None)
+            if expire_stream is None:
+                return
+            await expire_stream(
+                session_id,
+                run_id=run_id,
+                ttl_seconds=_TERMINAL_STREAM_TTL_SECONDS,
+            )
+        except Exception as e:
+            logger.warning("Failed to expire terminal stream for run_id=%s: %s", run_id, e)
 
     async def _send_task_notification(
         self,

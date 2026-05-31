@@ -72,7 +72,7 @@ export function handleStreamEvent(
   if (eventTimestamp && ctx.lastHistoryTimestampRef.current) {
     const eventTime = parseDate(eventTimestamp);
     const historyTime = ctx.lastHistoryTimestampRef.current;
-    if (eventTime <= historyTime) {
+    if (eventTime < historyTime) {
       console.log(
         "[SSE] Skipping duplicate event by timestamp:",
         eventId,
@@ -85,6 +85,13 @@ export function handleStreamEvent(
   }
 
   ctx.processedEventIdsRef.current.add(eventId);
+  if (eventTimestamp) {
+    const eventTime = parseDate(eventTimestamp);
+    const previousTime = ctx.lastHistoryTimestampRef.current;
+    if (!previousTime || eventTime > previousTime) {
+      ctx.lastHistoryTimestampRef.current = eventTime;
+    }
+  }
 
   // Cap the dedup set to prevent unbounded memory growth during long streams.
   // Safe to clear: event dedup is only needed within a single streaming session,

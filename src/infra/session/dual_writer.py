@@ -34,6 +34,9 @@ _MONGO_FLUSH_INTERVAL = 1.0  # 每 1000ms 刷新一次
 _MONGO_BATCH_SIZE = 200  # 每 200 条立即刷新
 _MONGO_BUFFER_MAX = 10000  # buffer 上限，防止 MongoDB 慢/宕机时 OOM
 _TTL_SET_KEYS_MAX = 5000  # _ttl_set_keys 上限，防止内存泄漏
+_LIVE_STREAM_READ_TIMEOUT_SECONDS = 24 * 60 * 60
+_SSE_HEARTBEAT_INTERVAL_SECONDS = 15
+_REDIS_XREAD_BLOCK_MS = 5000
 
 
 def _get_max_events_per_trace() -> int:
@@ -50,7 +53,7 @@ def _get_ttl_set_keys_max() -> int:
 
 
 def _get_ttl_refresh_interval() -> float:
-    ttl_seconds = max(int(getattr(settings, "SSE_CACHE_TTL", 3600) or 0), 1)
+    ttl_seconds = max(int(getattr(settings, "SSE_CACHE_TTL", 86400) or 0), 1)
     return max(min(ttl_seconds / 2, 300.0), 1.0)
 
 
@@ -334,7 +337,7 @@ class DualEventWriter:
         self,
         session_id: str,
         run_id: Optional[str] = None,
-        overall_timeout: float = 1800.0,
+        overall_timeout: float = _LIVE_STREAM_READ_TIMEOUT_SECONDS,
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         从 Redis Stream 读取事件（阻塞读取，直到流结束）
@@ -345,7 +348,7 @@ class DualEventWriter:
         Args:
             session_id: 会话 ID
             run_id: 运行 ID（用于隔离多轮对话）
-            overall_timeout: 整体超时（秒），默认 30 分钟，防止无限等待
+            overall_timeout: 整体超时（秒），默认 24 小时，防止无限等待
 
         Yields:
             事件字典，包含 id, event_type, data
@@ -353,8 +356,8 @@ class DualEventWriter:
         """
         stream_key = self._stream_key(session_id, run_id)
         last_id = "0"
-        block = 500  # 500ms 阻塞超时
-        heartbeat_interval = 15  # 每 15 秒发送一次心跳
+        block = _REDIS_XREAD_BLOCK_MS
+        heartbeat_interval = _SSE_HEARTBEAT_INTERVAL_SECONDS
         start_time = asyncio.get_event_loop().time()
         last_heartbeat = start_time
         logger.info(f"[Redis] Reading from stream: {stream_key}")
@@ -537,6 +540,29 @@ class DualEventWriter:
             await self.redis.delete(stream_key)
         except Exception as e:
             logger.warning(f"Failed to clear stream: {e}")
+
+    async def expire_stream(
+        self,
+        session_id: str,
+        run_id: Optional[str] = None,
+        ttl_seconds: int = 60,
+    ) -> bool:
+        """
+        Shorten Redis Stream TTL after a run reaches a terminal state.
+
+        Keeping a short grace period avoids racing active SSE readers that still
+        need the terminal event, while preventing completed runs from occupying
+        Redis for the full live-stream TTL.
+        """
+        stream_key = self._stream_key(session_id, run_id)
+        try:
+            ttl = max(int(ttl_seconds), 1)
+            success = await self.redis.expire(stream_key, ttl)
+            self._ttl_set_keys.pop(stream_key, None)
+            return bool(success)
+        except Exception as e:
+            logger.warning(f"Failed to expire stream: {e}")
+            return False
 
 
 # Singleton instance

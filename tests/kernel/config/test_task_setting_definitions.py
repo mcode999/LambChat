@@ -8,3 +8,9 @@ def test_arq_worker_max_jobs_is_admin_setting_not_frontend_visible() -> None:
 
     assert definition["default"] == 64
     assert definition.get("frontend_visible", False) is False
+
+
+def test_arq_job_timeout_defaults_to_24_hours() -> None:
+    definition = SETTING_DEFINITIONS["ARQ_JOB_TIMEOUT_SECONDS"]
+
+    assert definition["default"] == 24 * 60 * 60

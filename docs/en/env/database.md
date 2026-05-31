@@ -19,7 +19,7 @@ Use `TASK_BACKEND=arq` to run default chat tasks through a Redis-backed arq queu
 | `ARQ_EMBEDDED_WORKER` | `true` | No | Start an embedded arq worker inside each FastAPI process when `TASK_BACKEND=arq`. |
 | `ARQ_QUEUE_NAME` | `lambchat:arq` | No | Redis queue name used by arq for LambChat task jobs. |
 | `ARQ_WORKER_MAX_JOBS` | `64` | No | Maximum concurrent arq jobs per FastAPI process. |
-| `ARQ_JOB_TIMEOUT_SECONDS` | `3600` | No | Maximum runtime for one arq job in seconds. |
+| `ARQ_JOB_TIMEOUT_SECONDS` | `86400` | No | Maximum runtime for one arq job in seconds. |
 
 ## MongoDB
 
@@ -79,7 +79,7 @@ TASK_BACKEND=arq
 ARQ_EMBEDDED_WORKER=true
 ARQ_QUEUE_NAME=lambchat:arq
 ARQ_WORKER_MAX_JOBS=64
-ARQ_JOB_TIMEOUT_SECONDS=3600
+ARQ_JOB_TIMEOUT_SECONDS=86400
 
 # MongoDB
 MONGODB_URL=mongodb://localhost:27017

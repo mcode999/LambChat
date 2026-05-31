@@ -166,13 +166,22 @@ export default defineConfig({
     host: true, // 监听所有地址 (0.0.0.0)，允许 127.0.0.1 和 localhost 访问
     port: 3001,
     proxy: {
+      // Long-running chat event stream
+      "^/api/chat/sessions/[^/]+/stream$": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        timeout: 86400000, // 24 hours timeout for long-running chat streams
+        proxyTimeout: 86400000, // 24 hours proxy timeout
+      },
       // API routes (including /api/chat for SSE)
       "/api": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
         secure: false,
         ws: true, // Enable WebSocket/SSE support for streaming
-        timeout: 300000, // 5 minutes timeout for SSE
+        timeout: 300000, // 5 minutes timeout for regular API requests
         proxyTimeout: 300000, // 5 minutes proxy timeout
         configure: (proxy) => {
           proxy.on("proxyReq", (proxyReq, req) => {
@@ -193,8 +202,8 @@ export default defineConfig({
             changeOrigin: true,
             secure: false,
             ws: true, // Enable WebSocket/SSE support for streaming
-            timeout: 300000, // 5 minutes timeout for SSE
-            proxyTimeout: 300000, // 5 minutes proxy timeout
+            timeout: 86400000, // 24 hours timeout for long-running chat streams
+            proxyTimeout: 86400000, // 24 hours proxy timeout
           },
         ]),
       ),

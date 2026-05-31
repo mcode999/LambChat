@@ -99,7 +99,7 @@ class Settings(BaseSettings):
     # Session Settings
     SESSION_MAX_RUNS_PER_SESSION: int = 100
     ENABLE_MESSAGE_HISTORY: bool = True
-    SSE_CACHE_TTL: int = 3600
+    SSE_CACHE_TTL: int = 86400
     SESSION_SEARCH_BACKFILL_STARTUP_DELAY_SECONDS: float = 30.0
     SESSION_TITLE_MODEL: str = "claude-3-5-haiku-20241022"
     SESSION_TITLE_API_BASE: str = ""
@@ -116,7 +116,7 @@ class Settings(BaseSettings):
     ARQ_EMBEDDED_WORKER: bool = True
     ARQ_QUEUE_NAME: str = "lambchat:arq"
     ARQ_WORKER_MAX_JOBS: int = 64
-    ARQ_JOB_TIMEOUT_SECONDS: int = 3600
+    ARQ_JOB_TIMEOUT_SECONDS: int = 86400
 
     # MongoDB Settings
     MONGODB_URL: str = "mongodb://localhost:27017"

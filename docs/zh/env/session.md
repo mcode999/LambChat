@@ -15,7 +15,7 @@
 | 变量名 | 默认值 | 说明 |
 |--------|--------|------|
 | `ENABLE_MESSAGE_HISTORY` | `true` | 启用消息历史存储。 |
-| `SSE_CACHE_TTL` | `3600` | Redis 中 SSE 事件的 TTL（秒），默认 1 小时。 |
+| `SSE_CACHE_TTL` | `86400` | Redis 中运行中 SSE 事件的 TTL（秒），默认 24 小时；任务结束后会缩短为 60 秒。 |
 
 ## 事件合并
 
@@ -43,7 +43,7 @@
 # .env
 SESSION_MAX_RUNS_PER_SESSION=100
 ENABLE_MESSAGE_HISTORY=true
-SSE_CACHE_TTL=3600
+SSE_CACHE_TTL=86400
 ENABLE_EVENT_MERGER=true
 EVENT_MERGE_INTERVAL=300.0
 SESSION_TITLE_MODEL=gpt-4o-mini

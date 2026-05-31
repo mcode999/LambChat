@@ -241,7 +241,7 @@ SETTING_DEFINITIONS: dict[str, dict] = {
         "category": SettingCategory.SESSION,
         "subcategory": "general",
         "description": "settingDesc.SSE_CACHE_TTL",
-        "default": 3600,
+        "default": 86400,
     },
     "SESSION_EVENT_MONGO_BUFFER_MAX": {
         "type": SettingType.NUMBER,
@@ -752,7 +752,7 @@ SETTING_DEFINITIONS: dict[str, dict] = {
         "category": SettingCategory.REDIS,
         "subcategory": "task",
         "description": "settingDesc.ARQ_JOB_TIMEOUT_SECONDS",
-        "default": 3600,
+        "default": 86400,
         "depends_on": "TASK_BACKEND",
     },
     # ============================================

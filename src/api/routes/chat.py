@@ -583,7 +583,7 @@ async def session_stream(
                 if isinstance(event_data, dict) and event.get("timestamp"):
                     # Create a copy to avoid modifying the original
                     event_data = {**event_data, "_timestamp": event["timestamp"]}
-                yield f"event: {event['event_type']}\ndata: {json.dumps(event_data, ensure_ascii=False)}\nid: {event['id']}\n\n"
+                yield f"event: {event['event_type']}\ndata: {json.dumps(event_data, ensure_ascii=False, default=str)}\nid: {event['id']}\n\n"
 
             logger.info(f"[SSE] Stream ended after {event_count} events")
 

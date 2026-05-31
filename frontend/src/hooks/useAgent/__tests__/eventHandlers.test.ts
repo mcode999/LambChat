@@ -56,7 +56,34 @@ function createContext(
   };
 }
 
-test("skips replayed SSE events at the history timestamp boundary", () => {
+test("skips SSE events older than loaded history", () => {
+  const historyTimestamp = "2026-04-19T01:02:03.456Z";
+  const eventTimestamp = "2026-04-19T01:02:03.455Z";
+  const ctx = createContext(
+    [
+      {
+        id: "assistant-1",
+        role: "assistant",
+        content: "",
+        timestamp: new Date(historyTimestamp),
+        parts: [],
+        isStreaming: true,
+      },
+    ],
+    new Date(historyTimestamp),
+  );
+
+  const event: StreamEvent = {
+    event: "message:chunk",
+    data: JSON.stringify({ content: "older", _timestamp: eventTimestamp }),
+  };
+
+  handleStreamEvent(event, "assistant-1", "redis-event-1", eventTimestamp, ctx);
+
+  assert.equal(ctx.setMessagesCalls(), 0);
+});
+
+test("keeps distinct SSE events that share the same timestamp", () => {
   const timestamp = "2026-04-19T01:02:03.456Z";
   const ctx = createContext(
     [
@@ -69,17 +96,32 @@ test("skips replayed SSE events at the history timestamp boundary", () => {
         isStreaming: true,
       },
     ],
-    new Date(timestamp),
+    null,
   );
 
-  const event: StreamEvent = {
-    event: "message:chunk",
-    data: JSON.stringify({ content: "duplicate", _timestamp: timestamp }),
-  };
+  handleStreamEvent(
+    {
+      event: "message:chunk",
+      data: JSON.stringify({ content: "hello ", _timestamp: timestamp }),
+    },
+    "assistant-1",
+    "redis-event-1",
+    timestamp,
+    ctx,
+  );
+  handleStreamEvent(
+    {
+      event: "message:chunk",
+      data: JSON.stringify({ content: "world", _timestamp: timestamp }),
+    },
+    "assistant-1",
+    "redis-event-2",
+    timestamp,
+    ctx,
+  );
 
-  handleStreamEvent(event, "assistant-1", "redis-event-1", timestamp, ctx);
-
-  assert.equal(ctx.setMessagesCalls(), 0);
+  assert.equal(ctx.setMessagesCalls(), 2);
+  assert.equal(ctx.messages()[0]?.content, "hello world");
 });
 
 test("creates a new streaming assistant for a running run after the latest user message", () => {
