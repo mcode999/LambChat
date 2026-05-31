@@ -577,10 +577,15 @@ export function ChatAppContent({
   const externalScrollToBottom = shouldScrollToBottomAfterExternalNavigation(
     location.state,
   );
+  const externalNavigationRunId = searchParams.get("run_id")?.trim() || null;
   const externalNavigationToken =
-    externalNavigationTargetFile || externalScrollToBottom
+    externalNavigationTargetFile ||
+    externalScrollToBottom ||
+    externalNavigationRunId
       ? location.key
       : null;
+  const resolvedExternalNavigationTargetRunId =
+    externalNavigationTargetRunId || externalNavigationRunId;
 
   useEffect(() => {
     const targetTraceId = externalNavigationTargetFile?.traceId ?? undefined;
@@ -852,7 +857,7 @@ export function ChatAppContent({
           externalNavigationToken={externalNavigationToken}
           externalNavigationTargetFile={externalNavigationTargetFile}
           externalNavigationPreview={externalNavigationPreviewRequest}
-          externalNavigationTargetRunId={externalNavigationTargetRunId}
+          externalNavigationTargetRunId={resolvedExternalNavigationTargetRunId}
           externalNavigationTargetRunPending={
             externalNavigationTargetRunPending
           }

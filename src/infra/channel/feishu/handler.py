@@ -7,16 +7,19 @@ Feishu 消息处理器模块
 
 import asyncio
 import json
+import mimetypes
 import sys
 import time
 from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Callable, Optional, cast
+from urllib.parse import quote, unquote, urlparse
 
 from src.infra.channel.feishu.channel import FeishuChannel
 from src.infra.channel.feishu.manager import FeishuChannelManager
 from src.infra.channel.feishu.markdown import FeishuMarkdownAdapter
 from src.infra.logging import get_logger
 from src.infra.utils.datetime import utc_now
+from src.kernel.config import settings
 
 logger = get_logger(__name__)
 
@@ -31,6 +34,8 @@ EVENT_TOOL_RESULT = "tool:result"
 EVENT_DONE = "done"
 FEISHU_STREAM_UPDATE_DEBOUNCE_SECONDS = 0.12
 FEISHU_STREAM_FIRST_PAINT_CHARS = 12
+_UPLOAD_FILE_PATH_MARKER = "/api/upload/file/"
+_SESSION_LINK_TEXT = "查看这条消息"
 
 
 async def _get_feishu_session_id(chat_id: str) -> str:
@@ -67,6 +72,115 @@ async def _create_new_feishu_session(chat_id: str) -> str:
     return session_id
 
 
+def _storage_key_from_upload_url(url: str) -> str | None:
+    """Extract the LambChat storage key from a proxied upload URL."""
+    if not url:
+        return None
+    try:
+        path = urlparse(url).path
+    except Exception:
+        path = url
+
+    if _UPLOAD_FILE_PATH_MARKER not in path:
+        return None
+    key = path.split(_UPLOAD_FILE_PATH_MARKER, 1)[1]
+    return unquote(key).lstrip("/") or None
+
+
+def _media_name_from_entry(entry: dict[str, Any], key: str | None, url: str, index: int) -> str:
+    for field in ("name", "file_name", "filename"):
+        value = entry.get(field)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+
+    source = key or urlparse(url).path or url
+    name = unquote(source.rstrip("/").rsplit("/", 1)[-1])
+    return name or f"attachment-{index + 1}.bin"
+
+
+def _media_mime_type(entry: dict[str, Any], name: str, url: str) -> str:
+    for field in ("mime_type", "mimeType", "content_type", "contentType"):
+        value = entry.get(field)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return mimetypes.guess_type(name or url)[0] or "application/octet-stream"
+
+
+def _media_attachment_type(media_type: str, mime_type: str) -> str:
+    if media_type == "image" or mime_type.startswith("image/"):
+        return "image"
+    if media_type == "audio" or mime_type.startswith("audio/"):
+        return "audio"
+    if media_type == "video" or mime_type.startswith("video/"):
+        return "video"
+    return "document"
+
+
+def _media_file_info_from_entry(entry: dict[str, Any], index: int) -> dict[str, Any] | None:
+    """Normalize tool media entries into FeishuResponseCollector file metadata."""
+    media_type = str(entry.get("type") or "").lower()
+    if media_type not in {"image", "file", "audio", "video", ""}:
+        return None
+
+    url = entry.get("url")
+    url = url.strip() if isinstance(url, str) else ""
+    key = entry.get("key")
+    key = key.strip() if isinstance(key, str) else None
+    if not key and url:
+        key = _storage_key_from_upload_url(url)
+    if not key:
+        return None
+
+    name = _media_name_from_entry(entry, key, url, index)
+    mime_type = _media_mime_type(entry, name, url)
+    return {
+        "key": key,
+        "name": name,
+        "type": _media_attachment_type(media_type, mime_type),
+        "mime_type": mime_type,
+        "url": url,
+    }
+
+
+def _extract_tool_media_files(result: Any) -> list[dict[str, Any]]:
+    """Extract app-storage-backed image/file outputs from tool results."""
+    if not isinstance(result, dict):
+        return []
+
+    candidates: list[dict[str, Any]] = []
+
+    images = result.get("images")
+    if isinstance(images, list):
+        candidates.extend(item for item in images if isinstance(item, dict))
+
+    blocks = result.get("blocks")
+    if isinstance(blocks, list):
+        candidates.extend(
+            item
+            for item in blocks
+            if isinstance(item, dict) and item.get("type") in {"image", "file", "audio", "video"}
+        )
+
+    file_infos: list[dict[str, Any]] = []
+    seen_keys: set[str] = set()
+    for index, entry in enumerate(candidates):
+        file_info = _media_file_info_from_entry(entry, index)
+        if not file_info or file_info["key"] in seen_keys:
+            continue
+        seen_keys.add(file_info["key"])
+        file_infos.append(file_info)
+    return file_infos
+
+
+def _build_session_run_url(session_id: str, run_id: str | None = None) -> str:
+    path = f"/chat/{quote(session_id, safe='')}"
+    if run_id:
+        path = f"{path}?run_id={quote(run_id, safe='')}"
+
+    base_url = getattr(settings, "APP_BASE_URL", "").rstrip("/")
+    return f"{base_url}{path}" if base_url else path
+
+
 class FeishuResponseCollector:
     """
     飞书响应收集器
@@ -93,6 +207,8 @@ class FeishuResponseCollector:
         self.chat_type = chat_type
         self.stream_reply = stream_reply
         self.instance_id = instance_id
+        self.session_id: str | None = None
+        self.run_id: str | None = None
 
         # 内容收集
         self.text_parts: list[str] = []
@@ -247,6 +363,21 @@ class FeishuResponseCollector:
         """添加待展示的文件"""
         self.files_to_reveal.append(file_info)
 
+    def set_session_link(self, session_id: str, run_id: str | None) -> None:
+        self.session_id = session_id
+        self.run_id = run_id
+
+    def _session_link_markdown(self) -> str | None:
+        if not self.session_id:
+            return None
+        return f"[{_SESSION_LINK_TEXT}]({_build_session_run_url(self.session_id, self.run_id)})"
+
+    def _append_session_link_to_text(self, text: str) -> str:
+        link = self._session_link_markdown()
+        if not link:
+            return text
+        return f"{text.rstrip()}\n\n{link}" if text.strip() else link
+
     async def start_processing_indicator(self, message_id: str) -> None:
         """发送一次处理中 emoji 指示器。"""
         if self._processing_reaction_id:
@@ -320,7 +451,7 @@ class FeishuResponseCollector:
             client = self._get_client()
             if not client:
                 return False
-            final_text = "".join(self.text_parts).strip() or " "
+            final_text = self._append_session_link_to_text("".join(self.text_parts).strip() or " ")
             self._stream_sequence += 1
             success = await client.finalize_stream_card(
                 self._stream_card_id,
@@ -391,6 +522,10 @@ class FeishuResponseCollector:
             elements.append({"tag": "hr"})
             elements.append({"tag": "markdown", "content": " · ".join(metadata_parts)})
 
+        if session_link := self._session_link_markdown():
+            elements.append({"tag": "hr"})
+            elements.append({"tag": "markdown", "content": session_link})
+
         if not elements:
             elements.append({"tag": "div", "text": {"tag": "plain_text", "content": "(无内容)"}})
 
@@ -440,6 +575,25 @@ class FeishuResponseCollector:
                     continue
 
                 logger.info(f"[Feishu] Read file {file_name}, size: {len(file_data)} bytes")
+
+                file_type = str(file_info.get("type") or "").lower()
+                mime_type = str(file_info.get("mime_type") or "").lower()
+                if file_type == "image" or mime_type.startswith("image/"):
+                    feishu_image_key = await client.upload_image(file_data)
+                    if feishu_image_key:
+                        sent = await client.send_image_by_key(
+                            chat_id=self.chat_id,
+                            image_key=feishu_image_key,
+                            reply_to_id=self.reply_to_message_id,
+                        )
+                        if sent:
+                            self._sent_file_keys.add(file_key)
+                            logger.info(f"[Feishu] Sent image: {file_name}")
+                        else:
+                            logger.warning(f"[Feishu] Failed to send image {file_name} to Feishu")
+                    else:
+                        logger.warning(f"[Feishu] Failed to upload image {file_name} to Feishu")
+                    continue
 
                 feishu_file_key = await client.upload_bytes(
                     file_data=file_data,
@@ -737,6 +891,7 @@ def create_feishu_message_handler(
                 enabled_skills=enabled_skills,
                 persona_system_prompt=persona_system_prompt,
             )
+            collector.set_session_link(session_id, run_id)
             if persona_metadata:
                 try:
                     from src.infra.session.manager import SessionManager
@@ -820,8 +975,8 @@ async def _process_events(
             elif event_type == EVENT_TOOL_RESULT:
                 tool_name = data.get("tool", "")
                 logger.debug(f"[Feishu] tool:result event: tool={tool_name}")
+                result = data.get("result", "")
                 if tool_name == "reveal_file":
-                    result = data.get("result", "")
                     logger.info(f"[Feishu] reveal_file result type={type(result).__name__}")
                     if isinstance(result, str) and result:
                         try:
@@ -845,6 +1000,14 @@ async def _process_events(
                             logger.info(
                                 f"[Feishu] Added file to reveal (dict): {result.get('name')}"
                             )
+
+                for file_info in _extract_tool_media_files(result):
+                    collector.add_file_to_reveal(file_info)
+                    await collector.upload_and_send_files()
+                    logger.info(
+                        "[Feishu] Added tool media file to reveal: %s",
+                        file_info.get("name"),
+                    )
 
             elif event_type in ("done", "complete", "error"):
                 break

@@ -315,14 +315,22 @@ function GoalDetailsButton({
   const startedAt = goal.started_at
     ? new Date(goal.started_at).getTime()
     : null;
-  const endedAt = goal.ended_at
-    ? new Date(goal.ended_at).getTime()
-    : Date.now();
+  const endedAt = goal.ended_at ? new Date(goal.ended_at).getTime() : null;
+
+  // Tick every second so the running duration auto-increments.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (goal.ended_at || !showDetails) return;
+    const id = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [goal.ended_at, showDetails]);
+
+  const effectiveEndedAt = endedAt ?? Date.now();
   const durationText = startedAt
     ? (() => {
         const totalSeconds = Math.max(
           0,
-          Math.floor((endedAt - startedAt) / 1000),
+          Math.floor((effectiveEndedAt - startedAt) / 1000),
         );
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;

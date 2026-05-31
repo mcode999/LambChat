@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import sys
 from types import ModuleType
 from typing import Any
@@ -77,11 +78,17 @@ class _FakeStreamingClient:
 class _FakeFileClient:
     def __init__(self) -> None:
         self.uploads: list[tuple[bytes, str]] = []
+        self.image_uploads: list[bytes] = []
         self.sent_files: list[tuple[str, str, str, str | None]] = []
+        self.sent_images: list[tuple[str, str, str | None]] = []
 
     async def upload_bytes(self, file_data: bytes, file_name: str) -> str:
         self.uploads.append((file_data, file_name))
         return f"feishu-{file_name}"
+
+    async def upload_image(self, image_data: bytes) -> str:
+        self.image_uploads.append(image_data)
+        return "feishu-image-key"
 
     async def send_file_by_key(
         self,
@@ -91,6 +98,15 @@ class _FakeFileClient:
         reply_to_id: str | None = None,
     ) -> bool:
         self.sent_files.append((chat_id, file_key, file_name, reply_to_id))
+        return True
+
+    async def send_image_by_key(
+        self,
+        chat_id: str,
+        image_key: str,
+        reply_to_id: str | None = None,
+    ) -> bool:
+        self.sent_images.append((chat_id, image_key, reply_to_id))
         return True
 
 
@@ -623,6 +639,7 @@ async def test_feishu_collector_streams_chunks_and_finalizes_card() -> None:
         reply_to_message_id="original-message",
         stream_reply=True,
     )
+    collector.set_session_link("session-1", "run-1")
 
     await collector.append_stream_chunk("hello")
     await asyncio.sleep(0)
@@ -635,7 +652,49 @@ async def test_feishu_collector_streams_chunks_and_finalizes_card() -> None:
     assert client.updates == [("card-1", "hello world", 1)]
 
     assert await collector.finalize_stream_message() is True
-    assert client.finalized == [("card-1", "hello world", 2)]
+    assert client.finalized == [
+        ("card-1", "hello world\n\n[查看这条消息](/chat/session-1?run_id=run-1)", 2)
+    ]
+
+
+@pytest.mark.asyncio
+async def test_feishu_collector_appends_session_link_to_card_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent_cards: list[str] = []
+
+    class _FakeCardClient:
+        async def send_card_message(
+            self,
+            chat_id: str,
+            card_content: str,
+            reply_to_id: str | None = None,
+        ) -> bool:
+            sent_cards.append(card_content)
+            return True
+
+    monkeypatch.setattr(feishu_handler.settings, "APP_BASE_URL", "https://app.example.com")
+
+    collector = feishu_handler.FeishuResponseCollector(
+        manager=_FakeStreamingManager(_FakeCardClient()),
+        user_id="user-1",
+        chat_id="oc_chat",
+        stream_reply=False,
+    )
+    collector.append_text("hello")
+    collector.set_session_link("feishu_oc_chat", "run-123")
+
+    assert await collector.send_card_message() is True
+    card = json.loads(sent_cards[0])
+    markdown_contents = [
+        element["content"]
+        for element in card["elements"]
+        if element.get("tag") == "markdown" and "content" in element
+    ]
+    assert (
+        markdown_contents[-1]
+        == "[查看这条消息](https://app.example.com/chat/feishu_oc_chat?run_id=run-123)"
+    )
 
 
 @pytest.mark.asyncio
@@ -717,6 +776,51 @@ async def test_upload_and_send_files_replies_to_original_message_and_skips_sent_
 
 
 @pytest.mark.asyncio
+async def test_upload_and_send_files_sends_images_as_native_feishu_images(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _FakeFileClient()
+    collector = feishu_handler.FeishuResponseCollector(
+        manager=_FakeStreamingManager(client),
+        user_id="user-1",
+        chat_id="oc_chat",
+        reply_to_message_id="om_original",
+    )
+    collector.add_file_to_reveal(
+        {
+            "key": "generated-images/user-1/cat.png",
+            "name": "cat.png",
+            "type": "image",
+            "mime_type": "image/png",
+        }
+    )
+
+    class _FakeBackend:
+        async def download(self, key: str) -> bytes:
+            return b"image-bytes"
+
+    class _FakeStorage:
+        def _get_backend(self) -> _FakeBackend:
+            return _FakeBackend()
+
+    async def _fake_get_storage() -> _FakeStorage:
+        return _FakeStorage()
+
+    monkeypatch.setattr(
+        "src.infra.storage.s3.service.get_or_init_storage",
+        _fake_get_storage,
+    )
+
+    await collector.upload_and_send_files()
+    await collector.upload_and_send_files()
+
+    assert client.uploads == []
+    assert client.sent_files == []
+    assert client.image_uploads == [b"image-bytes"]
+    assert client.sent_images == [("oc_chat", "feishu-image-key", "om_original")]
+
+
+@pytest.mark.asyncio
 async def test_process_events_uploads_revealed_file_when_tool_result_arrives(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -781,4 +885,167 @@ async def test_process_events_uploads_revealed_file_when_tool_result_arrives(
         "add:doc.md",
         "upload:doc.md",
         "chunk:after",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_process_events_uploads_generated_images_when_tool_result_arrives(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events = [
+        {
+            "event_type": feishu_handler.EVENT_TOOL_RESULT,
+            "data": {
+                "tool": "image_generate",
+                "result": {
+                    "success": True,
+                    "images": [
+                        {
+                            "url": "https://app.example.com/api/upload/file/generated-images/user-1/cat.png",
+                            "key": "generated-images/user-1/cat.png",
+                            "content_type": "image/png",
+                        }
+                    ],
+                },
+            },
+        },
+        {"event_type": "done", "data": {}},
+    ]
+
+    class _FakeDualWriter:
+        async def read_from_redis(self, session_id: str, run_id: str):
+            for event in events:
+                yield event
+
+    class _CaptureCollector:
+        def __init__(self) -> None:
+            self.files_to_reveal: list[dict[str, Any]] = []
+            self.calls: list[str] = []
+
+        async def append_stream_chunk(self, chunk: str) -> None:
+            self.calls.append(f"chunk:{chunk}")
+
+        def add_tool(self, tool_name: str) -> None:
+            self.calls.append(f"tool:{tool_name}")
+
+        def add_file_to_reveal(self, file_info: dict) -> None:
+            self.files_to_reveal.append(file_info)
+            self.calls.append(f"add:{file_info['name']}")
+
+        async def upload_and_send_files(self) -> None:
+            names = ",".join(file["name"] for file in self.files_to_reveal)
+            self.calls.append(f"upload:{names}")
+
+    monkeypatch.setattr(
+        "src.infra.session.dual_writer.get_dual_writer",
+        lambda: _FakeDualWriter(),
+    )
+
+    collector = _CaptureCollector()
+    await feishu_handler._process_events(
+        collector=collector,
+        session_id="session-1",
+        run_id="run-1",
+        show_tools=True,
+    )
+
+    assert collector.files_to_reveal == [
+        {
+            "key": "generated-images/user-1/cat.png",
+            "name": "cat.png",
+            "type": "image",
+            "mime_type": "image/png",
+            "url": "https://app.example.com/api/upload/file/generated-images/user-1/cat.png",
+        }
+    ]
+    assert collector.calls == ["add:cat.png", "upload:cat.png"]
+
+
+@pytest.mark.asyncio
+async def test_process_events_uploads_mcp_media_blocks_when_tool_result_arrives(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    events = [
+        {
+            "event_type": feishu_handler.EVENT_TOOL_RESULT,
+            "data": {
+                "tool": "read_file",
+                "result": {
+                    "text": "",
+                    "blocks": [
+                        {
+                            "type": "file",
+                            "url": "/api/upload/file/tool_binaries/report.pdf",
+                            "mime_type": "application/pdf",
+                        },
+                        {
+                            "type": "image",
+                            "url": "/api/upload/file/tool_binaries/chart.png",
+                            "mime_type": "image/png",
+                        },
+                    ],
+                },
+            },
+        },
+        {"event_type": "done", "data": {}},
+    ]
+
+    class _FakeDualWriter:
+        async def read_from_redis(self, session_id: str, run_id: str):
+            for event in events:
+                yield event
+
+    class _CaptureCollector:
+        def __init__(self) -> None:
+            self.files_to_reveal: list[dict[str, Any]] = []
+            self.calls: list[str] = []
+
+        async def append_stream_chunk(self, chunk: str) -> None:
+            self.calls.append(f"chunk:{chunk}")
+
+        def add_tool(self, tool_name: str) -> None:
+            self.calls.append(f"tool:{tool_name}")
+
+        def add_file_to_reveal(self, file_info: dict) -> None:
+            self.files_to_reveal.append(file_info)
+            self.calls.append(f"add:{file_info['name']}")
+
+        async def upload_and_send_files(self) -> None:
+            names = ",".join(file["name"] for file in self.files_to_reveal)
+            self.calls.append(f"upload:{names}")
+
+    monkeypatch.setattr(
+        "src.infra.session.dual_writer.get_dual_writer",
+        lambda: _FakeDualWriter(),
+    )
+
+    collector = _CaptureCollector()
+    await feishu_handler._process_events(
+        collector=collector,
+        session_id="session-1",
+        run_id="run-1",
+        show_tools=True,
+    )
+
+    assert collector.files_to_reveal == [
+        {
+            "key": "tool_binaries/report.pdf",
+            "name": "report.pdf",
+            "type": "document",
+            "mime_type": "application/pdf",
+            "url": "/api/upload/file/tool_binaries/report.pdf",
+        },
+        {
+            "key": "tool_binaries/chart.png",
+            "name": "chart.png",
+            "type": "image",
+            "mime_type": "image/png",
+            "url": "/api/upload/file/tool_binaries/chart.png",
+        },
+    ]
+    assert collector.calls == [
+        "add:report.pdf",
+        "upload:report.pdf",
+        "add:chart.png",
+        "upload:report.pdf,chart.png",
     ]

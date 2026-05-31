@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import {
+  getTargetRunIdFromSearch,
   getInitialUrlSyncCompletionAction,
   getSessionRouteSyncAction,
   shouldLoadSessionFromUrlChange,
@@ -52,6 +53,14 @@ test("updates the chat url when a new session is created from /chat", () => {
       path: "/chat/session-123",
     },
   );
+});
+
+test("reads the target run id from chat url search params", () => {
+  assert.equal(
+    getTargetRunIdFromSearch("?run_id=run_20260531_abc&panel=chat"),
+    "run_20260531_abc",
+  );
+  assert.equal(getTargetRunIdFromSearch("?run_id="), undefined);
 });
 
 test("loads the target session when external navigation lands on chat from an empty state", () => {

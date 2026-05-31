@@ -97,6 +97,7 @@ export function useMessageScroll(
     token: string;
     targetFile: ExternalNavigationTargetFile | null;
     scrollToBottom: boolean;
+    targetRunId: string | null;
   } | null>(null);
   const previousSessionIdRef = useRef(sessionId);
   const previousMessagesRef = useRef(messages);
@@ -692,11 +693,13 @@ export function useMessageScroll(
         token: externalNavigationToken,
         targetFile: externalNavigationTargetFile ?? null,
         scrollToBottom: externalScrollToBottom,
+        targetRunId: externalNavigationTargetRunId ?? null,
       };
     }
   }, [
     externalNavigationToken,
     externalNavigationTargetFile,
+    externalNavigationTargetRunId,
     externalScrollToBottom,
   ]);
 
@@ -840,6 +843,68 @@ export function useMessageScroll(
       if (shouldDeferScroll) {
         return;
       }
+      return;
+    }
+
+    if (pendingExternalNavigation.targetRunId) {
+      const runMessageIndex = findMessageIndexForRunId(
+        messages,
+        pendingExternalNavigation.targetRunId,
+      );
+
+      if (runMessageIndex === -1) {
+        if (!isLoadingHistory) {
+          pendingExternalNavigationRef.current = null;
+        }
+        return;
+      }
+
+      pendingExternalNavigationRef.current = null;
+      userScrolledUpRef.current = true;
+      autoScrollActiveRef.current = false;
+      streamLockActiveRef.current = false;
+      pendingHistoryScrollRef.current = false;
+      ignoreProgrammaticScrollUntilRef.current = Date.now() + 120;
+      anchorScrollCleanupRef.current?.();
+
+      const messageAnchorId = createMessageAnchorId(
+        messages[runMessageIndex]!.id,
+      );
+      let hasAnimatedToMessage = false;
+      let lastHighlightedElement: HTMLElement | null = null;
+
+      anchorScrollCleanupRef.current = scrollElementIntoViewWithRetries({
+        getElement: () => {
+          if (!hasAnimatedToMessage) {
+            virtuosoRef.current?.scrollToIndex({
+              index: runMessageIndex,
+              align: "center",
+              behavior: "smooth",
+            });
+            hasAnimatedToMessage = true;
+          }
+          const element = document.getElementById(messageAnchorId);
+          if (element && element !== lastHighlightedElement) {
+            highlightCleanupRef.current?.();
+            highlightCleanupRef.current = highlightElementForExternalNavigation(
+              {
+                element,
+              },
+            );
+            focusElementForExternalNavigation({
+              element,
+            });
+            lastHighlightedElement = element;
+          }
+          return element;
+        },
+        topOffsetPx: 20,
+        tolerancePx: 4,
+        settleAttempts: 3,
+        maxAttempts: 24,
+        behavior: "smooth",
+        align: "center",
+      });
       return;
     }
 

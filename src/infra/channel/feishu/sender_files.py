@@ -341,6 +341,65 @@ class FeishuFileSenderMixin:
             logger.error(f"Error sending file message: {e}")
             return False
 
+    def _send_image_message_sync(
+        self,
+        chat_id: str,
+        image_key: str,
+        reply_to_id: str | None = None,
+    ) -> bool:
+        """Send an image message synchronously using an uploaded image_key."""
+
+        try:
+            receive_id_type, receive_id = self._resolve_receive_id(chat_id)
+            content = json.dumps({"image_key": image_key}, ensure_ascii=False)
+
+            if reply_to_id:
+                from lark_oapi.api.im.v1 import ReplyMessageRequest, ReplyMessageRequestBody
+
+                request = (
+                    ReplyMessageRequest.builder()
+                    .message_id(reply_to_id)
+                    .request_body(
+                        ReplyMessageRequestBody.builder().msg_type("image").content(content).build()
+                    )
+                    .build()
+                )
+                response = self._client.im.v1.message.reply(request)
+                if not response.success() and response.code in self._REPLY_FALLBACK_ERROR_CODES:
+                    logger.info(
+                        "Falling back to create Feishu image after reply failure: "
+                        "code=%s receive_id_type=%s receive_id=%s",
+                        response.code,
+                        receive_id_type,
+                        receive_id,
+                    )
+                    reply_to_id = None
+
+            if not reply_to_id:
+                from lark_oapi.api.im.v1 import CreateMessageRequest, CreateMessageRequestBody
+
+                request = (
+                    CreateMessageRequest.builder()
+                    .receive_id_type(receive_id_type)
+                    .request_body(
+                        CreateMessageRequestBody.builder()
+                        .receive_id(receive_id)
+                        .msg_type("image")
+                        .content(content)
+                        .build()
+                    )
+                    .build()
+                )
+                response = self._client.im.v1.message.create(request)
+
+            if not response.success():
+                logger.error(f"Failed to send image message: code={response.code}")
+                return False
+            return True
+        except Exception as e:
+            logger.error(f"Error sending image message: {e}")
+            return False
+
     async def send_file_message(self, chat_id: str, file_path: str, file_name: str) -> bool:
         """Upload and send a file message."""
         file_key = await self.upload_file(file_path, file_name)
@@ -379,5 +438,22 @@ class FeishuFileSenderMixin:
             file_key,
             file_name,
             msg_type,
+            reply_to_id,
+        )
+
+    async def send_image_by_key(
+        self,
+        chat_id: str,
+        image_key: str,
+        reply_to_id: str | None = None,
+    ) -> bool:
+        """Send an image message using an already uploaded image_key."""
+        if not self._client:
+            return False
+
+        return await run_blocking_io(
+            self._send_image_message_sync,
+            chat_id,
+            image_key,
             reply_to_id,
         )

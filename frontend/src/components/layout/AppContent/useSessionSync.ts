@@ -11,7 +11,10 @@ import {
 interface UseSessionSyncOptions {
   activeTab: TabType;
   sessionId: string | null;
-  loadHistory: (sessionId: string) => Promise<SessionConfig | null>;
+  loadHistory: (
+    sessionId: string,
+    targetRunId?: string,
+  ) => Promise<SessionConfig | null>;
   clearMessages: () => void;
   onConfigRestored?: (config: SessionConfig) => void;
 }
@@ -47,6 +50,11 @@ interface ShouldLoadSessionFromUrlChangeInput {
 
 export function isChatPath(pathname: string): boolean {
   return pathname === "/chat" || pathname.startsWith("/chat/");
+}
+
+export function getTargetRunIdFromSearch(search: string): string | undefined {
+  const value = new URLSearchParams(search).get("run_id")?.trim();
+  return value || undefined;
 }
 
 export function getSessionRouteSyncAction({
@@ -174,8 +182,10 @@ export function useSessionSync({
   // Use ref to store location pathname to avoid triggering on every render
   const locationPathRef = useRef(location.pathname);
   const locationStateRef = useRef(location.state);
+  const locationSearchRef = useRef(location.search);
   locationPathRef.current = location.pathname;
   locationStateRef.current = location.state;
+  locationSearchRef.current = location.search;
 
   // Cleanup tracked timeouts on unmount
   useEffect(() => {
@@ -204,7 +214,10 @@ export function useSessionSync({
     if (urlSessionId && !isSyncingRef.current) {
       isSyncingRef.current = true;
       initialUrlSyncPendingRef.current = true;
-      loadHistory(urlSessionId)
+      loadHistory(
+        urlSessionId,
+        getTargetRunIdFromSearch(locationSearchRef.current),
+      )
         .then((config) => {
           if (config && onConfigRestoredRef.current) {
             onConfigRestoredRef.current(config);
@@ -274,7 +287,7 @@ export function useSessionSync({
 
     isLoadingRef.current = true;
     loadHistoryRef
-      .current(urlSessionId)
+      .current(urlSessionId, getTargetRunIdFromSearch(location.search))
       .then((config) => {
         if (config && onConfigRestoredRef.current) {
           onConfigRestoredRef.current(config);
@@ -283,7 +296,7 @@ export function useSessionSync({
       .finally(() => {
         isLoadingRef.current = false;
       });
-  }, [urlSessionId, sessionId, activeTab]);
+  }, [urlSessionId, sessionId, activeTab, location.search]);
 
   // Sync URL with sessionId state (when sessionId changes from internal actions)
   useEffect(() => {

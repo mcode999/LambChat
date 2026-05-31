@@ -187,3 +187,34 @@ def test_send_file_by_key_passes_reply_to_id_to_file_sender() -> None:
     assert dummy.calls == [
         ("oc_chat", "file-key", "doc.md", "file", "om_original"),
     ]
+
+
+def test_send_image_by_key_passes_reply_to_id_to_image_sender() -> None:
+    class _CaptureImageSender(_DummySender):
+        def __init__(self) -> None:
+            super().__init__(client=object())
+            self.calls: list[tuple[str, str, str | None]] = []
+
+        def _send_image_message_sync(
+            self,
+            chat_id: str,
+            image_key: str,
+            reply_to_id: str | None = None,
+        ) -> bool:
+            self.calls.append((chat_id, image_key, reply_to_id))
+            return True
+
+    dummy = _CaptureImageSender()
+
+    import asyncio
+
+    assert asyncio.run(
+        dummy.send_image_by_key(
+            chat_id="oc_chat",
+            image_key="image-key",
+            reply_to_id="om_original",
+        )
+    )
+    assert dummy.calls == [
+        ("oc_chat", "image-key", "om_original"),
+    ]
