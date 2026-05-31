@@ -15,6 +15,7 @@ from src.infra.storage.checkpoint import (
     seed_checkpoint_from_messages,
 )
 from src.infra.storage.s3 import get_storage_service
+from src.infra.storage.s3.service import get_s3_enabled
 from src.infra.upload.file_record import FileRecordStorage
 from src.infra.utils.datetime import utc_now, utc_now_iso
 from src.kernel.exceptions import NotFoundError, SessionError
@@ -122,14 +123,15 @@ class SessionManager:
         if not keys:
             return 0
 
-        storage = get_storage_service()
+        storage = get_storage_service() if get_s3_enabled() else None
         deleted = 0
         for key in keys:
             record = await self._file_record_storage.find_by_key(key)
             if record is None or record.get("reference_count", 0) > 0:
                 continue
 
-            await storage.delete_file(key)
+            if storage is not None:
+                await storage.delete_file(key)
             await self._file_record_storage.delete_by_key(key)
             deleted += 1
 
