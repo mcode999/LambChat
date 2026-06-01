@@ -227,7 +227,7 @@ SETTING_DEFINITIONS: dict[str, dict] = {
         "category": SettingCategory.SESSION,
         "subcategory": "general",
         "description": "settingDesc.SESSION_MAX_RUNS_PER_SESSION",
-        "default": 100,
+        "default": 1000,
     },
     "ENABLE_MESSAGE_HISTORY": {
         "type": SettingType.BOOLEAN,
