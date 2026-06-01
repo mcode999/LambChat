@@ -36,6 +36,7 @@ import {
 import { getRestoredModelSelection } from "./sessionState";
 import { buildEffectiveSkills } from "./skillAvailability";
 import { getTeamRouteRequest } from "./teamRouteState";
+import { resolvePersonaAgentId } from "../../../hooks/useAgent/agentSelection";
 import { AppShell } from "./AppShell";
 import { ChatView } from "./ChatView";
 import { shouldShowMessageOutline } from "./messageOutline";
@@ -215,6 +216,15 @@ export function ChatAppContent({
     },
   });
 
+  const switchToPersonaAgentMode = useCallback(() => {
+    if (currentAgent !== "team") return;
+    const nextAgentId = resolvePersonaAgentId(currentAgent, undefined, agents);
+    if (nextAgentId && nextAgentId !== currentAgent) {
+      switchAgent(nextAgentId);
+    }
+    selectTeam(null);
+  }, [agents, currentAgent, selectTeam, switchAgent]);
+
   const prevAgentRef = useRef(currentAgent);
   useEffect(() => {
     if (prevAgentRef.current !== currentAgent) {
@@ -283,6 +293,7 @@ export function ChatAppContent({
       state?.personaPresetId === personaId &&
       state.personaSnapshot?.preset_id === personaId
     ) {
+      switchToPersonaAgentMode();
       setPersonaPreset(personaId, state.personaSnapshot);
       return;
     }
@@ -291,12 +302,19 @@ export function ChatAppContent({
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (parsed.personaPresetId === personaId && parsed.personaSnapshot) {
+        switchToPersonaAgentMode();
         setPersonaPreset(personaId, parsed.personaSnapshot);
       }
     } catch {
       /* ignore */
     }
-  }, [location.state, searchParams, setSearchParams, setPersonaPreset]);
+  }, [
+    location.state,
+    searchParams,
+    setSearchParams,
+    setPersonaPreset,
+    switchToPersonaAgentMode,
+  ]);
 
   useEffect(() => {
     const teamRequest = getTeamRouteRequest(searchParams, location.state);
@@ -379,11 +397,12 @@ export function ChatAppContent({
     async (preset: PersonaPreset) => {
       const snapshot = await activatePersonaPreset(preset.id);
       if (snapshot) {
+        switchToPersonaAgentMode();
         setPersonaPreset(preset.id, snapshot);
       }
       return snapshot;
     },
-    [activatePersonaPreset, setPersonaPreset],
+    [activatePersonaPreset, setPersonaPreset, switchToPersonaAgentMode],
   );
 
   const handleCopyPersonaPreset = useCallback(

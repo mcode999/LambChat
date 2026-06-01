@@ -50,3 +50,17 @@ test("chat app applies team route requests to agent and team selection", () => {
   assert.match(chatAppContentSource, /switchAgent\(teamRequest\.agentId\)/);
   assert.match(chatAppContentSource, /selectTeam\(teamRequest\.teamId\)/);
 });
+
+test("chat app switches team mode back to a persona-compatible agent when using a persona", () => {
+  assert.match(chatAppContentSource, /resolvePersonaAgentId/);
+  assert.match(
+    chatAppContentSource,
+    /const switchToPersonaAgentMode = useCallback/,
+  );
+  assert.match(chatAppContentSource, /if \(currentAgent !== "team"\) return;/);
+  assert.match(chatAppContentSource, /selectTeam\(null\)/);
+  assert.match(
+    chatAppContentSource,
+    /switchToPersonaAgentMode\(\);[\s\S]*setPersonaPreset\(preset\.id, snapshot\)/,
+  );
+});

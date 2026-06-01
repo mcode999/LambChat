@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveAvailableAgentId } from "../agentSelection";
+import {
+  resolveAvailableAgentId,
+  resolvePersonaAgentId,
+} from "../agentSelection";
 
 const agents = [
   { id: "search", name: "Search", description: "", version: "1.0.0" },
@@ -17,4 +20,28 @@ test("keeps the current agent when it is still available", () => {
 
 test("replaces an unavailable current agent with the first available agent", () => {
   assert.equal(resolveAvailableAgentId("default", "default", agents), "search");
+});
+
+test("persona mode keeps the current non-team agent", () => {
+  assert.equal(resolvePersonaAgentId("fast", "search", agents), "fast");
+});
+
+test("persona mode switches team agent to the preferred non-team default", () => {
+  assert.equal(
+    resolvePersonaAgentId("team", "fast", [
+      { id: "team", name: "Team", description: "", version: "1.0.0" },
+      ...agents,
+    ]),
+    "fast",
+  );
+});
+
+test("persona mode switches team agent to the first non-team agent when needed", () => {
+  assert.equal(
+    resolvePersonaAgentId("team", "team", [
+      { id: "team", name: "Team", description: "", version: "1.0.0" },
+      ...agents,
+    ]),
+    "search",
+  );
 });
