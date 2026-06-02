@@ -125,6 +125,47 @@ async def test_body_size_middleware_streams_allowed_content_length_without_prebu
 
 
 @pytest.mark.asyncio
+async def test_body_size_middleware_replayed_body_then_disconnect_without_content_length(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(api_main, "API_REQUEST_BODY_MAX_BYTES", 8, raising=False)
+
+    observed: list[str] = []
+
+    async def app(scope: Scope, receive, send):
+        message = await receive()
+        observed.append(message["type"])
+        assert message == {"type": "http.request", "body": b"123456", "more_body": False}
+
+        disconnect_message = await receive()
+        observed.append(disconnect_message["type"])
+
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": b"ok"})
+
+    middleware = api_main.RequestBodyLimitMiddleware(app)
+    scope: Scope = {"type": "http", "method": "POST", "path": "/json", "headers": []}
+    messages: list[Message] = [
+        {"type": "http.request", "body": b"123", "more_body": True},
+        {"type": "http.request", "body": b"456", "more_body": False},
+        {"type": "http.disconnect"},
+    ]
+    sent: list[Message] = []
+
+    async def receive() -> Message:
+        return messages.pop(0)
+
+    async def send(message: Message) -> None:
+        sent.append(message)
+
+    await middleware(scope, receive, send)
+
+    assert observed == ["http.request", "http.disconnect"]
+    assert sent[0]["type"] == "http.response.start"
+    assert sent[0]["status"] == 200
+
+
+@pytest.mark.asyncio
 async def test_body_size_middleware_allows_multipart_upload_routes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
