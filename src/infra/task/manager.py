@@ -7,6 +7,7 @@ Background Task Manager - 后台任务管理器
 """
 
 import asyncio
+from collections.abc import Awaitable
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from arq.connections import create_pool
@@ -710,18 +711,31 @@ class BackgroundTaskManager:
                 except Exception as e:
                     logger.warning("Task raised while shutting down: run_id=%s error=%s", run_id, e)
 
-            await _gather_limited(
-                [
-                    lambda run_id=run_id, task=task: _shutdown_run(run_id, task)
-                    for run_id, task in shutdown_items
-                ]
-            )
-            await _gather_limited(
-                [
-                    lambda run_id=run_id, task=task: _await_cancelled_run(run_id, task)
-                    for run_id, task in shutdown_items
-                ]
-            )
+            shutdown_factories: list[Callable[[], Awaitable[None]]] = []
+            for run_id, task in shutdown_items:
+
+                async def _shutdown_current(
+                    run_id: str = run_id,
+                    task: asyncio.Task = task,
+                ) -> None:
+                    await _shutdown_run(run_id, task)
+
+                shutdown_factories.append(_shutdown_current)
+
+            await _gather_limited(shutdown_factories)
+
+            await_factories: list[Callable[[], Awaitable[None]]] = []
+            for run_id, task in shutdown_items:
+
+                async def _await_current(
+                    run_id: str = run_id,
+                    task: asyncio.Task = task,
+                ) -> None:
+                    await _await_cancelled_run(run_id, task)
+
+                await_factories.append(_await_current)
+
+            await _gather_limited(await_factories)
 
             self._tasks.clear()
             self._run_info.clear()

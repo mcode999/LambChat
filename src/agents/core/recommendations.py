@@ -6,7 +6,7 @@ import asyncio
 import json
 import math
 import re
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
@@ -50,7 +50,7 @@ def _get_recommend_background_task_limit() -> int:
 
 
 def _schedule_recommend_background_task(
-    task_factory: Callable[[], Awaitable[None]],
+    task_factory: Callable[[], Coroutine[Any, Any, None]],
     *,
     failure_level: str = "warning",
 ) -> asyncio.Task[None]:
@@ -64,7 +64,7 @@ def _schedule_recommend_background_task(
         )
         return asyncio.create_task(_noop_recommend_task())
 
-    task = asyncio.create_task(task_factory())
+    task: asyncio.Task[None] = asyncio.create_task(task_factory())
     _recommend_background_tasks.add(task)
 
     def log_failure(done_task: asyncio.Task[None]) -> None:

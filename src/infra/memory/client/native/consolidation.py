@@ -111,7 +111,7 @@ async def do_consolidate(backend, user_id: str) -> dict[str, Any]:
             if consolidated is None:
                 continue
             old_store_keys = [
-                m.get("content_store_key")
+                str(m.get("content_store_key"))
                 for m in current_batch
                 if m.get("content_storage_mode") == "store" and m.get("content_store_key")
             ]

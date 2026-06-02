@@ -90,7 +90,10 @@ def _prune_recent_rebuild_cache(now: float | None = None) -> None:
     if overflow <= 0:
         return
 
-    oldest_keys = sorted(_recent_rebuilds, key=_recent_rebuilds.get)[:overflow]
+    def _last_rebuild_at(cache_key: str) -> float:
+        return _recent_rebuilds[cache_key]
+
+    oldest_keys = sorted(_recent_rebuilds, key=_last_rebuild_at)[:overflow]
     for key in oldest_keys:
         _recent_rebuilds.pop(key, None)
 

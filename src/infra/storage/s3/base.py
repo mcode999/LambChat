@@ -6,12 +6,32 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
-from typing import BinaryIO, Optional
+from typing import Optional, Protocol
 
 from src.infra.async_utils import run_blocking_io
 from src.infra.storage.s3.types import UploadResult
 
 LIST_OBJECTS_LIMIT = 1000
+
+
+class BinaryReadFile(Protocol):
+    """Binary file-like object used as an upload source."""
+
+    def read(self, size: int = -1, /) -> bytes: ...
+
+    def seek(self, offset: int, whence: int = 0, /) -> int: ...
+
+    def tell(self) -> int: ...
+
+
+class BinaryWriteFile(Protocol):
+    """Binary file-like object used as a download sink."""
+
+    def write(self, data: bytes, /) -> object: ...
+
+    def seek(self, offset: int, whence: int = 0, /) -> int: ...
+
+    def tell(self) -> int: ...
 
 
 class S3StorageBackend(ABC):
@@ -20,7 +40,7 @@ class S3StorageBackend(ABC):
     @abstractmethod
     async def upload(
         self,
-        file: BinaryIO,
+        file: BinaryReadFile,
         key: str,
         content_type: Optional[str] = None,
         metadata: Optional[dict[str, str]] = None,
@@ -66,7 +86,7 @@ class S3StorageBackend(ABC):
     async def download_to_file(
         self,
         key: str,
-        file: BinaryIO,
+        file: BinaryWriteFile,
         *,
         chunk_size: int = 1024 * 1024,
     ) -> int:

@@ -6,13 +6,13 @@ from __future__ import annotations
 
 import io
 from collections.abc import AsyncIterator
-from typing import BinaryIO, Optional
+from typing import Optional
 
 import oss2
 
 from src.infra.async_utils import run_blocking_io
 from src.infra.logging import get_logger
-from src.infra.storage.s3.base import LIST_OBJECTS_LIMIT, S3StorageBackend
+from src.infra.storage.s3.base import LIST_OBJECTS_LIMIT, BinaryReadFile, S3StorageBackend
 from src.infra.storage.s3.types import S3Config, UploadResult
 from src.infra.utils.datetime import utc_now
 
@@ -51,7 +51,7 @@ class AliyunOssBackend(S3StorageBackend):
 
     async def upload(
         self,
-        file: BinaryIO,
+        file: BinaryReadFile,
         key: str,
         content_type: Optional[str] = None,
         metadata: Optional[dict[str, str]] = None,

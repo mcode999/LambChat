@@ -367,6 +367,8 @@ async def _convert_result_item(
     if image_file is None and isinstance(payload.get("url"), str):
         image_file, source_mime, _ = await _download_image_source(payload["url"], runtime)
         mime = source_mime
+    if image_file is None:
+        raise ValueError("Image API response did not include image data")
     filename = _generated_filename(mime, index)
 
     try:

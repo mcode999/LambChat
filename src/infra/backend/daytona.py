@@ -29,6 +29,7 @@ from deepagents.backends.protocol import (
 from deepagents.backends.sandbox import BaseSandbox
 
 from src.infra.async_utils import run_blocking_io
+from src.infra.backend.protocol_compat import file_download_response, file_upload_response
 from src.infra.logging import get_logger
 from src.infra.sandbox_grep import (
     build_grep_command,
@@ -184,7 +185,7 @@ class DaytonaBackend(BaseSandbox):
         """
         if len(paths) > SANDBOX_BATCH_FILES_LIMIT:
             return [
-                FileDownloadResponse(path=path, content=None, error="too_many_files")
+                file_download_response(path=path, content=None, error="too_many_files")
                 for path in paths
             ]
 
@@ -317,7 +318,7 @@ class DaytonaBackend(BaseSandbox):
         """
         if len(files) > SANDBOX_BATCH_FILES_LIMIT:
             return [
-                FileUploadResponse(path=path, error="too_many_files") for path, _content in files
+                file_upload_response(path=path, error="too_many_files") for path, _content in files
             ]
 
         oversized_paths = {
@@ -385,7 +386,7 @@ class DaytonaBackend(BaseSandbox):
                 responses.append(FileUploadResponse(path=path, error="invalid_path"))
                 continue
             if path in oversized_paths:
-                responses.append(FileUploadResponse(path=path, error="file_too_large"))
+                responses.append(file_upload_response(path=path, error="file_too_large"))
                 continue
             error_str = upload_errors.get(path) or rename_errors.get(path)
             # 类型转换：确保 error 是允许的类型
@@ -395,7 +396,6 @@ class DaytonaBackend(BaseSandbox):
                     "permission_denied",
                     "is_directory",
                     "invalid_path",
-                    "file_too_large",
                 ]
                 | None
             ) = None

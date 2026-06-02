@@ -19,7 +19,14 @@ from typing import Any, Optional
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
-from langgraph.checkpoint.base import BaseCheckpointSaver, CheckpointTuple, empty_checkpoint
+from langgraph.checkpoint.base import (
+    BaseCheckpointSaver,
+    ChannelVersions,
+    Checkpoint,
+    CheckpointMetadata,
+    CheckpointTuple,
+    empty_checkpoint,
+)
 
 from src.infra.async_utils import run_blocking_io
 from src.infra.logging import get_logger
@@ -383,7 +390,7 @@ def _matches_fork_boundary(
 
 def _copy_checkpoint_put_payload(
     checkpoint_tuple: CheckpointTuple,
-) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+) -> tuple[Checkpoint, CheckpointMetadata, ChannelVersions]:
     checkpoint = copy.deepcopy(checkpoint_tuple.checkpoint)
     metadata = copy.deepcopy(checkpoint_tuple.metadata)
     channel_versions = copy.deepcopy(checkpoint_tuple.checkpoint.get("channel_versions", {}))

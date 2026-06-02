@@ -35,6 +35,8 @@ from src.infra.backend.protocol_compat import (
     LsResult,
     ReadResult,
     WriteResult,
+    file_download_response,
+    file_upload_response,
     is_read_result,
     read_result_to_string,
 )
@@ -471,7 +473,7 @@ class E2BBackend(BaseSandbox):
     def upload_files(self, files: list[tuple[str, bytes]]) -> list[FileUploadResponse]:
         if len(files) > SANDBOX_BATCH_FILES_LIMIT:
             return [
-                FileUploadResponse(path=path, error="too_many_files") for path, _content in files
+                file_upload_response(path=path, error="too_many_files") for path, _content in files
             ]
 
         responses: list[FileUploadResponse] = []
@@ -480,7 +482,7 @@ class E2BBackend(BaseSandbox):
                 responses.append(FileUploadResponse(path=path, error="invalid_path"))
                 continue
             if len(content) > SANDBOX_UPLOAD_MAX_BYTES:
-                responses.append(FileUploadResponse(path=path, error="file_too_large"))
+                responses.append(file_upload_response(path=path, error="file_too_large"))
                 continue
             try:
                 self._ensure_parent_dir(path)
@@ -507,7 +509,7 @@ class E2BBackend(BaseSandbox):
     def download_files(self, paths: list[str]) -> list[FileDownloadResponse]:
         if len(paths) > SANDBOX_BATCH_FILES_LIMIT:
             return [
-                FileDownloadResponse(path=path, content=None, error="too_many_files")
+                file_download_response(path=path, content=None, error="too_many_files")
                 for path in paths
             ]
 

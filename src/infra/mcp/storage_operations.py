@@ -336,7 +336,7 @@ class StorageOperations:
 
         # Get enabled user servers
         user_collection = self._get_user_collection()
-        user_servers = {}
+        user_servers: dict[str, dict[str, Any]] = {}
         user_cursor = _limit_cursor(
             user_collection.find({"user_id": user_id, "enabled": True}),
             _server_list_limit(),

@@ -13,7 +13,7 @@ import random
 import re
 import uuid
 from collections.abc import Awaitable
-from typing import BinaryIO, Callable, Optional, TypeVar
+from typing import Callable, Optional, TypeVar
 
 from src.infra.async_utils import run_blocking_io
 from src.infra.logging import get_logger
@@ -22,7 +22,7 @@ from src.infra.storage.s3.backends import (
     LocalStorageBackend,
     MinioS3Backend,
 )
-from src.infra.storage.s3.base import S3StorageBackend
+from src.infra.storage.s3.base import BinaryReadFile, BinaryWriteFile, S3StorageBackend
 from src.infra.storage.s3.types import S3Config, S3Provider, UploadResult
 from src.infra.utils.datetime import utc_now
 
@@ -157,7 +157,7 @@ class S3StorageService:
 
     async def upload_file(
         self,
-        file: BinaryIO,
+        file: BinaryReadFile,
         folder: str,
         filename: str,
         content_type: Optional[str] = None,
@@ -253,7 +253,7 @@ class S3StorageService:
 
     async def upload_stream_to_key(
         self,
-        file: BinaryIO,
+        file: BinaryReadFile,
         key: str,
         content_type: Optional[str] = None,
         metadata: Optional[dict[str, str]] = None,
@@ -370,7 +370,7 @@ class S3StorageService:
     async def download_to_file(
         self,
         key: str,
-        file: BinaryIO,
+        file: BinaryWriteFile,
         *,
         chunk_size: int = 1024 * 1024,
     ) -> int:

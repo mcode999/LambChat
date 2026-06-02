@@ -7,8 +7,21 @@ Trace Filter - 日志过滤器
 from __future__ import annotations
 
 import logging
+from typing import Protocol, cast
 
 from src.infra.logging.context import TraceContext
+
+
+class _TraceLogRecord(Protocol):
+    request_id: str
+    trace_id: str
+    span_id: str
+    parent_span_id: str
+    user_id: str
+    session_id: str
+    run_id: str
+    trace_info: str
+    trace_context: str
 
 
 def _build_trace_context(parts: dict[str, str]) -> str:
@@ -49,24 +62,25 @@ class TraceFilter(logging.Filter):
         """
         info = TraceContext.get()
         request_context = TraceContext.get_request_context()
+        trace_record = cast(_TraceLogRecord, record)
 
         # 注入追踪属性
-        record.request_id = info.request_id or request_context.request_id or "-"
-        record.trace_id = info.trace_id or request_context.trace_id or "-"
-        record.span_id = info.span_id or "-"
-        record.parent_span_id = info.parent_span_id or "-"
-        record.session_id = request_context.session_id or "-"
-        record.run_id = request_context.run_id or "-"
-        record.user_id = request_context.user_id or "-"
-        record.trace_info = info.format()
-        record.trace_context = _build_trace_context(
+        trace_record.request_id = info.request_id or request_context.request_id or "-"
+        trace_record.trace_id = info.trace_id or request_context.trace_id or "-"
+        trace_record.span_id = info.span_id or "-"
+        trace_record.parent_span_id = info.parent_span_id or "-"
+        trace_record.session_id = request_context.session_id or "-"
+        trace_record.run_id = request_context.run_id or "-"
+        trace_record.user_id = request_context.user_id or "-"
+        trace_record.trace_info = info.format()
+        trace_record.trace_context = _build_trace_context(
             {
-                "request_id": record.request_id,
-                "trace_id": record.trace_id,
-                "span_id": record.span_id,
-                "user_id": record.user_id,
-                "session_id": record.session_id,
-                "run_id": record.run_id,
+                "request_id": trace_record.request_id,
+                "trace_id": trace_record.trace_id,
+                "span_id": trace_record.span_id,
+                "user_id": trace_record.user_id,
+                "session_id": trace_record.session_id,
+                "run_id": trace_record.run_id,
             }
         )
 

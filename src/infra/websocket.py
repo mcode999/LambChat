@@ -163,7 +163,7 @@ class ConnectionManager:
         json_str = (
             await _json_dumps_message_limited(message, label="broadcast") if all_connections else ""
         )
-        if all_connections and json_str is None:
+        if json_str is None:
             return 0
 
         for user_id, ws in all_connections:

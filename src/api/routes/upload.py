@@ -8,7 +8,7 @@ import hashlib
 import uuid
 from dataclasses import dataclass
 from tempfile import SpooledTemporaryFile
-from typing import Any, BinaryIO
+from typing import Any, Protocol
 
 from fastapi import (
     APIRouter,
@@ -38,6 +38,7 @@ from src.infra.storage.s3 import (
     S3Config,
     S3Provider,
 )
+from src.infra.storage.s3.base import BinaryReadFile
 from src.infra.upload.file_record import FileRecordStorage
 from src.kernel.config import settings
 from src.kernel.schemas.user import TokenPayload
@@ -158,9 +159,13 @@ async def _read_upload_file_limited(
     return bytes(data)
 
 
+class UploadSpool(BinaryReadFile, Protocol):
+    def close(self) -> None: ...
+
+
 @dataclass
 class SpooledUpload:
-    file: BinaryIO
+    file: UploadSpool
     sha256_hex: str
     size: int
 

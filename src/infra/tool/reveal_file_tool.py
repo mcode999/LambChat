@@ -666,6 +666,8 @@ async def reveal_file(
         ):
             if file_content is None and use_filesystem_stream:
                 file_content = await _read_file_from_filesystem(file_path)
+            if file_content is None:
+                raise ValueError(f"Unable to read file content for {file_path}")
             file_dir = os.path.dirname(file_path)
             file_content = await _resolve_local_references(
                 file_content, file_dir, backend, storage, base_url

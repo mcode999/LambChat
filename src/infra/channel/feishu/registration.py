@@ -7,6 +7,7 @@ thread so the API can expose a pollable registration session.
 
 from __future__ import annotations
 
+import inspect
 import json
 import threading
 import time
@@ -95,6 +96,11 @@ class _SharedRegistrationStore:
 
     def get(self, session_id: str) -> dict[str, Any] | None:
         raw = self._client.get(self._key(session_id))
+        if inspect.isawaitable(raw):
+            logger.warning(
+                "[Feishu] async Redis client is not supported by shared registration store"
+            )
+            return None
         if not raw:
             return None
         try:

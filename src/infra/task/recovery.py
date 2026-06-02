@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import uuid
 from typing import Any, Awaitable, Callable
 
@@ -427,7 +428,9 @@ class TaskRecoveryService:
                 return 0
             end
             """
-            await get_redis_client().eval(lua_script, 1, lock_key, token)
+            result = get_redis_client().eval(lua_script, 1, lock_key, token)
+            if inspect.isawaitable(result):
+                await result
         except Exception as e:
             logger.warning("Failed to release recovery lock %s: %s", lock_key, e)
 

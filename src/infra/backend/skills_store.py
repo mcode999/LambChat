@@ -48,6 +48,7 @@ from src.infra.backend.protocol_compat import (
     LsResult,
     ReadResult,
     WriteResult,
+    file_download_response,
     is_read_result,
     read_result_to_string,
 )
@@ -500,7 +501,7 @@ class SkillsStoreBackend(BackendProtocol):
         """批量读取文件（异步，支持二进制文件下载）"""
         if len(paths) > SKILL_DOWNLOAD_FILES_LIMIT:
             return [
-                FileDownloadResponse(path=path, content=None, error="too_many_files")
+                file_download_response(path=path, content=None, error="too_many_files")
                 for path in paths
             ]
 
@@ -562,7 +563,7 @@ class SkillsStoreBackend(BackendProtocol):
                 if binary_ref:
                     if binary_ref.size > SKILL_BINARY_DOWNLOAD_MAX_BYTES:
                         results.append(
-                            FileDownloadResponse(
+                            file_download_response(
                                 path=original_path,
                                 content=None,
                                 error="file_too_large",
@@ -589,7 +590,7 @@ class SkillsStoreBackend(BackendProtocol):
                                     SKILL_BINARY_DOWNLOAD_MAX_BYTES,
                                 )
                                 results.append(
-                                    FileDownloadResponse(
+                                    file_download_response(
                                         path=original_path,
                                         content=None,
                                         error="file_too_large",
@@ -714,19 +715,25 @@ class SkillsStoreBackend(BackendProtocol):
 
             parsed = parse_skill_path(normalized_path.rstrip("/"))
             if not parsed:
-                skill_name = get_skill_name_from_dir(normalized_path)
-                if not skill_name:
+                grep_skill_name = get_skill_name_from_dir(normalized_path)
+                if not grep_skill_name:
                     return GrepResult(error=f"Invalid skills path: {normalized_path}")
-                paths = await self._get_skill_file_paths(storage, skill_name)
+                skill_file_paths = await self._get_skill_file_paths(storage, grep_skill_name)
                 matches = await grep_single_skill(
-                    pattern, glob, skill_name, storage, paths, self._user_id, self._is_skill_visible
+                    pattern,
+                    glob,
+                    grep_skill_name,
+                    storage,
+                    skill_file_paths,
+                    self._user_id,
+                    self._is_skill_visible,
                 )
                 return GrepResult(matches=matches)
 
             skill_name, sub_path = parsed
-            paths = await self._get_skill_file_paths(storage, skill_name)
+            skill_file_paths = await self._get_skill_file_paths(storage, skill_name)
             prefix = f"{sub_path}/" if sub_path else ""
-            filtered = [p for p in paths if p.startswith(prefix)]
+            filtered = [p for p in skill_file_paths if p.startswith(prefix)]
             matches = await grep_single_skill(
                 pattern, glob, skill_name, storage, filtered, self._user_id, self._is_skill_visible
             )

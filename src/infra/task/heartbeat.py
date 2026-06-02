@@ -6,6 +6,7 @@ Manages task heartbeat for detecting stale/failed tasks in distributed scenarios
 """
 
 import asyncio
+from collections.abc import Awaitable, Callable
 
 from src.infra.logging import get_logger
 from src.infra.storage.redis import get_redis_client
@@ -85,7 +86,15 @@ class TaskHeartbeat:
     async def stop_all(self) -> None:
         """停止所有心跳任务"""
         run_ids = list(self._heartbeat_tasks.keys())
-        await _gather_limited([lambda run_id=run_id: self.stop(run_id) for run_id in run_ids])
+        stop_factories: list[Callable[[], Awaitable[None]]] = []
+        for run_id in run_ids:
+
+            async def _stop_current(run_id: str = run_id) -> None:
+                await self.stop(run_id)
+
+            stop_factories.append(_stop_current)
+
+        await _gather_limited(stop_factories)
 
     async def check_exists(self, run_id: str) -> bool:
         """

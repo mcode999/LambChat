@@ -289,7 +289,7 @@ async def renew_distributed_lock(lock_key: str, lock_value: str, ttl: int) -> bo
     """Renew a Redis lock only if this instance still owns it."""
     try:
         redis_client = get_redis_client()
-        result = redis_client.eval(RENEW_LOCK_SCRIPT, 1, lock_key, lock_value, int(ttl))
+        result = redis_client.eval(RENEW_LOCK_SCRIPT, 1, lock_key, lock_value, str(int(ttl)))
         if hasattr(result, "__await__"):
             result = await result
         return int(result) == 1  # type: ignore[misc]

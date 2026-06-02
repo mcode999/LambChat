@@ -5,7 +5,7 @@ import json
 import time
 import uuid
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, TypeVar, cast
 
 from src.infra.async_utils.blocking import run_blocking_io
 from src.infra.logging import get_logger
@@ -15,7 +15,7 @@ from .status import TaskStatus
 
 logger = get_logger(__name__)
 
-T = Any
+T = TypeVar("T")
 QUEUE_SCAN_PAGE_SIZE = 100
 QUEUE_REWRITE_CHUNK_SIZE = 100
 STALE_SESSION_SCAN_PAGE_SIZE = 100
@@ -70,7 +70,7 @@ async def _gather_limited(
             results[index] = await factories[index]()
 
     await asyncio.gather(*(_worker() for _ in range(worker_count)))
-    return results
+    return cast(list[T], results)
 
 
 async def _iter_redis_list(redis: Any, key: str, page_size: int = QUEUE_SCAN_PAGE_SIZE):
@@ -387,12 +387,15 @@ class TaskStartupCleanupService:
             await _release_startup_cleanup_lease(lease)
 
     async def _process_running_sessions(self, running_sessions: list[dict[str, Any]]) -> int:
-        session_models = await _gather_limited(
-            [
-                lambda session=session: self._load_session_record(session)
-                for session in running_sessions
-            ]
-        )
+        load_session_factories: list[Callable[[], Awaitable[Any]]] = []
+        for session in running_sessions:
+
+            async def _load_session(session: dict[str, Any] = session) -> Any:
+                return await self._load_session_record(session)
+
+            load_session_factories.append(_load_session)
+
+        session_models = await _gather_limited(load_session_factories)
 
         candidates: list[tuple[Any, str, dict[str, Any], str]] = []
         for session, session_model in zip(running_sessions, session_models):
@@ -425,12 +428,15 @@ class TaskStartupCleanupService:
             return 0
 
         cleaned_count = 0
-        heartbeat_results = await _gather_limited(
-            [
-                lambda run_id=run_id: self._heartbeat.check_exists(run_id)
-                for _, _, _, run_id in candidates
-            ]
-        )
+        heartbeat_factories: list[Callable[[], Awaitable[bool]]] = []
+        for _, _, _, run_id in candidates:
+
+            async def _check_heartbeat(run_id: str = run_id) -> bool:
+                return await self._heartbeat.check_exists(run_id)
+
+            heartbeat_factories.append(_check_heartbeat)
+
+        heartbeat_results = await _gather_limited(heartbeat_factories)
         for (
             session_model,
             session_id,
@@ -476,12 +482,15 @@ class TaskStartupCleanupService:
         pending_sessions: list[dict[str, Any]],
         redis: Any,
     ) -> int:
-        pending_models = await _gather_limited(
-            [
-                lambda session=session: self._load_session_record(session)
-                for session in pending_sessions
-            ]
-        )
+        pending_load_factories: list[Callable[[], Awaitable[Any]]] = []
+        for session in pending_sessions:
+
+            async def _load_pending_session(session: dict[str, Any] = session) -> Any:
+                return await self._load_session_record(session)
+
+            pending_load_factories.append(_load_pending_session)
+
+        pending_models = await _gather_limited(pending_load_factories)
 
         pending_candidates: list[tuple[Any, str, dict[str, Any], str, str]] = []
         for session, session_model in zip(pending_sessions, pending_models):
@@ -514,14 +523,15 @@ class TaskStartupCleanupService:
         if not pending_candidates:
             return 0
 
-        active_results = await _gather_limited(
-            [
-                lambda run_id=run_id, user_id=user_id: redis.zscore(
-                    f"chat:active:{user_id}", run_id
-                )
-                for _, _, _, run_id, user_id in pending_candidates
-            ]
-        )
+        active_factories: list[Callable[[], Awaitable[Any]]] = []
+        for _, _, _, run_id, user_id in pending_candidates:
+
+            async def _active_score(run_id: str = run_id, user_id: str = user_id) -> Any:
+                return await redis.zscore(f"chat:active:{user_id}", run_id)
+
+            active_factories.append(_active_score)
+
+        active_results = await _gather_limited(active_factories)
         active_candidates = [
             cand for cand, score in zip(pending_candidates, active_results) if score is not None
         ]
@@ -529,12 +539,15 @@ class TaskStartupCleanupService:
             return 0
 
         cleaned_count = 0
-        heartbeat_results = await _gather_limited(
-            [
-                lambda run_id=run_id: self._heartbeat.check_exists(run_id)
-                for _, _, _, run_id, _ in active_candidates
-            ]
-        )
+        pending_heartbeat_factories: list[Callable[[], Awaitable[bool]]] = []
+        for _, _, _, run_id, _ in active_candidates:
+
+            async def _check_pending_heartbeat(run_id: str = run_id) -> bool:
+                return await self._heartbeat.check_exists(run_id)
+
+            pending_heartbeat_factories.append(_check_pending_heartbeat)
+
+        heartbeat_results = await _gather_limited(pending_heartbeat_factories)
         for (
             session_model,
             session_id,
@@ -580,12 +593,15 @@ class TaskStartupCleanupService:
         self,
         failed_recoverable_sessions: list[dict[str, Any]],
     ) -> int:
-        failed_models = await _gather_limited(
-            [
-                lambda session=session: self._load_session_record(session)
-                for session in failed_recoverable_sessions
-            ]
-        )
+        failed_load_factories: list[Callable[[], Awaitable[Any]]] = []
+        for session in failed_recoverable_sessions:
+
+            async def _load_failed_session(session: dict[str, Any] = session) -> Any:
+                return await self._load_session_record(session)
+
+            failed_load_factories.append(_load_failed_session)
+
+        failed_models = await _gather_limited(failed_load_factories)
 
         failed_candidates: list[tuple[Any, str, dict[str, Any], str]] = []
         for session, session_model in zip(failed_recoverable_sessions, failed_models):
@@ -609,12 +625,15 @@ class TaskStartupCleanupService:
             return 0
 
         cleaned_count = 0
-        failed_heartbeat_results = await _gather_limited(
-            [
-                lambda run_id=run_id: self._heartbeat.check_exists(run_id)
-                for _, _, _, run_id in failed_candidates
-            ]
-        )
+        failed_heartbeat_factories: list[Callable[[], Awaitable[bool]]] = []
+        for _, _, _, run_id in failed_candidates:
+
+            async def _check_failed_heartbeat(run_id: str = run_id) -> bool:
+                return await self._heartbeat.check_exists(run_id)
+
+            failed_heartbeat_factories.append(_check_failed_heartbeat)
+
+        failed_heartbeat_results = await _gather_limited(failed_heartbeat_factories)
         for (
             session_model,
             session_id,
@@ -711,12 +730,15 @@ class TaskStartupCleanupService:
                     tuple[dict[str, Any], Any, str, dict[str, Any], str, str]
                 ] = []
                 wanted_run_ids_by_user: dict[str, set[str]] = {}
-                pending_models = await _gather_limited(
-                    [
-                        lambda session=session: self._load_session_record(session)
-                        for session in pending_sessions
-                    ]
-                )
+                replay_load_factories: list[Callable[[], Awaitable[Any]]] = []
+                for session in pending_sessions:
+
+                    async def _load_replay_session(session: dict[str, Any] = session) -> Any:
+                        return await self._load_session_record(session)
+
+                    replay_load_factories.append(_load_replay_session)
+
+                pending_models = await _gather_limited(replay_load_factories)
 
                 for session, session_model in zip(pending_sessions, pending_models):
                     if session_model is None:

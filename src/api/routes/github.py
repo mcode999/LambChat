@@ -45,8 +45,11 @@ class _GitHubImportLimits:
 
 
 def _github_item_size(item: dict[str, Any]) -> int | None:
+    raw_size = item.get("size")
+    if raw_size is None:
+        return None
     try:
-        size = int(item.get("size"))
+        size = int(raw_size)
     except (TypeError, ValueError):
         return None
     return size if size >= 0 else None
@@ -254,7 +257,7 @@ async def fetch_all_files_recursive(
     # 并发获取所有文件内容
     if file_tasks:
 
-        async def _fetch_file(item):
+        async def _fetch_file(item: dict[str, Any]) -> tuple[str, str | None, int | None]:
             remaining_bytes = GITHUB_IMPORT_MAX_TOTAL_BYTES - _limits.total_bytes
             content = await fetch_github_file(
                 owner,
@@ -266,9 +269,17 @@ async def fetch_all_files_recursive(
             rel_path = f"{prefix}{item['name']}" if prefix else item["name"]
             return rel_path, content, _github_item_size(item)
 
-        results = await _gather_limited(
-            [lambda item=item: _fetch_file(item) for item in file_tasks]
-        )
+        fetch_tasks: list[Callable[[], Awaitable[tuple[str, str | None, int | None]]]] = []
+        for item in file_tasks:
+
+            async def _fetch_current(
+                item: dict[str, Any] = item,
+            ) -> tuple[str, str | None, int | None]:
+                return await _fetch_file(item)
+
+            fetch_tasks.append(_fetch_current)
+
+        results = await _gather_limited(fetch_tasks)
         for rel_path, content, known_size in results:
             if content is not None:
                 actual_size = len(content.encode("utf-8"))
@@ -282,14 +293,19 @@ async def fetch_all_files_recursive(
 
     # 递归获取子目录
     if dir_items:
-        dir_tasks = []
+        dir_tasks: list[Callable[[], Awaitable[dict[str, str]]]] = []
         for item in dir_items:
             sub_prefix = f"{prefix}{item['name']}/" if prefix else f"{item['name']}/"
-            dir_tasks.append(
-                lambda item=item, sub_prefix=sub_prefix: fetch_all_files_recursive(
+
+            async def _fetch_dir(
+                item: dict[str, Any] = item,
+                sub_prefix: str = sub_prefix,
+            ) -> dict[str, str]:
+                return await fetch_all_files_recursive(
                     owner, repo, branch, item["path"], sub_prefix, _limits
                 )
-            )
+
+            dir_tasks.append(_fetch_dir)
         dir_results = await _gather_limited(dir_tasks)
         for sub_files in dir_results:
             files.update(sub_files)
@@ -379,19 +395,22 @@ async def scan_for_skills(
 
     # 递归扫描未找到 SKILL.md 的子目录（限制深度）
     if sub_dirs and _depth < max_depth:
-        sub_results = await _gather_limited(
-            [
-                lambda d=d: scan_for_skills(
+        scan_tasks: list[Callable[[], Awaitable[list[dict[str, Any]]]]] = []
+        for directory in sub_dirs:
+
+            async def _scan_dir(directory: dict[str, Any] = directory) -> list[dict[str, Any]]:
+                return await scan_for_skills(
                     owner,
                     repo,
                     branch,
-                    d["path"],
+                    directory["path"],
                     _depth=_depth + 1,
                     max_depth=max_depth,
                 )
-                for d in sub_dirs
-            ]
-        )
+
+            scan_tasks.append(_scan_dir)
+
+        sub_results = await _gather_limited(scan_tasks)
         for sub_skills in sub_results:
             skills.extend(sub_skills)
 

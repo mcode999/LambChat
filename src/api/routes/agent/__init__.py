@@ -133,9 +133,10 @@ def _format_agent_sse_event(event: dict) -> str:
             return _agent_sse_payload_too_large_event()
         data_str = data
     else:
-        data_str = _json_dumps_agent_sse_data_limited(data)
-        if data_str is None:
+        rendered_data = _json_dumps_agent_sse_data_limited(data)
+        if rendered_data is None:
             return _agent_sse_payload_too_large_event()
+        data_str = rendered_data
     return f"event: {event['event']}\ndata: {data_str}\n\n"
 
 
@@ -383,7 +384,7 @@ async def list_agents(
     default_agent = user_preference.default_agent_id if user_preference else settings.DEFAULT_AGENT
 
     # 获取用户角色的可用 agents 映射（使用角色ID作为key）
-    role_agent_map = {}
+    role_agent_map: dict[str, list[str] | None] = {}
     role_ids = []  # 用户角色ID列表
     if user_roles:
         from src.infra.role.manager import get_role_manager
@@ -398,9 +399,17 @@ async def list_agents(
                 return role.id, role_agents, role_name
             return None
 
-        role_results = await _gather_limited(
-            [lambda role_name=role_name: _fetch_role(role_name) for role_name in user_roles]
-        )
+        role_factories: list[Callable[[], Awaitable[tuple[str, list[str], str] | None]]] = []
+        for role_name in user_roles:
+
+            async def _fetch_current_role(
+                role_name: str = role_name,
+            ) -> tuple[str, list[str], str] | None:
+                return await _fetch_role(role_name)
+
+            role_factories.append(_fetch_current_role)
+
+        role_results = await _gather_limited(role_factories)
         for result in role_results:
             if result is not None:
                 rid, role_agents, role_name = result

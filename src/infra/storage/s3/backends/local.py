@@ -11,11 +11,16 @@ import os
 import shutil
 from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import BinaryIO, Optional
+from typing import Optional, cast
 
 from src.infra.async_utils import run_blocking_io
 from src.infra.logging import get_logger
-from src.infra.storage.s3.base import LIST_OBJECTS_LIMIT, S3StorageBackend
+from src.infra.storage.s3.base import (
+    LIST_OBJECTS_LIMIT,
+    BinaryReadFile,
+    BinaryWriteFile,
+    S3StorageBackend,
+)
 from src.infra.storage.s3.types import S3Config, UploadResult
 from src.infra.utils.datetime import utc_now
 
@@ -41,7 +46,7 @@ class LocalStorageBackend(S3StorageBackend):
 
     async def upload(
         self,
-        file: BinaryIO,
+        file: BinaryReadFile,
         key: str,
         content_type: Optional[str] = None,
         metadata: Optional[dict[str, str]] = None,
@@ -101,7 +106,7 @@ class LocalStorageBackend(S3StorageBackend):
     async def download_to_file(
         self,
         key: str,
-        file: BinaryIO,
+        file: BinaryWriteFile,
         *,
         chunk_size: int = 1024 * 1024,
     ) -> int:
@@ -157,7 +162,7 @@ class LocalStorageBackend(S3StorageBackend):
 
         try:
             while True:
-                chunk = await run_blocking_io(source.read, chunk_size)
+                chunk = cast(bytes, await run_blocking_io(source.read, chunk_size))
                 if not chunk:
                     break
                 yield chunk

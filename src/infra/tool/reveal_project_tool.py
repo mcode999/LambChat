@@ -208,14 +208,14 @@ async def _list_project_files_via_glob(backend: Any, project_path: str) -> list[
         try:
             result = await backend.aglob(pattern, path=project_path)
             entries = result.matches or []
-            files: list[str] = []
+            aglob_files: list[str] = []
             for entry in entries:
                 file_path = (
                     entry.get("path") if isinstance(entry, dict) else getattr(entry, "path", None)
                 )
-                if _append_capped(files, file_path):
+                if _append_capped(aglob_files, file_path):
                     break
-            return files
+            return aglob_files
         except Exception as e:
             logger.debug(f"aglob failed for {project_path}: {e}")
 
@@ -223,14 +223,14 @@ async def _list_project_files_via_glob(backend: Any, project_path: str) -> list[
         try:
             result = await run_blocking_io(backend.glob, pattern, project_path)
             entries = result.matches or []
-            files: list[str] = []
+            sync_glob_files: list[str] = []
             for entry in entries:
                 file_path = (
                     entry.get("path") if isinstance(entry, dict) else getattr(entry, "path", None)
                 )
-                if _append_capped(files, file_path):
+                if _append_capped(sync_glob_files, file_path):
                     break
-            return files
+            return sync_glob_files
         except Exception as e:
             logger.debug(f"glob failed for {project_path}: {e}")
 
