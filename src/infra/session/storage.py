@@ -476,6 +476,18 @@ class SessionStorage:
         )
         return result.deleted_count
 
+    async def list_ids_by_project(self, project_id: str, user_id: str) -> list[str]:
+        """List session identifiers for all sessions in a project."""
+        await self.ensure_indexes_if_needed()
+        cursor = self.collection.find(
+            {"user_id": user_id, "metadata.project_id": project_id},
+            {"session_id": 1, "_id": 1},
+        )
+        session_ids: list[str] = []
+        async for doc in cursor:
+            session_ids.append(doc.get("session_id") or str(doc["_id"]))
+        return session_ids
+
     async def move_to_project(
         self, session_id: str, user_id: str, project_id: Optional[str]
     ) -> Optional[Session]:

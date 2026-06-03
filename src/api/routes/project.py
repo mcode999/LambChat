@@ -8,11 +8,30 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.api.deps import get_current_user_required
 from src.infra.folder.storage import get_project_storage
+from src.infra.session.manager import SessionManager
 from src.infra.session.storage import SessionStorage
 from src.kernel.schemas.project import Project, ProjectCreate, ProjectUpdate
 from src.kernel.schemas.user import TokenPayload
 
 router = APIRouter()
+
+
+async def _delete_session_with_related_records(
+    session_manager: SessionManager,
+    session_id: str,
+) -> bool:
+    deleted = await session_manager.delete_session(session_id)
+    if not deleted:
+        return False
+
+    try:
+        from src.infra.tool.deferred_manager import clear_discovered_tools
+
+        await clear_discovered_tools(session_id)
+    except Exception:
+        pass
+
+    return True
 
 
 @router.get("", response_model=list[Project])
@@ -120,8 +139,17 @@ async def delete_project(
     session_storage = SessionStorage()
 
     if delete_sessions:
-        # Delete all sessions in this project
-        await session_storage.delete_by_project(project_id, user.sub)
+        # Use the same path as single-session deletion so traces, files,
+        # checkpoints, and related session data are cleaned up too.
+        session_ids = await session_storage.list_ids_by_project(project_id, user.sub)
+        session_manager = SessionManager()
+        for session_id in session_ids:
+            deleted = await _delete_session_with_related_records(session_manager, session_id)
+            if not deleted:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="删除项目内会话失败",
+                )
     else:
         # Clear project_id for all sessions in this project
         await session_storage.clear_project_id(project_id, user.sub)

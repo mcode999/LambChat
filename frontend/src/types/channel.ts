@@ -56,6 +56,7 @@ export interface ChannelConfigResponse {
   agent_id?: string | null;
   model_id?: string | null;
   project_id?: string | null;
+  team_id?: string | null;
   persona_preset_id?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -76,6 +77,7 @@ export interface ChannelConfigCreate {
   agent_id?: string | null;
   model_id?: string | null;
   project_id?: string | null;
+  team_id?: string | null;
   persona_preset_id?: string | null;
 }
 
@@ -85,6 +87,7 @@ export interface ChannelConfigUpdate {
   agent_id?: string | null;
   model_id?: string | null;
   project_id?: string | null;
+  team_id?: string | null;
   persona_preset_id?: string | null;
 }
 

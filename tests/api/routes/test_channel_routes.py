@@ -292,6 +292,30 @@ async def test_create_channel_persists_persona_preset_id(
 
 
 @pytest.mark.asyncio
+async def test_create_channel_persists_team_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    storage = _FakeStorage()
+    monkeypatch.setattr(channels_route, "get_registry", lambda: _FakeRegistry())
+    monkeypatch.setattr(channels_route, "publish_channel_config_changed", _async_noop)
+
+    await channels_route.create_channel_instance(
+        ChannelType.FEISHU,
+        ChannelConfigCreate(
+            channel_type=ChannelType.FEISHU,
+            name="Feishu",
+            config={},
+            agent_id="team",
+            team_id="team-1",
+        ),
+        user=SimpleNamespace(sub="user-1", roles=[], permissions=[]),
+        storage=storage,
+    )
+
+    assert storage.last_create_kwargs["team_id"] == "team-1"
+
+
+@pytest.mark.asyncio
 async def test_create_channel_limit_counts_configs_without_loading_all(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -387,6 +411,25 @@ async def test_update_channel_persists_explicit_persona_preset_id(
     )
 
     assert storage.last_update_kwargs["persona_preset_id"] == "persona-2"
+
+
+@pytest.mark.asyncio
+async def test_update_channel_persists_explicit_team_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    storage = _FakeStorage()
+    monkeypatch.setattr(channels_route, "get_registry", lambda: _FakeRegistry())
+    monkeypatch.setattr(channels_route, "publish_channel_config_changed", _async_noop)
+
+    await channels_route.update_channel_instance(
+        ChannelType.FEISHU,
+        "instance-1",
+        ChannelConfigUpdate(config={}, team_id="team-2"),
+        user=SimpleNamespace(sub="user-1", roles=[], permissions=[]),
+        storage=storage,
+    )
+
+    assert storage.last_update_kwargs["team_id"] == "team-2"
 
 
 @pytest.mark.asyncio

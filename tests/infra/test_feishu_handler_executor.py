@@ -201,6 +201,18 @@ class _FakePersonaChannelStorage:
         }
 
 
+class _FakeTeamChannelStorage:
+    async def get_config(self, user_id: str, channel_type: Any, instance_id: str):
+        return {
+            "name": "Feishu Team Channel",
+            "agent_id": "team",
+            "model_id": None,
+            "project_id": None,
+            "team_id": "team-channel-1",
+            "persona_preset_id": "persona-1",
+        }
+
+
 class _FakePersonaPresetManager:
     async def use_preset(self, preset_id: str, *, user_id: str, is_admin: bool):
         assert preset_id == "persona-1"
@@ -260,6 +272,7 @@ async def test_feishu_executor_accepts_task_runtime_skill_kwargs(
     captured: dict[str, Any] = {}
     fake_task_manager = _FakeTaskManager()
     fake_manager = _FakeManager()
+    fake_session_manager = _FakeSessionManager()
 
     async def _fake_execute_feishu_agent(**kwargs: Any):
         captured.update(kwargs)
@@ -451,6 +464,77 @@ async def test_feishu_handler_applies_channel_persona_preset(
     assert metadata["persona_avatar"] == "icon:brain"
     assert metadata["persona_snapshot"]["system_prompt"] == "Plan first."
     assert metadata["enabled_skills"] == ["planning"]
+
+
+@pytest.mark.asyncio
+async def test_feishu_handler_passes_channel_team_id_to_team_agent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_task_manager = _FakeTaskManager()
+    fake_manager = _FakeManager()
+    fake_session_manager = _FakeSessionManager()
+
+    async def _fake_execute_feishu_agent(**kwargs: Any):
+        yield {"event": "done", "data": {}}
+
+    async def _no_op_process_events(**kwargs: Any) -> None:
+        return None
+
+    async def _no_op_collector_method(self) -> None:
+        return None
+
+    monkeypatch.setattr(
+        feishu_handler,
+        "_get_feishu_session_id",
+        lambda chat_id: _async_return(f"feishu_{chat_id}"),
+    )
+    _install_fake_task_manager_module(monkeypatch, fake_task_manager)
+    monkeypatch.setattr(
+        "src.infra.channel.channel_storage.ChannelStorage",
+        lambda: _FakeTeamChannelStorage(),
+    )
+    monkeypatch.setattr(
+        "src.infra.persona_preset.manager.PersonaPresetManager",
+        lambda: _FakePersonaPresetManager(),
+    )
+    monkeypatch.setattr(
+        "src.infra.session.manager.SessionManager",
+        lambda: fake_session_manager,
+    )
+    monkeypatch.setattr(feishu_handler, "execute_feishu_agent", _fake_execute_feishu_agent)
+    monkeypatch.setattr(feishu_handler, "_process_events", _no_op_process_events)
+    monkeypatch.setattr(
+        feishu_handler.FeishuResponseCollector,
+        "stop_processing_indicator",
+        _no_op_collector_method,
+    )
+    monkeypatch.setattr(
+        feishu_handler.FeishuResponseCollector,
+        "send_card_message",
+        _no_op_collector_method,
+    )
+    monkeypatch.setattr(
+        feishu_handler.FeishuResponseCollector,
+        "upload_and_send_files",
+        _no_op_collector_method,
+    )
+
+    handler = feishu_handler.create_feishu_message_handler(fake_manager, default_agent="fast")
+
+    await handler(
+        user_id="user-1",
+        sender_id="sender-1",
+        chat_id="chat-1",
+        content="hello",
+        metadata={"instance_id": "instance-1"},
+    )
+
+    submit_call = fake_task_manager.submit_calls[0]
+    assert submit_call["agent_id"] == "team"
+    assert submit_call["team_id"] == "team-channel-1"
+    assert submit_call["persona_system_prompt"] is None
+    assert submit_call["enabled_skills"] is None
+    assert fake_session_manager.updates == []
 
 
 @pytest.mark.asyncio

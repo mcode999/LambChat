@@ -49,6 +49,25 @@ class ShareStorage:
         """生成安全的分享 ID（12字符）"""
         return secrets.token_urlsafe(9)  # 9 bytes = 12 chars
 
+    def _build_shared_session(self, share_dict: dict) -> SharedSession:
+        """Convert a Mongo document into a SharedSession with legacy defaults."""
+        normalized = dict(share_dict)
+        normalized["id"] = str(normalized.pop("_id"))
+        created_at = normalized.get("created_at") or utc_now()
+        return SharedSession(
+            id=normalized["id"],
+            share_id=normalized["share_id"],
+            session_id=normalized["session_id"],
+            owner_id=normalized["owner_id"],
+            share_type=ShareType(normalized.get("share_type") or ShareType.FULL.value),
+            run_ids=normalized.get("run_ids"),
+            visibility=ShareVisibility(
+                normalized.get("visibility") or ShareVisibility.PUBLIC.value
+            ),
+            created_at=created_at,
+            updated_at=normalized.get("updated_at") or created_at,
+        )
+
     async def create(
         self,
         share_data: ShareCreate,
@@ -91,18 +110,7 @@ class ShareStorage:
         if not share_dict:
             return None
 
-        share_dict["id"] = str(share_dict.pop("_id"))
-        return SharedSession(
-            id=share_dict["id"],
-            share_id=share_dict["share_id"],
-            session_id=share_dict["session_id"],
-            owner_id=share_dict["owner_id"],
-            share_type=ShareType(share_dict["share_type"]),
-            run_ids=share_dict.get("run_ids"),
-            visibility=ShareVisibility(share_dict["visibility"]),
-            created_at=share_dict["created_at"],
-            updated_at=share_dict["updated_at"],
-        )
+        return self._build_shared_session(share_dict)
 
     async def get_by_id(self, share_db_id: str) -> Optional[SharedSession]:
         """通过数据库 ID 获取分享记录"""
@@ -116,18 +124,7 @@ class ShareStorage:
         if not share_dict:
             return None
 
-        share_dict["id"] = str(share_dict.pop("_id"))
-        return SharedSession(
-            id=share_dict["id"],
-            share_id=share_dict["share_id"],
-            session_id=share_dict["session_id"],
-            owner_id=share_dict["owner_id"],
-            share_type=ShareType(share_dict["share_type"]),
-            run_ids=share_dict.get("run_ids"),
-            visibility=ShareVisibility(share_dict["visibility"]),
-            created_at=share_dict["created_at"],
-            updated_at=share_dict["updated_at"],
-        )
+        return self._build_shared_session(share_dict)
 
     async def list_by_owner(
         self,

@@ -115,7 +115,7 @@ class FeishuChannelManager(UserChannelManager):
                     continue
 
                 config = self._dict_to_config(user_id, config_dict)
-                if await self._start_user_client(config):
+                if await self._start_user_client(config, replace_existing=False):
                     started += 1
                 else:
                     skipped += 1
@@ -146,12 +146,35 @@ class FeishuChannelManager(UserChannelManager):
         self._active_app_ids.clear()
         await self._storage.close()
 
-    async def _start_user_client(self, config: FeishuConfig) -> bool:
+    async def _start_user_client(
+        self,
+        config: FeishuConfig,
+        *,
+        replace_existing: bool = True,
+    ) -> bool:
         """Start a user's Feishu client."""
         # Use instance_id if available, otherwise use user_id for backward compatibility
         channel_key = (
             f"{config.user_id}:{config.instance_id}" if config.instance_id else config.user_id
         )
+
+        existing_channel = self._channels.get(channel_key)
+        existing_app_id = (
+            getattr(existing_channel.config, "app_id", None) if existing_channel else None
+        )
+        existing_running = bool(
+            getattr(existing_channel, "is_running", getattr(existing_channel, "_running", False))
+        )
+        if (
+            existing_channel
+            and not replace_existing
+            and existing_app_id == config.app_id
+            and existing_running
+        ):
+            existing_channel.message_handler = self._message_handler
+            self._active_app_ids[config.app_id] = channel_key
+            self._ensure_lease_refresh_task(config.app_id)
+            return True
 
         # Prevent duplicate bot connections: same app_id should only have one active channel
         app_id = config.app_id

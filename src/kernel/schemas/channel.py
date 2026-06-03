@@ -90,6 +90,7 @@ class ChannelConfigCreate(BaseModel):
         None, description="Model config ID to use for this channel instance"
     )
     project_id: Optional[str] = Field(None, description="Project ID to assign sessions to")
+    team_id: Optional[str] = Field(None, description="Team ID to use for team agent channel runs")
     persona_preset_id: Optional[str] = Field(
         None, description="Persona preset ID to use for this channel instance"
     )
@@ -107,6 +108,7 @@ class ChannelConfigUpdate(BaseModel):
         None, description="Model config ID to use for this channel instance"
     )
     project_id: Optional[str] = Field(None, description="Project ID to assign sessions to")
+    team_id: Optional[str] = Field(None, description="Team ID to use for team agent channel runs")
     persona_preset_id: Optional[str] = Field(
         None, description="Persona preset ID to use for this channel instance"
     )
@@ -129,6 +131,7 @@ class ChannelConfigResponse(BaseModel):
     project_id: Optional[str] = Field(
         None, description="Project ID assigned to this channel's sessions"
     )
+    team_id: Optional[str] = Field(None, description="Team ID used by team agent channel runs")
     persona_preset_id: Optional[str] = Field(
         None, description="Persona preset ID used by this channel instance"
     )

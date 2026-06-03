@@ -359,6 +359,7 @@ async def create_channel_instance(
             agent_id=data.agent_id,
             model_id=data.model_id,
             project_id=data.project_id,
+            team_id=data.team_id,
             persona_preset_id=data.persona_preset_id,
         )
 
@@ -440,6 +441,13 @@ async def update_channel_instance(
     else:
         project_id_value = ...  # type: ignore[assignment]
 
+    # Handle team_id with same ellipsis pattern
+    team_id_value: str | None = ...  # type: ignore[assignment]
+    if "team_id" in data.model_fields_set:
+        team_id_value = data.team_id
+    else:
+        team_id_value = ...  # type: ignore[assignment]
+
     # Handle persona_preset_id with same ellipsis pattern
     persona_preset_id_value: str | None = ...  # type: ignore[assignment]
     if "persona_preset_id" in data.model_fields_set:
@@ -457,6 +465,7 @@ async def update_channel_instance(
         agent_id=agent_id_value,
         model_id=model_id_value,
         project_id=project_id_value,
+        team_id=team_id_value,
         persona_preset_id=persona_preset_id_value,
     )
 

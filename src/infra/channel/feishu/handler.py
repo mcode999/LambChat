@@ -660,6 +660,7 @@ def create_feishu_message_handler(
             agent_to_use = default_agent
             model_id: str | None = None
             project_id: str | None = None
+            team_id: str | None = None
             persona_preset_id: str | None = None
             enabled_skills: list[str] | None = None
             persona_system_prompt: str | None = None
@@ -681,7 +682,10 @@ def create_feishu_message_handler(
                         )
                     model_id = ch_config.get("model_id")
                     project_id = ch_config.get("project_id")
-                    persona_preset_id = ch_config.get("persona_preset_id")
+                    team_id = ch_config.get("team_id")
+                    persona_preset_id = (
+                        None if agent_to_use == "team" else ch_config.get("persona_preset_id")
+                    )
                     channel_name = ch_config.get("name")
                     stream_reply = bool(ch_config.get("stream_reply", True))
 
@@ -809,6 +813,7 @@ def create_feishu_message_handler(
                 session_name=session_title,
                 enabled_skills=enabled_skills,
                 persona_system_prompt=persona_system_prompt,
+                team_id=team_id if agent_to_use == "team" else None,
             )
             collector.set_session_link(session_id, run_id)
             if persona_metadata:

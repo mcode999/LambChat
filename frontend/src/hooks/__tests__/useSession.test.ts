@@ -36,3 +36,17 @@ test("reconcileSessionList preserves older sessions for unfiltered soft refreshe
     ["new-top", "keep", "older-page"],
   );
 });
+
+test("reconcileSessionList does not resurrect locally deleted sessions from stale refreshes", () => {
+  const input = {
+    previous: [session("keep")],
+    latest: [session("deleted"), session("keep")],
+    removeMissing: true,
+    excludedSessionIds: new Set(["deleted"]),
+  };
+
+  assert.deepEqual(
+    reconcileSessionList(input).map((item) => item.id),
+    ["keep"],
+  );
+});

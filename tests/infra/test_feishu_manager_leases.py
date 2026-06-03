@@ -90,6 +90,18 @@ class _StreamingStorage:
         raise AssertionError("Feishu manager start should stream enabled configs")
 
 
+class _SingleConfigStorage:
+    async def iter_enabled_configs(self, channel_type):
+        del channel_type
+        yield {
+            "user_id": "user-1",
+            "instance_id": "inst-1",
+            "app_id": "app-1",
+            "app_secret": "secret",
+            "enabled": True,
+        }
+
+
 class _FailingRedisClient(_FakeRedisClient):
     def __init__(self) -> None:
         super().__init__()
@@ -194,6 +206,36 @@ async def test_start_streams_enabled_configs_without_materializing_list(
     assert storage.yielded == 1
     assert storage.list_enabled_called is False
     assert "user-1:inst-1" in manager._channels
+
+
+@pytest.mark.asyncio
+async def test_start_refreshes_handler_on_existing_channel_started_by_reload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_redis = _FakeRedisClient()
+    monkeypatch.setattr(
+        "src.infra.channel.feishu.manager.create_redis_client",
+        lambda isolated_pool=False: fake_redis,
+    )
+    monkeypatch.setattr("src.infra.channel.feishu.manager.FEISHU_AVAILABLE", True)
+
+    old_handler = object()
+    new_handler = object()
+    manager = FeishuChannelManager()
+    manager._storage = _SingleConfigStorage()
+    manager._instance_id = "instance-a"
+    manager._message_handler = new_handler
+
+    channel = _FakeChannel(_config(), old_handler)
+    await channel.start()
+    manager._channels["user-1:inst-1"] = channel
+    manager._active_app_ids["app-1"] = "user-1:inst-1"
+    fake_redis.values["feishu:lease:app-1"] = "instance-a"
+
+    await manager.start()
+
+    assert manager._channels["user-1:inst-1"] is channel
+    assert channel.message_handler is new_handler
 
 
 @pytest.mark.asyncio

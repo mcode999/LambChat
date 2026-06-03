@@ -10,7 +10,7 @@ function project(type: Project["type"]): Project {
     user_id: "user-1",
     name: type,
     type,
-    icon: "MessageCircle",
+    icon: "💬",
     sort_order: 100,
     created_at: "2026-05-09T00:00:00.000Z",
     updated_at: "2026-05-09T00:00:00.000Z",

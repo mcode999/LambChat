@@ -3,6 +3,7 @@
  */
 
 import { useRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Edit2, Trash2, MessageSquarePlus, X } from "lucide-react";
 import type { Project } from "../../types";
@@ -185,7 +186,7 @@ export function ProjectMenu({
     zIndex: 50,
   };
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       style={menuStyle}
@@ -231,6 +232,7 @@ export function ProjectMenu({
         <Trash2 size={14} />
         <span>{t("common.delete")}</span>
       </button>
-    </div>
+    </div>,
+    document.body,
   );
 }
