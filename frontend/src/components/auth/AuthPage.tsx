@@ -307,7 +307,7 @@ export function AuthPage({ onSuccess, initialMode }: AuthPageProps) {
 
   if (isRedirecting) {
     return (
-      <div className="auth-shell flex min-h-screen items-center justify-center">
+      <div className="auth-shell safe-area-top safe-area-bottom flex min-h-screen items-center justify-center">
         <div className="text-center">
           <Loading size="lg" className="justify-center" />
           <p className="mt-4 text-stone-600 dark:text-stone-400">
@@ -330,7 +330,7 @@ export function AuthPage({ onSuccess, initialMode }: AuthPageProps) {
       </div>
 
       {/* Navbar */}
-      <nav className="fixed top-0 inset-x-0 z-50 bg-white/90 dark:bg-stone-950/90 border-b border-stone-100/60 dark:border-stone-800/40 transition-shadow duration-300">
+      <nav className="safe-area-top fixed top-0 inset-x-0 z-50 bg-white/90 dark:bg-stone-950/90 border-b border-stone-100/60 dark:border-stone-800/40 transition-shadow duration-300">
         <div className="mx-auto flex h-14 max-w-full items-center justify-between px-4 sm:px-8">
           <Link to="/" className="flex items-center group  gap-1.5">
             <img
@@ -354,8 +354,8 @@ export function AuthPage({ onSuccess, initialMode }: AuthPageProps) {
       <div
         className={`relative z-10 flex min-h-[100svh] min-h-[100dvh] justify-center px-4 sm:px-6 ${
           isKeyboardOpen
-            ? "items-start pt-16 sm:pt-20"
-            : "items-center py-20 sm:py-24"
+            ? "items-start pt-[calc(4rem+var(--app-safe-area-top,0px))] sm:pt-[calc(5rem+var(--app-safe-area-top,0px))]"
+            : "items-center pt-[calc(5rem+var(--app-safe-area-top,0px))] pb-[calc(5rem+var(--app-safe-area-bottom,0px))] sm:pt-[calc(6rem+var(--app-safe-area-top,0px))] sm:pb-[calc(6rem+var(--app-safe-area-bottom,0px))]"
         }`}
       >
         <div className="w-full max-w-[22.5rem] sm:max-w-[420px] lg:max-w-[450px] 2xl:max-w-[480px]">
@@ -639,7 +639,7 @@ export function AuthPage({ onSuccess, initialMode }: AuthPageProps) {
           </div>
 
           {/* Footer */}
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-2 text-[10px] text-stone-400 dark:text-stone-500 sm:gap-x-3 sm:text-xs lg:mt-6">
+          <div className="safe-area-bottom mt-4 flex flex-wrap items-center justify-center gap-x-2 text-[10px] text-stone-400 dark:text-stone-500 sm:gap-x-3 sm:text-xs lg:mt-6">
             <a
               href={GITHUB_URL}
               target="_blank"

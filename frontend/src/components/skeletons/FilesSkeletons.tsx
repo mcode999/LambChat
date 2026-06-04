@@ -101,7 +101,14 @@ export function FilesPageSkeleton() {
   return (
     <div
       className="flex h-[100dvh] w-full overflow-hidden animate-fade-in"
-      style={{ backgroundColor: "var(--theme-bg)" }}
+      style={{
+        backgroundColor: "var(--theme-bg)",
+        boxSizing: "content-box",
+        paddingTop: "var(--app-safe-area-top, 0px)",
+        paddingBottom: "var(--app-safe-area-bottom, 0px)",
+        height:
+          "calc(100dvh - var(--app-safe-area-top, 0px) - var(--app-safe-area-bottom, 0px))",
+      }}
     >
       <SidebarSkeleton />
 

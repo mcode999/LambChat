@@ -114,10 +114,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p release-assets
-          find frontend -type f \
-            \( -name '*.dmg' -o -name '*.msi' -o -name '*.exe' -o -name '*.deb' -o -name '*.AppImage' -o -name '*.rpm' \) \
-            -not -path '*/node_modules/*' \
-            -not -path '*/.pnpm/*' \
+          find frontend/src-tauri/target/release/bundle -type f \
+            \( -name '*.dmg' -o -name '*.msi' -o -name '*.deb' -o -name '*.AppImage' -o -name '*.rpm' \) \
             -print > release-assets/files.txt
           if [ ! -s release-assets/files.txt ]; then
             echo "No desktop artifacts found"

@@ -10,7 +10,7 @@ export function getHeroSectionClassName(): string {
     "justify-center",
     "overflow-hidden",
     "px-4",
-    "pt-20",
+    "pt-[calc(5rem+var(--app-safe-area-top,0px))]",
     "pb-20",
     "text-center",
     "sm:px-6",

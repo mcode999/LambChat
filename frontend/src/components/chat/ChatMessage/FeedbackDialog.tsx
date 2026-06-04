@@ -130,7 +130,7 @@ export function FeedbackDialog({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-2 px-5 py-4 bg-stone-50 dark:bg-stone-900/50 border-t border-stone-100 dark:border-stone-700 safe-area-bottom">
+          <div className="safe-area-bottom flex items-center justify-end gap-2 px-5 pt-4 [--safe-area-bottom-extra:1rem] bg-stone-50 dark:bg-stone-900/50 border-t border-stone-100 dark:border-stone-700">
             <button
               onClick={onSkip}
               disabled={isSubmitting}

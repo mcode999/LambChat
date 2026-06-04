@@ -316,7 +316,9 @@ function App() {
         <Toaster
           position="top-center"
           containerClassName={APP_TOASTER_CLASS_NAME}
-          containerStyle={{ top: "56px" }}
+          containerStyle={{
+            top: "calc(56px + var(--app-safe-area-top, 0px))",
+          }}
           toastOptions={{
             duration: 4000,
             style: {

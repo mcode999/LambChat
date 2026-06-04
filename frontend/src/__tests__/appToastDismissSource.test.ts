@@ -13,4 +13,8 @@ test("global toaster gives default toasts a dismiss button without wrapping cust
   assert.match(appSource, /toast\.dismiss\(currentToast\.id\)/);
   assert.match(appSource, /aria-label=\{t\("common\.dismiss"/);
   assert.match(appSource, /flex w-full items-center gap-3 text-left/);
+  assert.match(
+    appSource,
+    /top:\s*"calc\(56px \+ var\(--app-safe-area-top, 0px\)\)"/,
+  );
 });

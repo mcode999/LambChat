@@ -22,24 +22,6 @@ if (!appUrl) {
 const normalizedAppUrl = appUrl.replace(/\/+$/, "");
 const tauriCliPackage = "@tauri-apps/cli@2.11.2";
 
-const buildResult = spawnSync(pnpmCommand, ["packaged:build"], {
-  stdio: "inherit",
-  shell: process.platform === "win32",
-  env: {
-    ...process.env,
-    LAMBCHAT_APP_URL: normalizedAppUrl,
-    VITE_API_BASE: normalizedAppUrl,
-  },
-});
-
-if (buildResult.error) {
-  console.error(buildResult.error);
-}
-
-if (buildResult.status !== 0) {
-  process.exit(buildResult.status ?? 1);
-}
-
 if (!hasCommand("rustc") || !hasCommand("cargo")) {
   console.error(
     "Rust is required for Tauri desktop builds. Install Rust and Tauri system prerequisites, then rerun this command.",
@@ -79,6 +61,11 @@ if (process.env.TAURI_DEBUG === "1") {
 const result = spawnSync(pnpmCommand, args, {
   stdio: "inherit",
   shell: process.platform === "win32",
+  env: {
+    ...process.env,
+    LAMBCHAT_APP_URL: normalizedAppUrl,
+    VITE_API_BASE: normalizedAppUrl,
+  },
 });
 
 if (result.error) {

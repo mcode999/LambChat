@@ -20,7 +20,7 @@ export function MobileMenu({
         className="absolute inset-0 bg-black/20 dark:bg-black/40"
         onClick={onClose}
       />
-      <div className="landing-mobile-menu absolute top-14 inset-x-0 bg-white/95 dark:bg-stone-900/95 border-b border-stone-100 dark:border-stone-800/80 shadow-xl shadow-stone-200/30 dark:shadow-stone-900/50">
+      <div className="landing-mobile-menu absolute top-[calc(3.5rem+var(--app-safe-area-top,0px))] inset-x-0 bg-white/95 dark:bg-stone-900/95 border-b border-stone-100 dark:border-stone-800/80 shadow-xl shadow-stone-200/30 dark:shadow-stone-900/50">
         <div className="max-w-6xl mx-auto px-4 py-3">
           {NAV_ITEMS.map((item) => (
             <button

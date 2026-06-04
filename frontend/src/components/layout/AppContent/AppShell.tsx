@@ -287,8 +287,9 @@ export function AppShell({
           backgroundColor: "var(--theme-bg)",
           boxSizing: "content-box",
           paddingTop: "var(--app-safe-area-top, 0px)",
+          paddingBottom: "var(--app-safe-area-bottom, 0px)",
           height:
-            "calc(var(--app-viewport-height, 100dvh) - var(--app-safe-area-top, 0px))",
+            "calc(var(--app-viewport-height, 100dvh) - var(--app-safe-area-top, 0px) - var(--app-safe-area-bottom, 0px))",
           transform: "translate3d(0, var(--app-viewport-offset-top, 0px), 0)",
         }}
       >

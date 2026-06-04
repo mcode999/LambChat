@@ -554,7 +554,7 @@ export function SharedPage() {
       {/* Top bar — matching landing page Navbar style */}
       <header
         data-yields-sidebar
-        className="fixed top-0 inset-x-0 z-50 bg-white/80 dark:bg-stone-950/80 border-b border-stone-100/60 dark:border-stone-800/40"
+        className="safe-area-top fixed top-0 inset-x-0 z-50 bg-white/80 dark:bg-stone-950/80 border-b border-stone-100/60 dark:border-stone-800/40"
       >
         {/* Scroll progress bar */}
         <div
@@ -615,7 +615,7 @@ export function SharedPage() {
       <main className="relative flex-1 overflow-x-hidden scroll-smooth">
         <article className="max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto">
           {/* Editorial hero */}
-          <header className="pt-20 sm:pt-28 lg:pt-36 pb-0 animate-in fade-in duration-800">
+          <header className="pt-[calc(5rem+var(--app-safe-area-top,0px))] sm:pt-[calc(7rem+var(--app-safe-area-top,0px))] lg:pt-[calc(9rem+var(--app-safe-area-top,0px))] pb-0 animate-in fade-in duration-800">
             {/* Overline label */}
             <div className="text-center mb-5">
               <span className="inline-block text-[11px] font-semibold tracking-[0.15em] uppercase text-stone-400 dark:text-stone-500">
@@ -808,7 +808,7 @@ export function SharedPage() {
       </main>
 
       {/* Footer */}
-      <footer className="relative mt-auto">
+      <footer className="safe-area-bottom relative mt-auto">
         <div className="max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto px-5 sm:px-6">
           {/* CTA card */}
           <div className="relative mx-4 sm:mx-0 mb-10 sm:mb-14 rounded-2xl sm:rounded-3xl border border-stone-200/70 dark:border-stone-800/50 bg-gradient-to-br from-white/80 to-stone-50/60 dark:from-stone-900/60 dark:to-stone-950/40 overflow-hidden">

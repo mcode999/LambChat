@@ -8,6 +8,18 @@
   opacity: 0.95 !important;
 }
 
+.safe-area-top {
+  padding-top: calc(
+    var(--app-safe-area-top, 0px) + var(--safe-area-top-extra, 0px)
+  );
+}
+
+.safe-area-bottom {
+  padding-bottom: calc(
+    var(--app-safe-area-bottom, 0px) + var(--safe-area-bottom-extra, 0px)
+  );
+}
+
 /* Excalidraw preview styles */
 .excalidraw-preview-container {
   width: 100%;

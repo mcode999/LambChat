@@ -247,7 +247,9 @@ export function ProfileModal({
         </div>
 
         {/* Footer */}
-        {renderFooter("safe-area-bottom")}
+        {renderFooter(
+          "safe-area-bottom [--safe-area-bottom-extra:0.625rem] sm:[--safe-area-bottom-extra:0.75rem]",
+        )}
       </div>
 
       {/* ===== Desktop: centered with sidebar ===== */}

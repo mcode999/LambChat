@@ -29,6 +29,9 @@ test("release workflow publishes branded desktop and mobile artifacts", () => {
   assert.doesNotMatch(workflow, /CARGO_TARGET_DIR:/);
   assert.match(workflow, /timeout-minutes: 45/);
   assert.match(workflow, /runner: windows-2022/);
+  assert.match(workflow, /frontend\/src-tauri\/target\/release\/bundle/);
+  assert.doesNotMatch(workflow, /find frontend -type f/);
+  assert.doesNotMatch(workflow, /-name '\*\.exe'/);
   assert.doesNotMatch(workflow, /mapfile/);
 });
 
@@ -76,8 +79,8 @@ test("desktop package script bundles the frontend before Tauri packaging", () =>
 
   assert.match(script, /VITE_API_BASE:\s*normalizedAppUrl/);
   assert.match(script, /LAMBCHAT_APP_URL:\s*normalizedAppUrl/);
-  assert.match(script, /spawnSync\(pnpmCommand, \["packaged:build"\]/);
   assert.doesNotMatch(script, /spawnSync\(pnpmCommand, \["build"\]/);
+  assert.doesNotMatch(script, /spawnSync\(pnpmCommand, \["packaged:build"\]/);
   assert.match(script, /tauriCliPackage = "@tauri-apps\/cli@2\.11\.2"/);
   assert.match(script, /"icon", "public\/icons\/icon-512\.png"/);
   assert.match(script, /TAURI_BUNDLES/);
@@ -91,6 +94,7 @@ test("desktop package uses committed Tauri project and branded icons", () => {
 
   assert.match(config, /"productName": "LambChat"/);
   assert.match(config, /"frontendDist": "\.\.\/dist"/);
+  assert.match(config, /"beforeBuildCommand": "pnpm packaged:build"/);
   assert.match(config, /"icons\/icon\.ico"/);
   assert.match(config, /"icons\/icon\.icns"/);
   assert.match(cargo, /tauri = \{ version = "2\.11\.2"/);
