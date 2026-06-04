@@ -11,6 +11,9 @@ importers:
       '@capacitor/core':
         specifier: 7.6.5
         version: 7.6.5
+      '@capacitor/local-notifications':
+        specifier: ^7.0.6
+        version: 7.0.6(@capacitor/core@7.6.5)
       '@codemirror/lang-css':
         specifier: ^6.3.1
         version: 6.3.1
@@ -71,6 +74,9 @@ importers:
       '@stackblitz/sdk':
         specifier: ^1.11.0
         version: 1.11.0
+      '@tauri-apps/plugin-notification':
+        specifier: ^2.3.3
+        version: 2.3.3
       '@types/dompurify':
         specifier: ^3.0.5
         version: 3.2.0
@@ -893,6 +899,11 @@ packages:
     resolution: {integrity: sha512-jJK3wW65GAsmzgaswoePWDQ7mADIwQNWqWGcOeZyrPP7+lzW5/8gGqu9ASFGbG+GplFfgwRWzd4oH/7xb+lYFw==}
     peerDependencies:
       '@capacitor/core': ^7.6.0
+
+  '@capacitor/local-notifications@7.0.6':
+    resolution: {integrity: sha512-RuZQ9P5aAlw6VU2i0i6g4i1XYZbbeDE9oaBg87gggHaUUscX7b1lltTlC1t11/JCPoyjECnZ/N8xfDNZ26hKhw==}
+    peerDependencies:
+      '@capacitor/core': '>=7.0.0'
 
   '@chevrotain/cst-dts-gen@11.0.3':
     resolution: {integrity: sha512-BvIKpRLeS/8UbfxXxgC33xOumsacaeCKAjAeLyOn7Pcp95HiRbrpl14S+9vaZLolnbssPIUuiUd8IvgkRyt6NQ==}
@@ -2846,6 +2857,12 @@ packages:
     resolution: {integrity: sha512-9g9dWI4gsSVe8bNLlb+lMkBYsnIKCZTmvqvDG+Avnn69XfmHZKiaMrx7cgTaddq7aTPPmXiTsbFcUy0xgI4+wA==}
     peerDependencies:
       react: '>= 16.3.0'
+
+  '@tauri-apps/api@2.11.0':
+    resolution: {integrity: sha512-7CinYODhky9lmO23xHnUFv0Xt43fbtWMyxZcLcRBlFkcgXKuEirBvHpmtJ89YMhyeGcq20Wuc47Fa4XjyniywA==}
+
+  '@tauri-apps/plugin-notification@2.3.3':
+    resolution: {integrity: sha512-Zw+ZH18RJb41G4NrfHgIuofJiymusqN+q8fGUIIV7vyCH+5sSn5coqRv/MWB9qETsUs97vmU045q7OyseCV3Qg==}
 
   '@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1':
     resolution: {integrity: sha512-/67zpWDBLV+oYAEL682s1ktXL0HgqX76f6gaVGkGnVZlBbm1zd0v4Bz8MFF2GGhoX9rvfq3KSQHubFHwa6w6/Q==}
@@ -7575,6 +7592,10 @@ snapshots:
     dependencies:
       '@capacitor/core': 7.6.5
 
+  '@capacitor/local-notifications@7.0.6(@capacitor/core@7.6.5)':
+    dependencies:
+      '@capacitor/core': 7.6.5
+
   '@chevrotain/cst-dts-gen@11.0.3':
     dependencies:
       '@chevrotain/gast': 11.0.3
@@ -9689,6 +9710,12 @@ snapshots:
   '@stitches/react@1.2.8(react@19.2.5)':
     dependencies:
       react: 19.2.5
+
+  '@tauri-apps/api@2.11.0': {}
+
+  '@tauri-apps/plugin-notification@2.3.3':
+    dependencies:
+      '@tauri-apps/api': 2.11.0
 
   '@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1':
     dependencies:

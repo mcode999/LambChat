@@ -1,11 +1,35 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, AlertCircle } from "lucide-react";
 import { useBrowserNotification } from "../../../hooks/useBrowserNotification";
+import {
+  appNotificationService,
+  type AppNotificationPermission,
+} from "../../../services/notifications/appNotificationService";
 
 export function ProfileNotificationTab() {
   const { t } = useTranslation();
-  const { requestPermission, isSupported, permission } =
-    useBrowserNotification();
+  const {
+    requestPermission: requestBrowserPermission,
+    isSupported,
+    permission: browserPermission,
+  } = useBrowserNotification();
+  const appRuntime = appNotificationService.getRuntime();
+  const isAppNotificationRuntime = appRuntime !== "unsupported";
+  const [appPermission, setAppPermission] = useState<
+    AppNotificationPermission | "default"
+  >("default");
+  const permission = isAppNotificationRuntime
+    ? appPermission
+    : browserPermission;
+  const requestPermission = async () => {
+    if (!isAppNotificationRuntime) {
+      await requestBrowserPermission();
+      return;
+    }
+    const result = await appNotificationService.requestPermission();
+    setAppPermission(result === "granted" ? "granted" : "denied");
+  };
 
   return (
     <div className="space-y-3">
@@ -20,7 +44,7 @@ export function ProfileNotificationTab() {
               {t("profile.browserNotificationDesc")}
             </p>
           </div>
-          {!isSupported ? (
+          {!isSupported && !isAppNotificationRuntime ? (
             <span className="shrink-0 text-xs text-stone-400 mt-0.5">
               {t("profile.notSupported")}
             </span>

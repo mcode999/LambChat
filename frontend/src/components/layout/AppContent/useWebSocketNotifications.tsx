@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { useWebSocket } from "../../../hooks/useWebSocket";
 import { useBrowserNotification } from "../../../hooks/useBrowserNotification";
 import { sessionApi } from "../../../services/api";
+import { appNotificationService } from "../../../services/notifications/appNotificationService";
 import {
   shouldAttemptBrowserNotification,
   shouldSurfaceTaskNotification,
@@ -117,9 +118,22 @@ export function useWebSocketNotifications({
           state: { externalNavigate: true, scrollToBottom: true },
         });
       };
+      const notificationRoute = `/chat/${session_id}`;
+      const isAppNotificationRuntime =
+        appNotificationService.getRuntime() !== "unsupported";
+
+      void appNotificationService.notify({
+        type: "task",
+        title: notificationCopy.title,
+        body: notificationCopy.body,
+        route: notificationRoute,
+        dedupeKey: `task:${run_id}:${status}`,
+        importance: status === "completed" ? "normal" : "high",
+      });
 
       // Show browser notification (if permitted)
       if (
+        !isAppNotificationRuntime &&
         shouldAttemptBrowserNotification({
           isSupported,
           cachedPermission: permission,
@@ -128,7 +142,7 @@ export function useWebSocketNotifications({
         notify(notificationCopy.title, {
           body: notificationCopy.body,
           onClick: navigateToSession,
-          url: `/chat/${session_id}`,
+          url: notificationRoute,
         });
       }
 

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Info, CheckCircle, AlertTriangle, Wrench, X } from "lucide-react";
 import { notificationApi } from "../../services/api/notification";
+import { surfaceAppAnnouncementNotifications } from "../../services/notifications/announcementNotifications";
 import type { Notification, NotificationType } from "../../types/notification";
 
 const TYPE_CONFIG: Record<
@@ -36,8 +37,13 @@ export function NotificationBanner() {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    notificationApi.getActive().then(setNotifications);
-  }, []);
+    notificationApi.getActive().then((items) => {
+      setNotifications(items);
+      const lang = (i18n.language?.split("-")[0] ||
+        "en") as keyof Notification["title_i18n"];
+      surfaceAppAnnouncementNotifications(items, lang);
+    });
+  }, [i18n.language]);
 
   const handleDismiss = useCallback(async (id: string) => {
     setDismissedIds((prev) => new Set(prev).add(id));

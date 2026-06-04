@@ -11,6 +11,7 @@ import {
   Check,
 } from "lucide-react";
 import { notificationApi } from "../../services/api/notification";
+import { surfaceAppAnnouncementNotifications } from "../../services/notifications/announcementNotifications";
 import type { Notification, NotificationType } from "../../types/notification";
 import { formatDateTimeShort } from "../../utils/datetime";
 
@@ -56,8 +57,13 @@ export function NotificationDialog({
   const [dismissingId, setDismissingId] = useState<string | null>(null);
 
   const fetchNotifications = useCallback(() => {
-    notificationApi.getActive().then(setNotifications);
-  }, []);
+    notificationApi.getActive().then((items) => {
+      setNotifications(items);
+      const lang = (i18n.language?.split("-")[0] ||
+        "en") as keyof Notification["title_i18n"];
+      surfaceAppAnnouncementNotifications(items, lang);
+    });
+  }, [i18n.language]);
 
   useEffect(() => {
     if (!isOpen) return;

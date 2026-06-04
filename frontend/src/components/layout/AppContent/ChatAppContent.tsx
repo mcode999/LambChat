@@ -12,6 +12,7 @@ import { useTools } from "../../../hooks/useTools";
 import { useSkills } from "../../../hooks/useSkills";
 import { usePersonaPresets } from "../../../hooks/usePersonaPresets";
 import { useProjectManager } from "../../../hooks/useProjectManager";
+import { appNotificationService } from "../../../services/notifications/appNotificationService";
 import { useSessionConfig } from "../../../hooks/useSessionConfig";
 import {
   Permission,
@@ -186,6 +187,14 @@ export function ChatAppContent({
     currentProjectId,
   } = useAgent({
     onApprovalRequired: (approval) => {
+      void appNotificationService.notify({
+        type: "approval",
+        title: t("approvals.needsConfirmation"),
+        body: approval.message,
+        route: sessionId ? `/chat/${sessionId}` : "/chat",
+        dedupeKey: `approval:${approval.id}`,
+        importance: "high",
+      });
       addApproval({
         id: approval.id,
         message: approval.message,
