@@ -22,3 +22,14 @@ test("channel persona selector exposes a clear option", () => {
   assert.match(source, /channel\.clearPersona/);
   assert.match(source, /onChange\(null\)/);
 });
+
+test("channel persona selector renders preset icons in trigger and options", () => {
+  assert.match(source, /PersonaAvatarIcon/);
+  assert.match(source, /PersonaAvatarImage/);
+  assert.match(source, /isPersonaImageAvatar/);
+  assert.match(source, /PersonaPresetIcon/);
+  assert.match(source, /setImageFailed/);
+  assert.match(source, /onError=\{\(\) => setImageFailed\(true\)\}/);
+  assert.match(source, /selected && <PersonaPresetIcon preset=\{selected\}/);
+  assert.match(source, /<PersonaPresetIcon preset=\{preset\}/);
+});

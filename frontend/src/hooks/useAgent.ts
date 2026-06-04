@@ -88,6 +88,7 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
   const isConnectingRef = useRef(false);
   const isLoadingHistoryRef = useRef(false);
   const isSendingRef = useRef(false);
+  const loadHistoryRequestIdRef = useRef(0);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -281,6 +282,11 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
   // Load message history from backend
   const loadHistory = useCallback(
     async (targetSessionId: string, targetRunId?: string) => {
+      loadHistoryRequestIdRef.current += 1;
+      const requestId = loadHistoryRequestIdRef.current;
+      const isStaleHistoryLoad = () =>
+        requestId !== loadHistoryRequestIdRef.current;
+
       if (isLoadingHistoryRef.current) {
         console.log(
           "[loadHistory] Switching to new session, aborting previous load...",
@@ -312,7 +318,10 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
 
       try {
         await markReadPromise;
+        if (isStaleHistoryLoad()) return null;
+
         const sessionData = await sessionApi.get(targetSessionId);
+        if (isStaleHistoryLoad()) return null;
 
         if (sessionData) {
           setSessionId(targetSessionId);
@@ -377,6 +386,7 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
             statusPromise,
             feedbackPromise,
           ]);
+          if (isStaleHistoryLoad()) return null;
 
           let isTaskRunning = false;
           if (statusData) {
@@ -421,11 +431,13 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
             if (lastTimestamp) {
               lastHistoryTimestampRef.current = lastTimestamp;
             }
+            if (isStaleHistoryLoad()) return null;
 
             // Reconstruct active goal from history events (goal:start / goal:end)
             const restoredGoal = extractGoalFromEvents(
               eventsData.events as HistoryEvent[],
             );
+            if (isStaleHistoryLoad()) return null;
             setActiveGoal(restoredGoal);
             setGoalsByRunId(
               extractGoalsByRunFromEvents(eventsData.events as HistoryEvent[]),
@@ -498,12 +510,15 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
           return sessionConfig;
         }
       } catch (err) {
+        if (isStaleHistoryLoad()) return null;
         console.error("Failed to load session:", err);
         setError(i18n.t("chat.requestFailed"));
       } finally {
-        setIsLoading(false);
-        setIsLoadingHistory(false);
-        isLoadingHistoryRef.current = false;
+        if (!isStaleHistoryLoad()) {
+          setIsLoading(false);
+          setIsLoadingHistory(false);
+          isLoadingHistoryRef.current = false;
+        }
       }
 
       return null;
@@ -519,6 +534,7 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
       attachments?: MessageAttachment[],
     ) => {
       if (!content.trim()) return;
+      loadHistoryRequestIdRef.current += 1;
 
       const goalPlan = planGoalSubmission(content, goalModeEnabled);
       if (goalPlan.handledWithoutSend) {
@@ -824,6 +840,7 @@ export function useAgent(options?: UseAgentOptions): UseAgentReturn {
   }, [options]);
 
   const clearMessages = useCallback(() => {
+    loadHistoryRequestIdRef.current += 1;
     streamVersionRef.current += 1;
     setMessages([]);
     setSessionId(null);

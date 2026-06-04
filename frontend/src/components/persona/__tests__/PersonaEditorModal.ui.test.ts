@@ -4,19 +4,19 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const componentSource = readFileSync(
-  join(import.meta.dirname, "PersonaEditorModal.tsx"),
+  join(import.meta.dirname, "../PersonaEditorModal.tsx"),
   "utf8",
 );
 
 const personaCss = readFileSync(
-  join(import.meta.dirname, "../../styles/persona.css"),
+  join(import.meta.dirname, "../../../styles/persona.css"),
   "utf8",
 );
 
 test("skill dropdown clear action renders as a labeled soft button", () => {
   assert.match(
     componentSource,
-    /className="ppe-skill-dropdown__clear-all"[\s\S]*>\s*\{\s*t\("personaPresets\.clearSkills", "清空"\)\s*\}\s*<\/button>/,
+    /className="ppe-skill-dropdown__clear-all"[\s\S]*>\s*\{\s*t\("common\.clearAll", "清除全部"\)\s*\}\s*<\/button>/,
   );
   assert.doesNotMatch(
     componentSource,
@@ -24,15 +24,23 @@ test("skill dropdown clear action renders as a labeled soft button", () => {
   );
 });
 
+test("skill dropdown loads more skills when scrolled near the bottom", () => {
+  assert.match(componentSource, /const PERSONA_SKILL_PAGE_SIZE = 20;/);
+  assert.match(componentSource, /appendPages: true/);
+  assert.match(
+    componentSource,
+    /const distanceToBottom =\s*target\.scrollHeight - target\.scrollTop - target\.clientHeight;/,
+  );
+  assert.match(componentSource, /onScroll=\{handleSkillListScroll\}/);
+  assert.match(componentSource, /setSkillPage\(\(page\) => page \+ 1\)/);
+});
+
 test("skill dropdown header uses the soft professional search treatment", () => {
   assert.match(
     personaCss,
     /\.ppe-skill-search\s*\{[\s\S]*border:\s*1px solid transparent;/,
   );
-  assert.match(
-    personaCss,
-    /\.ppe-skill-search\s*\{[\s\S]*height:\s*2\.375rem;/,
-  );
+  assert.match(personaCss, /\.ppe-skill-search\s*\{[\s\S]*height:\s*2\.25rem;/);
   assert.match(
     personaCss,
     /\.ppe-skill-dropdown__clear-all\s*\{[\s\S]*padding:\s*0 0\.625rem;/,
@@ -41,22 +49,23 @@ test("skill dropdown header uses the soft professional search treatment", () => 
     personaCss,
     /\.ppe-skill-dropdown__clear-all\s*\{[\s\S]*font-weight:\s*600;/,
   );
+  assert.match(
+    personaCss,
+    /\.ppe-skill-dropdown__loading\s*\{[\s\S]*display:\s*flex;/,
+  );
 });
 
 test("skill dropdown options use structured professional rows", () => {
-  assert.match(componentSource, /className="ppe-skill-option__content"/);
-  assert.match(componentSource, /className="ppe-skill-option__meta"/);
-  assert.match(componentSource, /className="ppe-skill-option__action"/);
+  assert.match(componentSource, /className=\{`ppe-skill-option \$\{/);
+  assert.match(componentSource, /className="ppe-skill-option__check-ring"/);
+  assert.match(componentSource, /className="ppe-skill-option__check-icon"/);
+  assert.match(componentSource, /className="ppe-skill-option__plus-icon"/);
   assert.match(
     personaCss,
-    /\.ppe-skill-option\s*\{[\s\S]*min-height:\s*3\.125rem;/,
+    /\.ppe-skill-option\s*\{[\s\S]*min-height:\s*2\.75rem;/,
   );
   assert.match(
     personaCss,
-    /\.ppe-skill-option__content\s*\{[\s\S]*display:\s*grid;/,
-  );
-  assert.match(
-    personaCss,
-    /\.ppe-skill-option--selected\s+\.ppe-skill-option__action\s*\{[\s\S]*background:\s*rgba\(239, 68, 68, 0\.1\);/,
+    /\.ppe-skill-option--selected\s+\.ppe-skill-option__check-ring\s*\{[\s\S]*border-color:\s*var\(--theme-primary\);/,
   );
 });

@@ -10,6 +10,7 @@ from typing import Any, Optional
 
 from pymongo import UpdateOne
 
+from src.infra.async_utils import run_blocking_io
 from src.infra.mcp.encryption import decrypt_value, encrypt_value
 from src.infra.utils.datetime import utc_now, utc_now_iso
 from src.kernel.config import settings
@@ -17,6 +18,17 @@ from src.kernel.schemas.model import ModelConfig
 
 # MongoDB 集合名称
 _COLL_MODELS = "model_configs"
+_PLAINTEXT_KEY_MIGRATION_BATCH_SIZE = 100
+MODEL_BULK_WRITE_BATCH_SIZE = 100
+MODEL_RESTRICTED_LIST_LIMIT = 100
+MODEL_LIST_LIMIT = 500
+
+
+async def _bulk_write_in_batches(collection: Any, operations: list[Any]) -> None:
+    for start in range(0, len(operations), MODEL_BULK_WRITE_BATCH_SIZE):
+        batch = operations[start : start + MODEL_BULK_WRITE_BATCH_SIZE]
+        if batch:
+            await collection.bulk_write(batch)
 
 
 class ModelStorage:
@@ -50,24 +62,29 @@ class ModelStorage:
             await self._get_collection().drop_index("value_1")
         if "value_1" not in existing or existing["value_1"].get("unique"):
             await self._get_collection().create_index("value")
+        await self._get_collection().create_index(
+            [("value", 1), ("provider", 1), ("api_base", 1)],
+            unique=True,
+            name="value_provider_api_base_unique",
+        )
         await self._get_collection().create_index("enabled")
         await self._get_collection().create_index("order")
 
     # ── 加密辅助 ──────────────────────────────────────────────────
 
     @staticmethod
-    def _encrypt_api_key(key: str | None) -> dict | None:
+    async def _encrypt_api_key(key: str | None) -> dict | None:
         """加密 API Key（包装为 dict 后加密）"""
         if key is None:
             return None
-        return encrypt_value({"v": key})
+        return await run_blocking_io(encrypt_value, {"v": key})
 
     @staticmethod
-    def _decrypt_api_key(encrypted: Any) -> str | None:
+    async def _decrypt_api_key(encrypted: Any) -> str | None:
         """解密 API Key"""
         if encrypted is None:
             return None
-        result = decrypt_value(encrypted)
+        result = await run_blocking_io(decrypt_value, encrypted)
         if isinstance(result, dict):
             return result.get("v")
         # 向后兼容：如果值是明文字符串，直接返回
@@ -78,10 +95,10 @@ class ModelStorage:
         """检查值是否已加密"""
         return isinstance(value, dict) and "__encrypted__" in value
 
-    def _decrypt_doc(self, doc: dict) -> dict:
+    async def _decrypt_doc(self, doc: dict) -> dict:
         """解密文档中的 api_key（纯读取，无副作用）。"""
         if doc.get("api_key") is not None:
-            doc["api_key"] = self._decrypt_api_key(doc["api_key"])
+            doc["api_key"] = await self._decrypt_api_key(doc["api_key"])
         return doc
 
     # ── 批量迁移 ──────────────────────────────────────────────────
@@ -94,35 +111,40 @@ class ModelStorage:
         """
         # 查找所有 api_key 不为空且未加密的文档
         cursor = self._get_collection().find({"api_key": {"$ne": None}})
-        to_encrypt: list[tuple[str, str]] = []
+        operations = []
+        modified_count = 0
         async for doc in cursor:
             key = doc.get("api_key")
             if key and not self._is_encrypted(key):
-                to_encrypt.append((doc["id"], str(key)))
+                operations.append(
+                    UpdateOne(
+                        {"id": doc["id"]},
+                        {
+                            "$set": {
+                                "api_key": await self._encrypt_api_key(str(key)),
+                                "updated_at": utc_now_iso(),
+                            }
+                        },
+                    )
+                )
+                if len(operations) >= _PLAINTEXT_KEY_MIGRATION_BATCH_SIZE:
+                    result = await self._get_collection().bulk_write(operations)
+                    modified_count += result.modified_count
+                    operations.clear()
 
-        if not to_encrypt:
+        if operations:
+            result = await self._get_collection().bulk_write(operations)
+            modified_count += result.modified_count
+
+        if modified_count == 0:
             return 0
 
-        now = utc_now_iso()
-        operations = [
-            UpdateOne(
-                {"id": model_id},
-                {
-                    "$set": {
-                        "api_key": self._encrypt_api_key(key),
-                        "updated_at": now,
-                    }
-                },
-            )
-            for model_id, key in to_encrypt
-        ]
-        result = await self._get_collection().bulk_write(operations)
         from src.infra.logging import get_logger
 
         get_logger(__name__).info(
-            f"[ModelStorage] Migrated {result.modified_count} plaintext API keys to encrypted"
+            f"[ModelStorage] Migrated {modified_count} plaintext API keys to encrypted"
         )
-        return result.modified_count
+        return modified_count
 
     # ============================================
     # CRUD Operations
@@ -138,11 +160,50 @@ class ModelStorage:
             模型配置列表，按 order 排序
         """
         query = {} if include_disabled else {"enabled": True}
-        cursor = self._get_collection().find(query).sort("order", 1)
+        cursor = self._get_collection().find(query).sort("order", 1).limit(MODEL_LIST_LIMIT)
         models = []
         async for doc in cursor:
             doc.pop("_id", None)
-            doc = self._decrypt_doc(doc)
+            doc = await self._decrypt_doc(doc)
+            models.append(ModelConfig(**doc))
+        return models
+
+    async def list_enabled_by_ids_or_values(
+        self,
+        model_ids_or_values: list[str],
+    ) -> list[ModelConfig]:
+        """List enabled models matching a bounded set of model IDs or values."""
+        if not model_ids_or_values:
+            return []
+
+        bounded_values = []
+        seen_values = set()
+        for value in model_ids_or_values:
+            if value in seen_values:
+                continue
+            seen_values.add(value)
+            bounded_values.append(value)
+            if len(bounded_values) >= MODEL_RESTRICTED_LIST_LIMIT:
+                break
+
+        cursor = (
+            self._get_collection()
+            .find(
+                {
+                    "enabled": True,
+                    "$or": [
+                        {"id": {"$in": bounded_values}},
+                        {"value": {"$in": bounded_values}},
+                    ],
+                }
+            )
+            .sort("order", 1)
+            .limit(MODEL_RESTRICTED_LIST_LIMIT)
+        )
+        models = []
+        async for doc in cursor:
+            doc.pop("_id", None)
+            doc = await self._decrypt_doc(doc)
             models.append(ModelConfig(**doc))
         return models
 
@@ -159,7 +220,7 @@ class ModelStorage:
         if not doc:
             return None
         doc.pop("_id", None)
-        doc = self._decrypt_doc(doc)
+        doc = await self._decrypt_doc(doc)
         return ModelConfig(**doc)
 
     async def get_by_value(self, value: str) -> Optional[ModelConfig]:
@@ -182,7 +243,7 @@ class ModelStorage:
         if not doc:
             return None
         doc.pop("_id", None)
-        doc = self._decrypt_doc(doc)
+        doc = await self._decrypt_doc(doc)
         return ModelConfig(**doc)
 
     async def create(self, model: ModelConfig) -> ModelConfig:
@@ -208,11 +269,11 @@ class ModelStorage:
 
         # 加密 api_key
         if model_dict.get("api_key"):
-            model_dict["api_key"] = self._encrypt_api_key(model_dict["api_key"])
+            model_dict["api_key"] = await self._encrypt_api_key(model_dict["api_key"])
 
         await self._get_collection().insert_one(model_dict)
         # 返回前解密 api_key
-        model_dict = self._decrypt_doc(model_dict)
+        model_dict = await self._decrypt_doc(model_dict)
         return ModelConfig(**model_dict)
 
     async def update(self, model_id: str, update: dict[str, Any]) -> Optional[ModelConfig]:
@@ -229,7 +290,7 @@ class ModelStorage:
 
         # 加密 api_key（如果更新中包含）
         if "api_key" in update and update["api_key"] is not None:
-            update["api_key"] = self._encrypt_api_key(update["api_key"])
+            update["api_key"] = await self._encrypt_api_key(update["api_key"])
 
         result = await self._get_collection().find_one_and_update(
             {"id": model_id},
@@ -239,7 +300,7 @@ class ModelStorage:
         if not result:
             return None
         result.pop("_id", None)
-        result = self._decrypt_doc(result)
+        result = await self._decrypt_doc(result)
         return ModelConfig(**result)
 
     async def delete(self, model_id: str) -> bool:
@@ -265,6 +326,14 @@ class ModelStorage:
         """
         doc = await self._get_collection().find_one({"value": value})
         return doc is not None
+
+    @staticmethod
+    def _upsert_identity_filter(model: ModelConfig) -> dict[str, Any]:
+        return {
+            "value": model.value,
+            "provider": model.provider,
+            "api_base": model.api_base,
+        }
 
     async def count(self, include_disabled: bool = False) -> dict[str, int]:
         """统计模型数量
@@ -323,7 +392,7 @@ class ModelStorage:
             for order, model_id in enumerate(model_ids)
         ]
         if operations:
-            await self._get_collection().bulk_write(operations)
+            await _bulk_write_in_batches(self._get_collection(), operations)
         return await self.list_models()
 
     async def upsert_by_value(self, model: ModelConfig) -> tuple[ModelConfig, bool]:
@@ -335,22 +404,30 @@ class ModelStorage:
         Returns:
             (模型配置, 是否为新创建)
         """
-        existing = await self.get_by_value(model.value)
+        identity_filter = self._upsert_identity_filter(model)
+        existing_doc = await self._get_collection().find_one(identity_filter)
+        existing = None
+        if existing_doc:
+            existing_doc.pop("_id", None)
+            existing_doc = await self._decrypt_doc(existing_doc)
+            existing = ModelConfig(**existing_doc)
         if existing:
-            update_data = model.model_dump(exclude={"id", "value", "created_at"})
+            update_data = model.model_dump(
+                exclude={"id", "value", "provider", "api_base", "created_at"}
+            )
             update_data["updated_at"] = utc_now_iso()
 
             # 加密 api_key
             if update_data.get("api_key"):
-                update_data["api_key"] = self._encrypt_api_key(update_data["api_key"])
+                update_data["api_key"] = await self._encrypt_api_key(update_data["api_key"])
 
             updated = await self._get_collection().find_one_and_update(
-                {"value": model.value},
+                identity_filter,
                 {"$set": update_data},
                 return_document=True,
             )
             updated.pop("_id", None)
-            updated = self._decrypt_doc(updated)
+            updated = await self._decrypt_doc(updated)
             return ModelConfig(**updated), False
         else:
             created = await self.create(model)
@@ -369,29 +446,36 @@ class ModelStorage:
         import uuid
 
         operations = []
+        identity_filters = []
         for model in models:
             model_dict = model.model_dump()
+            identity_filter = self._upsert_identity_filter(model)
+            identity_filters.append(identity_filter)
             # 加密 api_key
             if model_dict.get("api_key"):
-                model_dict["api_key"] = self._encrypt_api_key(model_dict["api_key"])
+                model_dict["api_key"] = await self._encrypt_api_key(model_dict["api_key"])
 
             # 生成 ID 如果没有
             if not model_dict.get("id"):
                 model_dict["id"] = str(uuid.uuid4())
 
             update_fields = {
-                k: v for k, v in model_dict.items() if k not in ("id", "value", "created_at")
+                k: v
+                for k, v in model_dict.items()
+                if k not in ("id", "value", "provider", "api_base", "created_at")
             }
             update_fields["updated_at"] = now
 
             operations.append(
                 UpdateOne(
-                    {"value": model.value},
+                    identity_filter,
                     {
                         "$set": update_fields,
                         "$setOnInsert": {
                             "id": model_dict["id"],
                             "value": model.value,
+                            "provider": model.provider,
+                            "api_base": model.api_base,
                             "created_at": now,
                         },
                     },
@@ -400,16 +484,19 @@ class ModelStorage:
             )
 
         if operations:
-            await self._get_collection().bulk_write(operations)
+            await _bulk_write_in_batches(self._get_collection(), operations)
 
         # 返回更新后的模型列表
-        values = [m.value for m in models]
         result = []
-        cursor = self._get_collection().find({"value": {"$in": values}})
-        async for doc in cursor:
-            doc.pop("_id", None)
-            doc = self._decrypt_doc(doc)
-            result.append(ModelConfig(**doc))
+        for start in range(0, len(identity_filters), MODEL_RESTRICTED_LIST_LIMIT):
+            batch_filters = identity_filters[start : start + MODEL_RESTRICTED_LIST_LIMIT]
+            if not batch_filters:
+                continue
+            cursor = self._get_collection().find({"$or": batch_filters})
+            async for doc in cursor:
+                doc.pop("_id", None)
+                doc = await self._decrypt_doc(doc)
+                result.append(ModelConfig(**doc))
         return result
 
     async def delete_all(self) -> int:

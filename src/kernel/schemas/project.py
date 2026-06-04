@@ -13,7 +13,7 @@ class ProjectBase(BaseModel):
 
     name: str
     type: str = "custom"  # "favorites" or "custom"
-    icon: Optional[str] = None  # lucide-react icon name, e.g. "Folder", "Star", "Book"
+    icon: str = "💬"  # emoji or lucide-react icon name, e.g. "💬", "⭐", "🤖"
     sort_order: int = 0
 
 

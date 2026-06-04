@@ -8,6 +8,9 @@ from src.infra.utils.datetime import utc_now
 from src.kernel.config import settings
 from src.kernel.schemas.project import Project, ProjectCreate, ProjectUpdate
 
+PROJECT_LIST_LIMIT = 100
+DEFAULT_PROJECT_ICON = "💬"
+
 
 class ProjectStorage:
     """
@@ -39,7 +42,7 @@ class ProjectStorage:
         project_dict = {
             "name": project_data.name,
             "type": project_data.type,
-            "icon": project_data.icon,
+            "icon": project_data.icon or "💬",
             "sort_order": project_data.sort_order,
             "user_id": user_id,
             "created_at": now,
@@ -78,10 +81,14 @@ class ProjectStorage:
 
     async def list_projects(self, user_id: str) -> list[Project]:
         """List all projects for a user, sorted by sort_order."""
-        cursor = self.collection.find({"user_id": user_id}).sort("sort_order", 1)
+        cursor = (
+            self.collection.find({"user_id": user_id})
+            .sort("sort_order", 1)
+            .limit(PROJECT_LIST_LIMIT)
+        )
         projects = []
 
-        for project_dict in await cursor.to_list(length=100):
+        for project_dict in await cursor.to_list(length=PROJECT_LIST_LIMIT):
             project_dict["id"] = str(project_dict.pop("_id"))
             projects.append(Project(**project_dict))
 
@@ -159,7 +166,7 @@ class ProjectStorage:
         return Project(**project_dict)
 
     async def get_or_create_by_name(
-        self, user_id: str, name: str, project_type: str = "channel", icon: str = "MessageCircle"
+        self, user_id: str, name: str, project_type: str = "channel", icon: str = "💬"
     ) -> Project:
         """Get or create a project by name for a user.
 

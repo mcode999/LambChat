@@ -114,13 +114,16 @@ export function ImageWithSkeleton({
           onLoad={handleLoad}
           onError={handleError}
           onClick={onClick}
-          className={className}
+          className={`${
+            !isLoaded ? "absolute inset-0 pointer-events-none" : ""
+          } ${className ?? ""}`}
           style={{
             opacity: isLoaded ? 1 : 0,
             transition: isLoaded ? "opacity 0.3s ease" : "none",
             maxWidth: "100%",
-            height: "auto",
+            height: isLoaded ? "auto" : "100%",
             width: "100%",
+            objectFit: isLoaded ? undefined : "cover",
             cursor: onClick ? "zoom-in" : undefined,
             ...style,
           }}

@@ -8,7 +8,12 @@ import { projectApi } from "../../services/api/project";
 import DocumentPreview from "../documents/DocumentPreview";
 import { ImageViewer, VideoViewer } from "../common";
 import { DelayedUnmount } from "../common/DelayedUnmount";
-import { getFileExtension, isVideoFile } from "../documents/utils";
+import {
+  getFileExtension,
+  isExcalidrawFile,
+  isVideoFile,
+} from "../documents/utils";
+import { ExcalidrawDirectViewer } from "../documents/previews/ExcalidrawDirectViewer";
 import { Toolbar } from "./components/Toolbar";
 import { SessionGroup } from "./components/SessionGroup";
 import { EmptyState } from "./components/EmptyState";
@@ -42,6 +47,8 @@ export function RevealedFilesPanel() {
   const [imageViewerFile, setImageViewerFile] =
     useState<RevealedFileItem | null>(null);
   const [videoViewerSrc, setVideoViewerSrc] = useState<string | null>(null);
+  const [excalidrawViewerFile, setExcalidrawViewerFile] =
+    useState<RevealedFileItem | null>(null);
 
   /* ── Data ── */
   useEffect(() => {
@@ -113,6 +120,10 @@ export function RevealedFilesPanel() {
         setVideoViewerSrc(getFullUrl(file.url) ?? file.url);
         return;
       }
+      if (file.url && isExcalidrawFile(ext)) {
+        setExcalidrawViewerFile(file);
+        return;
+      }
       setPreviewFile(file);
     },
     [buildFileNavigationState, navigate],
@@ -140,6 +151,10 @@ export function RevealedFilesPanel() {
     }
   }, [imagePreviewNavigation.next]);
   const handleVideoViewerClose = useCallback(() => setVideoViewerSrc(null), []);
+  const handleExcalidrawViewerClose = useCallback(
+    () => setExcalidrawViewerFile(null),
+    [],
+  );
 
   return (
     <>
@@ -249,6 +264,14 @@ export function RevealedFilesPanel() {
           isOpen={!!videoViewerSrc}
           onClose={handleVideoViewerClose}
           title={previewFile?.file_name || undefined}
+        />
+      )}
+
+      {/* Excalidraw fullscreen viewer */}
+      {excalidrawViewerFile?.url && (
+        <ExcalidrawDirectViewer
+          url={excalidrawViewerFile.url}
+          onClose={handleExcalidrawViewerClose}
         />
       )}
     </>

@@ -15,12 +15,43 @@ import { Check, ChevronDown, Search, UserRound, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { personaPresetApi } from "../../../services/api/personaPreset";
 import type { PersonaPreset } from "../../../types/personaPreset";
+import {
+  PersonaAvatarIcon,
+  PersonaAvatarImage,
+} from "../../persona/PersonaAvatarIcon";
+import { isPersonaImageAvatar } from "../../persona/personaAvatar";
 
 const PAGE_LIMIT = 20;
 
 interface ChannelPersonaSelectProps {
   value: string | null | undefined;
   onChange: (personaPresetId: string | null) => void;
+}
+
+function PersonaPresetIcon({ preset }: { preset: PersonaPreset }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const primaryTag = preset.tags?.[0];
+  const showImage =
+    isPersonaImageAvatar(preset.avatar) && imageFailed === false;
+
+  return (
+    <span className="team-toolbar-avatar" title={preset.name}>
+      {showImage ? (
+        <PersonaAvatarImage
+          avatar={preset.avatar}
+          alt=""
+          className="scb__avatar-img"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <PersonaAvatarIcon
+          avatar={preset.avatar}
+          primaryTag={primaryTag}
+          size={14}
+        />
+      )}
+    </span>
+  );
 }
 
 export function ChannelPersonaSelect({
@@ -166,6 +197,7 @@ export function ChannelPersonaSelect({
           onClick={() => setOpen((v) => !v)}
           className="glass-input es-select-btn"
         >
+          {selected && <PersonaPresetIcon preset={selected} />}
           <span className="truncate">{displayText}</span>
           <ChevronDown
             size={15}
@@ -242,8 +274,9 @@ export function ChannelPersonaSelect({
                     {active && (
                       <Check size={14} className="glass-select-option-check" />
                     )}
-                    <span className="glass-select-option-label">
-                      {preset.name}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <PersonaPresetIcon preset={preset} />
+                      <span className="truncate">{preset.name}</span>
                     </span>
                   </button>
                 );

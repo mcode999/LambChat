@@ -154,23 +154,23 @@ export function ModelSection() {
         </div>
       )}
 
-      <div className="glass-tab-bar mb-5 flex gap-6">
+      <div className="inline-grid grid-cols-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-1 sm:my-3">
         <button
           onClick={() => setActiveTab("roles")}
-          className={`glass-tab-active px-1 pb-3 text-sm font-medium transition-colors duration-200 ${
+          className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-150 ${
             activeTab === "roles"
-              ? "text-theme-text"
-              : "text-theme-text-secondary hover:text-theme-text"
+              ? "bg-white text-stone-950 shadow-sm ring-1 ring-[var(--glass-border)] dark:bg-stone-800 dark:text-stone-50"
+              : "text-stone-500 hover:bg-white/60 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800/60 dark:hover:text-stone-100"
           }`}
         >
           {t("agentConfig.modelsTab")}
         </button>
         <button
           onClick={() => setActiveTab("model-config")}
-          className={`glass-tab-active px-1 pb-3 text-sm font-medium transition-colors duration-200 ${
+          className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-150 ${
             activeTab === "model-config"
-              ? "text-theme-text"
-              : "text-theme-text-secondary hover:text-theme-text"
+              ? "bg-white text-stone-950 shadow-sm ring-1 ring-[var(--glass-border)] dark:bg-stone-800 dark:text-stone-50"
+              : "text-stone-500 hover:bg-white/60 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800/60 dark:hover:text-stone-100"
           }`}
         >
           {t("agentConfig.modelConfigTab")}

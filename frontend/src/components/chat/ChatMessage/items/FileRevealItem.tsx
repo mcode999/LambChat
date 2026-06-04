@@ -3,7 +3,12 @@ import { clsx } from "clsx";
 import { ExternalLink, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LoadingSpinner, ImageViewer, VideoViewer } from "../../../common";
-import { getFileTypeInfo } from "../../../documents/utils";
+import {
+  getFileExtension,
+  getFileTypeInfo,
+  isExcalidrawFile,
+} from "../../../documents/utils";
+import { ExcalidrawCardPreview } from "../../../documents/previews/ExcalidrawCardPreview";
 import { getFullUrl } from "../../../../services/api";
 import {
   getFileRevealAutoOpenKey,
@@ -173,6 +178,7 @@ export function FileRevealItem({
   const isImage = fileInfo.category === "image";
   const isVideo = fileInfo.category === "video";
   const isAudio = fileInfo.category === "audio";
+  const isExcalidraw = isExcalidrawFile(getFileExtension(parsed.filePath));
   const canPreview = isImage || isVideo || isAudio;
   const previewAutoOpenKey = getFileRevealAutoOpenKey({
     s3Key: parsed.s3Key,
@@ -337,7 +343,7 @@ export function FileRevealItem({
         />
       )}
 
-      {canPreview && parsed.s3Url && success ? (
+      {(canPreview || isExcalidraw) && parsed.s3Url && success ? (
         <div
           className={clsx(
             "w-full rounded-xl border overflow-hidden transition-colors transition-shadow",
@@ -361,9 +367,10 @@ export function FileRevealItem({
               onClick={() => {
                 if (isImage) openImagePreview(parsed.s3Url);
                 else if (isVideo) setVideoViewerSrc(parsed.s3Url);
+                else if (isExcalidraw) openPreview("manual");
               }}
             >
-              {!mediaLoaded && (
+              {!mediaLoaded && !isExcalidraw && (
                 <div className="absolute inset-0">
                   <MediaSkeleton />
                 </div>
@@ -377,6 +384,8 @@ export function FileRevealItem({
                   onLoad={() => setMediaLoaded(true)}
                   onError={() => setMediaLoaded(true)}
                 />
+              ) : isExcalidraw ? (
+                <ExcalidrawCardPreview url={parsed.s3Url} />
               ) : (
                 parsed.s3Url && (
                   <video
@@ -391,7 +400,7 @@ export function FileRevealItem({
                   />
                 )
               )}
-              {(isImage || isVideo) && (
+              {(isImage || isVideo || isExcalidraw) && (
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-full bg-white/90 dark:bg-stone-800/90 shadow-lg pointer-events-auto cursor-pointer">
                     <ExternalLink

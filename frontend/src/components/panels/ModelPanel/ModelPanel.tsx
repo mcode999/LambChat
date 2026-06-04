@@ -194,23 +194,23 @@ export function ModelPanel() {
       )}
 
       {/* Tab 切换 */}
-      <div className="glass-tab-bar flex px-4 sm:px-6">
+      <div className="inline-grid grid-cols-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-1 sm:my-3">
         <button
           onClick={() => setActiveTab("roles")}
-          className={`px-5 py-3 text-sm font-medium transition-all duration-200 relative ${
+          className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-150 ${
             activeTab === "roles"
-              ? "glass-tab-active text-stone-900 dark:text-stone-100"
-              : "text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+              ? "bg-white text-stone-950 shadow-sm ring-1 ring-[var(--glass-border)] dark:bg-stone-800 dark:text-stone-50"
+              : "text-stone-500 hover:bg-white/60 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800/60 dark:hover:text-stone-100"
           }`}
         >
           {t("agentConfig.modelsTab")}
         </button>
         <button
           onClick={() => setActiveTab("model-config")}
-          className={`px-5 py-3 text-sm font-medium transition-all duration-200 relative ${
+          className={`flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-150 ${
             activeTab === "model-config"
-              ? "glass-tab-active text-stone-900 dark:text-stone-100"
-              : "text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+              ? "bg-white text-stone-950 shadow-sm ring-1 ring-[var(--glass-border)] dark:bg-stone-800 dark:text-stone-50"
+              : "text-stone-500 hover:bg-white/60 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-stone-800/60 dark:hover:text-stone-100"
           }`}
         >
           {t("agentConfig.modelConfigTab")}

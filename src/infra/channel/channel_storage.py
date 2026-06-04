@@ -9,6 +9,7 @@ import types
 import uuid
 from typing import Any, Optional
 
+from src.infra.async_utils import run_blocking_io
 from src.infra.logging import get_logger
 from src.infra.mcp.encryption import decrypt_value, encrypt_value
 from src.infra.storage.mongodb import get_mongo_client
@@ -26,6 +27,7 @@ logger = get_logger(__name__)
 SENSITIVE_FIELDS = frozenset(
     {"app_secret", "secret", "token", "password", "api_key", "access_token"}
 )
+CHANNEL_CONFIG_LIST_LIMIT = 200
 
 
 class ChannelStorage:
@@ -112,7 +114,7 @@ class ChannelStorage:
 
         doc = await collection.find_one(query)
         if doc:
-            return self._doc_to_config(doc)
+            return await self._doc_to_config(doc)
         return None
 
     async def create_config(
@@ -125,6 +127,7 @@ class ChannelStorage:
         agent_id: str | None = None,
         model_id: str | None = None,
         project_id: str | None = None,
+        team_id: str | None = None,
         persona_preset_id: str | None = None,
     ) -> dict[str, Any]:
         """Create channel configuration for a user"""
@@ -140,11 +143,12 @@ class ChannelStorage:
             "channel_type": channel_type.value,
             "instance_id": instance_id,
             "name": name,
-            "config": self._encrypt_config(config),
+            "config": await self._encrypt_config(config),
             "enabled": enabled,
             "agent_id": agent_id,
             "model_id": model_id,
             "project_id": project_id,
+            "team_id": team_id,
             "persona_preset_id": persona_preset_id,
             "created_at": now,
             "updated_at": now,
@@ -155,7 +159,7 @@ class ChannelStorage:
             f"Created {channel_type.value} config '{name}' ({instance_id}) for user {user_id}"
         )
 
-        return self._doc_to_config(doc)
+        return await self._doc_to_config(doc)
 
     async def update_config(
         self,
@@ -168,6 +172,7 @@ class ChannelStorage:
         agent_id: Optional[str] | types.EllipsisType = ...,
         model_id: Optional[str] | types.EllipsisType = ...,
         project_id: Optional[str] | types.EllipsisType = ...,
+        team_id: Optional[str] | types.EllipsisType = ...,
         persona_preset_id: Optional[str] | types.EllipsisType = ...,
     ) -> Optional[dict[str, Any]]:
         """Update channel configuration for a user"""
@@ -182,7 +187,7 @@ class ChannelStorage:
 
         update_data: dict[str, Any] = {
             "updated_at": utc_now_iso(),
-            "config": self._encrypt_config(config),
+            "config": await self._encrypt_config(config),
         }
 
         if enabled is not None:
@@ -195,6 +200,8 @@ class ChannelStorage:
             update_data["model_id"] = model_id
         if project_id is not ...:
             update_data["project_id"] = project_id
+        if team_id is not ...:
+            update_data["team_id"] = team_id
         if persona_preset_id is not ...:
             update_data["persona_preset_id"] = persona_preset_id
 
@@ -207,7 +214,7 @@ class ChannelStorage:
         updated_doc = await collection.find_one(
             {"user_id": user_id, "channel_type": channel_type.value, "instance_id": instance_id}
         )
-        return self._doc_to_config(updated_doc) if updated_doc else None
+        return await self._doc_to_config(updated_doc) if updated_doc else None
 
     async def delete_config(
         self,
@@ -305,6 +312,7 @@ class ChannelStorage:
             agent_id=config.get("agent_id"),
             model_id=config.get("model_id"),
             project_id=config.get("project_id"),
+            team_id=config.get("team_id"),
             persona_preset_id=config.get("persona_preset_id"),
             created_at=config.get("created_at"),
             updated_at=config.get("updated_at"),
@@ -341,30 +349,67 @@ class ChannelStorage:
         await self.ensure_indexes_if_needed()
         collection = self._get_collection()
         configs = []
-        async for doc in collection.find({"user_id": user_id}):
-            configs.append(self._doc_to_config(doc))
+        async for doc in collection.find({"user_id": user_id}).limit(CHANNEL_CONFIG_LIST_LIMIT):
+            configs.append(await self._doc_to_config(doc))
         return configs
 
-    async def list_enabled_configs(self, channel_type: ChannelType) -> list[dict[str, Any]]:
-        """List all enabled configurations for a channel type (for channel manager)"""
+    async def list_user_configs_by_type(
+        self, user_id: str, channel_type: ChannelType
+    ) -> list[dict[str, Any]]:
+        """List channel configurations for a user and channel type."""
         await self.ensure_indexes_if_needed()
         collection = self._get_collection()
         configs = []
-        async for doc in collection.find({"channel_type": channel_type.value, "enabled": True}):
-            configs.append(self._doc_to_config(doc))
+        async for doc in collection.find(
+            {"user_id": user_id, "channel_type": channel_type.value}
+        ).limit(CHANNEL_CONFIG_LIST_LIMIT):
+            configs.append(await self._doc_to_config(doc))
         return configs
 
-    def _encrypt_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    async def count_user_configs(self, user_id: str) -> int:
+        """Count channel configurations for a user without loading config payloads."""
+        await self.ensure_indexes_if_needed()
+        collection = self._get_collection()
+        return int(await collection.count_documents({"user_id": user_id}))
+
+    async def count_user_configs_by_type(self, user_id: str, channel_type: ChannelType) -> int:
+        """Count channel configurations for a user and type without loading payloads."""
+        await self.ensure_indexes_if_needed()
+        collection = self._get_collection()
+        return int(
+            await collection.count_documents(
+                {"user_id": user_id, "channel_type": channel_type.value}
+            )
+        )
+
+    async def list_enabled_configs(self, channel_type: ChannelType) -> list[dict[str, Any]]:
+        """List all enabled configurations for a channel type (for channel manager)"""
+        configs = []
+        async for config in self.iter_enabled_configs(channel_type):
+            configs.append(config)
+        return configs
+
+    async def iter_enabled_configs(self, channel_type: ChannelType):
+        """Iterate enabled configurations for a channel type without materializing all rows."""
+        await self.ensure_indexes_if_needed()
+        collection = self._get_collection()
+        cursor = collection.find({"channel_type": channel_type.value, "enabled": True}).limit(
+            CHANNEL_CONFIG_LIST_LIMIT
+        )
+        async for doc in cursor:
+            yield await self._doc_to_config(doc)
+
+    async def _encrypt_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """Encrypt sensitive fields in config"""
         encrypted = {}
         for key, value in config.items():
             if key in SENSITIVE_FIELDS and isinstance(value, str) and value:
-                encrypted[key] = encrypt_value({"value": value})
+                encrypted[key] = await run_blocking_io(encrypt_value, {"value": value})
             else:
                 encrypted[key] = value
         return encrypted
 
-    def _decrypt_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    async def _decrypt_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """Decrypt sensitive fields in config"""
         from src.infra.mcp.encryption import DecryptionError
 
@@ -374,7 +419,7 @@ class ChannelStorage:
                 if isinstance(value, dict):
                     # Encrypted value
                     try:
-                        dec = decrypt_value(value)
+                        dec = await run_blocking_io(decrypt_value, value)
                         if isinstance(dec, dict):
                             decrypted[key] = dec.get("value", "")
                         else:
@@ -405,10 +450,10 @@ class ChannelStorage:
                 masked[key] = value
         return masked
 
-    def _doc_to_config(self, doc: dict) -> dict[str, Any]:
+    async def _doc_to_config(self, doc: dict) -> dict[str, Any]:
         """Convert MongoDB document to config dict"""
         config = doc.get("config", {})
-        decrypted_config = self._decrypt_config(config)
+        decrypted_config = await self._decrypt_config(config)
 
         return {
             "user_id": doc.get("user_id"),  # Include user_id from document
@@ -420,6 +465,7 @@ class ChannelStorage:
             "agent_id": doc.get("agent_id"),
             "model_id": doc.get("model_id"),
             "project_id": doc.get("project_id"),
+            "team_id": doc.get("team_id"),
             "persona_preset_id": doc.get("persona_preset_id"),
             "created_at": doc.get("created_at"),
             "updated_at": doc.get("updated_at"),

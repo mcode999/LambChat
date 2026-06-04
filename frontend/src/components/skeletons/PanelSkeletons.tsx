@@ -672,12 +672,12 @@ export function AgentPanelSkeleton() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-4 animate-fade-in">
       <PanelHeaderSkeleton hasSearch={false} />
-      {/* Tab bar — matches glass-divider + tab buttons */}
-      <div className="glass-divider flex px-2">
-        <div className="px-4 py-3.5">
+      {/* Tab bar — segmented control */}
+      <div className="inline-grid grid-cols-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-1 sm:my-3">
+        <div className="flex items-center justify-center gap-2 rounded-md px-3 py-2">
           <SkeletonLine width="w-16 sm:w-20" className="!h-4" />
         </div>
-        <div className="px-4 py-3.5">
+        <div className="flex items-center justify-center gap-2 rounded-md px-3 py-2">
           <SkeletonLine width="w-12 sm:w-16" className="!h-4 !opacity-50" />
         </div>
       </div>
@@ -737,12 +737,12 @@ export function ModelPanelSkeleton() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-4 animate-fade-in">
       <PanelHeaderSkeleton hasSearch={false} />
-      {/* Tab bar — matches glass-tab-bar */}
-      <div className="glass-tab-bar flex px-4 sm:px-6">
-        <div className="px-5 py-3">
+      {/* Tab bar — segmented control */}
+      <div className="inline-grid grid-cols-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-1 sm:my-3">
+        <div className="flex items-center justify-center gap-2 rounded-md px-3 py-2">
           <SkeletonLine width="w-14 sm:w-16" className="!h-4" />
         </div>
-        <div className="px-5 py-3">
+        <div className="flex items-center justify-center gap-2 rounded-md px-3 py-2">
           <SkeletonLine width="w-20 sm:w-28" className="!h-4 !opacity-50" />
         </div>
       </div>

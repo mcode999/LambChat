@@ -15,7 +15,7 @@ interface DesktopMoreMenuProps {
   isOpen: boolean;
   onClose: () => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
-  position: { top: number; left: number };
+  position: { top: number; left: number } | null;
 }
 
 export function DesktopMoreMenu({
@@ -28,7 +28,7 @@ export function DesktopMoreMenu({
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (!isOpen) return null;
+  if (!isOpen || !position) return null;
 
   const visibleItems = featureItems.filter((i) => i.show);
 

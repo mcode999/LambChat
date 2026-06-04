@@ -3,6 +3,7 @@ import { Braces, Layers } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { getFullUrl } from "../../../services/api";
 import type { FileCardPreview as FileCardPreviewModel } from "../utils";
+import { ExcalidrawCardPreview } from "../../documents/previews/ExcalidrawCardPreview";
 
 interface FileCardPreviewProps {
   preview: FileCardPreviewModel;
@@ -268,6 +269,10 @@ export function FileCardPreview({
         loading="lazy"
       />
     );
+  }
+
+  if (preview.kind === "excalidraw" && imageUrl) {
+    return <ExcalidrawCardPreview url={imageUrl} />;
   }
 
   switch (preview.kind) {

@@ -2,7 +2,7 @@
 
 # 🐑 LambChat
 
-**An open-source, production-ready AI Agent platform for building, running, and sharing real tool-using agents**
+**An open-source AI Agent platform for building, running, and sharing agents that actually do the work**
 
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)]()
 [![React](https://img.shields.io/badge/React-19-green.svg)]()
@@ -14,11 +14,31 @@
 
 [English](README.md) · [简体中文](README_CN.md) · [Documentation](https://yanyutin753.github.io/LambChat/en/) · [Contributing](CONTRIBUTING.md)
 
+<br>
+
+<img src="docs/images/readme/hero.webp" alt="LambChat AI Agent Platform" width="920">
+
 </div>
 
 ---
 
-## 📸 Screenshots
+## 🌟 Why LambChat
+
+LambChat is built for teams who want more than a chatbot UI. It gives you a complete AI Agent system with model management, MCP connectivity, skills, storage, sharing, approvals, and deployment-ready backend/frontend infrastructure in one project.
+
+| Agent Runtime | Tools and MCP | Skills and Memory | Production Infra |
+|---|---|---|---|
+| Deep agent graphs, streaming output, sub-agents, thinking mode, and human approval. | System and user MCP, encrypted secrets, tool cache, upload/reveal tools, and sandbox execution. | Skill marketplace, GitHub sync, persona presets, model routing, and MongoDB-backed memory. | FastAPI, React 19, auth/RBAC, tracing, health checks, storage, realtime sync, and deployment assets. |
+
+## 📸 Product Preview
+
+| Chat and execution | Skills marketplace | Operations console |
+|:---:|:---:|:---:|
+| <img src="docs/images/best-practice/chat-response.webp" width="300" alt="Streaming agent response"><br>**Streaming agent work** | <img src="docs/images/best-practice/marketplace-page.webp" width="300" alt="Skill marketplace"><br>**Reusable skills** | <img src="docs/images/best-practice/mcp-page.webp" width="300" alt="MCP configuration"><br>**MCP and tools** |
+| <img src="docs/images/best-practice/files-page.webp" width="300" alt="File library"><br>**Rich file library** | <img src="docs/images/best-practice/models-page.webp" width="300" alt="Model configuration"><br>**Model routing** | <img src="docs/images/best-practice/mobile-view.webp" width="190" alt="Mobile responsive view"><br>**Responsive UI** |
+
+<details>
+<summary><b>View the full screenshot gallery</b></summary>
 
 | | | |
 |:---:|:---:|:---:|
@@ -29,17 +49,9 @@
 | <img src="docs/images/best-practice/models-page.webp" width="280" alt="Models"><br>**Models** | <img src="docs/images/best-practice/channels-page.webp" width="280" alt="Channels"><br>**Channels** | <img src="docs/images/best-practice/files-page.webp" width="280" alt="Files"><br>**Files** |
 | <img src="docs/images/best-practice/persona-page.webp" width="280" alt="Persona"><br>**Persona** | <img src="docs/images/best-practice/memory-page.webp" width="280" alt="Memory"><br>**Memory** | <img src="docs/images/best-practice/notifications-page.webp" width="280" alt="Notifications"><br>**Notifications** |
 | <img src="docs/images/best-practice/settings-page.webp" width="280" alt="Settings"><br>**Settings** | <img src="docs/images/best-practice/feedback-page.webp" width="280" alt="Feedback"><br>**Feedback** | <img src="docs/images/best-practice/shared-page.webp" width="280" alt="Shared"><br>**Shared Session** |
-| <img src="docs/images/best-practice/roles-page.webp" width="280" alt="Roles"><br>**Roles** | <img src="docs/images/best-practice/users-page.webp" width="280" alt="Users"><br>**Users** | <img src="docs/images/best-practice/mobile-view.webp" width="200" alt="Mobile"><br>**Mobile** |
-| <img src="docs/images/best-practice/tablet-view.webp" width="280" alt="Tablet"><br>**Tablet** |  |  |
+| <img src="docs/images/best-practice/roles-page.webp" width="280" alt="Roles"><br>**Roles** | <img src="docs/images/best-practice/users-page.webp" width="280" alt="Users"><br>**Users** | <img src="docs/images/best-practice/tablet-view.webp" width="280" alt="Tablet"><br>**Tablet** |
 
-## 🌟 Why LambChat
-
-LambChat is built for teams who want more than a chatbot UI. It gives you a complete AI Agent system with model management, MCP connectivity, skills, storage, sharing, approvals, and deployment-ready backend/frontend infrastructure in one project.
-
-- **Built for real execution** — agents can reason, call tools, use sub-agents, stream progress, and work with human approval when needed.
-- **Ready for operations** — includes auth, RBAC, encrypted secrets, tracing, health checks, sandbox integration, and distributed config sync.
-- **Designed for extensibility** — custom agents, MCP tools, skills, model providers, channels, persona presets, and storage backends can all be extended cleanly.
-- **Product-grade UX** — polished chat UI, file previews, project folders, sharing, feedback, responsive layouts, and multilingual support.
+</details>
 
 ## 🎬 Use Cases
 
@@ -49,6 +61,8 @@ LambChat is built for teams who want more than a chatbot UI. It gives you a comp
 | 2 | Godfather Fan Website | Builds a responsive English promo site for *The Godfather* trilogy with a cinematic visual direction, marquee hero section, generated images, and multi-device polish. | [View Session](https://lambchat.com/shared/9XlmaDANCjO9) |
 | 3 | Story Breakdown from Image | Understands visual input, identifies the stories shown in an image, and produces detailed plot-by-plot explanations with multimodal reasoning. | [View Session](https://lambchat.com/shared/MZX-eNnOoilN) |
 | 4 | EV Market Trend Analysis | Turns recent 2025-2026 electric vehicle data into a structured market analysis covering growth, regional performance, and key industry takeaways. | [View Session](https://lambchat.com/shared/5XUeuDEyd2CY) |
+| 5 | 🎮 Batch Game UI Icon Generation | Feed it one reference image and it analyzes the art style, generates **48 game UI icons** across 9 categories (candies, buttons, labels, currencies, characters, skills, navigation, frames, specials), auto-organizes them into folders, and **saves the workflow as a reusable skill** for next time. | [View Session](https://lambchat.com/shared/BFkDxT2J4pR0) |
+| 6 | 🥧 E-Commerce Product Image Suite | Enter a product keyword (e.g., "durian") and a target platform (Taobao / JD / Pinduoduo), and the Agent runs the full pipeline: audience analysis → visual strategy → auto-generate main image, lifestyle scene, detail shots, and combo images — a complete set of product-ready visuals in one shot. | [View Session](https://lambchat.com/shared/Hx8mPq3R5nW1) |
 
 ## 🏗️ Architecture
 

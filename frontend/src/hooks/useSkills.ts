@@ -31,6 +31,26 @@ export function resolveSkillListParams(
   return explicitParams ?? defaultParams ?? { limit: DEFAULT_SKILL_LIST_LIMIT };
 }
 
+export function resolveSkillListState<T extends { name: string }>({
+  currentSkills,
+  incomingSkills,
+  params,
+  appendPages,
+}: {
+  currentSkills: T[];
+  incomingSkills: T[];
+  params: SkillListParams;
+  appendPages: boolean;
+}): T[] {
+  if (!appendPages || !params.skip || params.skip <= 0) {
+    return incomingSkills;
+  }
+
+  const byName = new Map(currentSkills.map((skill) => [skill.name, skill]));
+  incomingSkills.forEach((skill) => byName.set(skill.name, skill));
+  return Array.from(byName.values());
+}
+
 // Map installed_from to SkillSource
 function mapInstalledToSource(installed_from: string): SkillSource {
   switch (installed_from) {
@@ -83,9 +103,11 @@ function composeSkillResponse(
 export function useSkills(options?: {
   enabled?: boolean;
   listParams?: SkillListParams;
+  appendPages?: boolean;
 }) {
   const enabled = options?.enabled !== false; // Default to true
   const listParams = options?.listParams;
+  const appendPages = options?.appendPages ?? false;
   const [skills, setSkills] = useState<SkillResponse[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [totalSkills, setTotalSkills] = useState(0);
@@ -113,6 +135,7 @@ export function useSkills(options?: {
         const response = await skillApi.list(
           resolveSkillListParams(params, listParams),
         );
+        const resolvedParams = resolveSkillListParams(params, listParams);
         const userSkills: UserSkill[] = response.skills;
         // For list view, we don't fetch full details immediately
         // Components that need details will fetch them on demand
@@ -123,15 +146,28 @@ export function useSkills(options?: {
         // 保留正在 toggle 中的 skill 的乐观状态，避免竞态覆盖
         const pendingToggles = pendingTogglesRef.current;
         if (pendingToggles.size === 0) {
-          setSkills(composed);
+          setSkills((current) =>
+            resolveSkillListState({
+              currentSkills: current,
+              incomingSkills: composed,
+              params: resolvedParams,
+              appendPages,
+            }),
+          );
         } else {
-          setSkills(
-            composed.map((s) => {
-              const pendingEnabled = pendingToggles.get(s.name);
-              if (pendingEnabled !== undefined) {
-                return { ...s, enabled: pendingEnabled };
-              }
-              return s;
+          const nextSkills = composed.map((s) => {
+            const pendingEnabled = pendingToggles.get(s.name);
+            if (pendingEnabled !== undefined) {
+              return { ...s, enabled: pendingEnabled };
+            }
+            return s;
+          });
+          setSkills((current) =>
+            resolveSkillListState({
+              currentSkills: current,
+              incomingSkills: nextSkills,
+              params: resolvedParams,
+              appendPages,
             }),
           );
         }
@@ -145,7 +181,7 @@ export function useSkills(options?: {
         setIsLoading(false);
       }
     },
-    [enabled, listParams],
+    [appendPages, enabled, listParams],
   );
 
   // Fetch single skill — metadata + file paths only (lazy: content loaded on demand)

@@ -11,6 +11,7 @@ import { LoadingSpinner } from "../../../common/LoadingSpinner";
 import { ChannelAgentSelect } from "../ChannelAgentSelect";
 import { ChannelModelSelect } from "../ChannelModelSelect";
 import { ChannelPersonaSelect } from "../ChannelPersonaSelect";
+import { ChannelTeamSelect } from "../ChannelTeamSelect";
 import {
   DEFAULT_AUDIO_TRANSCRIBE_PROMPT,
   PREDEFINED_EMOJIS,
@@ -38,6 +39,7 @@ interface FeishuPanelFormProps {
   audioTranscribePrompt: string;
   agentId: string | null;
   modelId: string | null;
+  teamId: string | null;
   personaPresetId: string | null;
   credentialMode: "scan" | "manual";
   registrationStatus: string;
@@ -59,6 +61,7 @@ interface FeishuPanelFormProps {
   setAudioTranscribePrompt: (value: string) => void;
   setAgentId: (value: string | null) => void;
   setModelId: (value: string | null) => void;
+  setTeamId: (value: string | null) => void;
   setPersonaPresetId: (value: string | null) => void;
   setCredentialMode: (value: "scan" | "manual") => void;
   handleStartRegistration: () => void;
@@ -117,6 +120,7 @@ export function FeishuPanelForm({
   audioTranscribePrompt,
   agentId,
   modelId,
+  teamId,
   personaPresetId,
   credentialMode,
   registrationStatus,
@@ -138,6 +142,7 @@ export function FeishuPanelForm({
   setAudioTranscribePrompt,
   setAgentId,
   setModelId,
+  setTeamId,
   setPersonaPresetId,
   setCredentialMode,
   handleStartRegistration,
@@ -604,10 +609,14 @@ export function FeishuPanelForm({
         <ChannelModelSelect value={modelId} onChange={setModelId} />
       </div>
       <div className="es-section">
-        <ChannelPersonaSelect
-          value={personaPresetId}
-          onChange={setPersonaPresetId}
-        />
+        {agentId === "team" ? (
+          <ChannelTeamSelect value={teamId} onChange={setTeamId} />
+        ) : (
+          <ChannelPersonaSelect
+            value={personaPresetId}
+            onChange={setPersonaPresetId}
+          />
+        )}
       </div>
 
       {/* Setup Guide */}

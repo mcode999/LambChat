@@ -109,7 +109,10 @@ export const SessionSidebar = forwardRef<
   const [shareDialogSessionName, setShareDialogSessionName] = useState("");
   const [isRecentChatsOpen, setIsRecentChatsOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-  const [moreMenuPosition, setMoreMenuPosition] = useState({ top: 0, left: 0 });
+  const [moreMenuPosition, setMoreMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const { hasAnyPermission } = useAuth();
   const { enableMemory } = useSettingsContext();
 
@@ -209,7 +212,11 @@ export const SessionSidebar = forwardRef<
     : expandedMoreMenuBtnRef;
 
   useEffect(() => {
-    if (!isMoreMenuOpen || !activeMoreMenuBtnRef.current) return;
+    if (!isMoreMenuOpen) {
+      setMoreMenuPosition(null);
+      return;
+    }
+    if (!activeMoreMenuBtnRef.current) return;
     const rect = activeMoreMenuBtnRef.current.getBoundingClientRect();
     const panelWidth = 208;
     const panelMaxHeight = 480;
@@ -861,7 +868,7 @@ export const SessionSidebar = forwardRef<
       {!isMobile && (
         <DesktopMoreMenu
           featureItems={moreMenuFeatureItems}
-          isOpen={isMoreMenuOpen}
+          isOpen={isMoreMenuOpen && moreMenuPosition !== null}
           onClose={() => setIsMoreMenuOpen(false)}
           menuRef={moreMenuRef}
           position={moreMenuPosition}

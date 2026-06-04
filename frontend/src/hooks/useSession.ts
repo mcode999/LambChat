@@ -22,17 +22,21 @@ export function reconcileSessionList(input: {
   previous: BackendSession[];
   latest: BackendSession[];
   removeMissing: boolean;
+  excludedSessionIds?: ReadonlySet<string>;
 }): BackendSession[] {
-  const { previous, latest, removeMissing } = input;
-  const latestIds = new Set(latest.map((session) => session.id));
-  const merged = latest.map((session) => session);
+  const { previous, latest, removeMissing, excludedSessionIds } = input;
+  const isExcluded = (session: BackendSession) =>
+    excludedSessionIds?.has(session.id) ?? false;
+  const visibleLatest = latest.filter((session) => !isExcluded(session));
+  const latestIds = new Set(visibleLatest.map((session) => session.id));
+  const merged = visibleLatest.map((session) => session);
 
   if (removeMissing) {
     return dedup(merged);
   }
 
   for (const session of previous) {
-    if (!latestIds.has(session.id)) {
+    if (!latestIds.has(session.id) && !isExcluded(session)) {
       merged.push(session);
     }
   }
@@ -72,6 +76,7 @@ export function useFilteredSessionList(
   const [skip, setSkip] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const loadedCountRef = useRef(PAGE_SIZE);
+  const excludedSessionIdsRef = useRef<Set<string>>(new Set());
 
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0.1,
@@ -99,27 +104,30 @@ export function useFilteredSessionList(
         favorites_only: filter.favoritesOnly,
       });
 
-      const newSessions =
+      const fetchedSessions =
         "sessions" in response
           ? response.sessions
           : Array.isArray(response)
             ? response
             : [];
       const newHasMore = "has_more" in response ? response.has_more : false;
+      const newSessions = fetchedSessions.filter(
+        (session) => !excludedSessionIdsRef.current.has(session.id),
+      );
 
       if (reset) {
         setSessions(dedup(newSessions));
-        setSkip(newSessions.length);
+        setSkip(fetchedSessions.length);
         loadedCountRef.current = Math.max(PAGE_SIZE, newSessions.length);
       } else {
         setSessions((prev) => dedup([...prev, ...newSessions]));
-        setSkip(targetSkip + newSessions.length);
+        setSkip(targetSkip + fetchedSessions.length);
         loadedCountRef.current = Math.max(
           loadedCountRef.current,
           targetSkip + newSessions.length,
         );
       }
-      setHasMore(newSessions.length > 0 ? newHasMore : false);
+      setHasMore(fetchedSessions.length > 0 ? newHasMore : false);
     } catch (err) {
       setError(
         err instanceof Error
@@ -179,6 +187,7 @@ export function useFilteredSessionList(
           previous: prev,
           latest: newSessions,
           removeMissing: filter.favoritesOnly || filter.projectId !== undefined,
+          excludedSessionIds: excludedSessionIdsRef.current,
         }),
       );
       loadedCountRef.current = Math.max(PAGE_SIZE, newSessions.length);
@@ -190,6 +199,7 @@ export function useFilteredSessionList(
   }, [filter.favoritesOnly, filter.projectId]);
 
   const prependSession = useCallback((session: BackendSession) => {
+    excludedSessionIdsRef.current.delete(session.id);
     setSessions((prev) => {
       if (prev.some((s) => s.id === session.id)) return prev;
       return [session, ...prev];
@@ -197,10 +207,12 @@ export function useFilteredSessionList(
   }, []);
 
   const removeSession = useCallback((sessionId: string) => {
+    excludedSessionIdsRef.current.add(sessionId);
     setSessions((prev) => prev.filter((s) => s.id !== sessionId));
   }, []);
 
   const updateSession = useCallback((session: BackendSession) => {
+    excludedSessionIdsRef.current.delete(session.id);
     setSessions((prev) => prev.map((s) => (s.id === session.id ? session : s)));
   }, []);
 

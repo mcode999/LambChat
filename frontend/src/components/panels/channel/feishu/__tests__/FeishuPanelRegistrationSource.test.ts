@@ -24,6 +24,11 @@ test("registration polling cleanup cancels active server-side session", () => {
   assert.match(panelSource, /return\s+\(\)\s*=>\s*\{/);
 });
 
+test("feishu panel uses the bot message icon", () => {
+  assert.match(panelSource, /BotMessageSquare/);
+  assert.doesNotMatch(panelSource, /import \{[^}]*\bMessageSquare\b/);
+});
+
 test("feishu channel form wires persona preset selection through save payloads", () => {
   assert.match(formSource, /ChannelPersonaSelect/);
   assert.match(formSource, /personaPresetId/);
@@ -31,10 +36,21 @@ test("feishu channel form wires persona preset selection through save payloads",
     panelSource,
     /const\s+\[personaPresetId,\s*setPersonaPresetId\]/,
   );
-  assert.match(
-    panelSource,
-    /setPersonaPresetId\(initialConfig\.persona_preset_id \|\| null\)/,
-  );
-  assert.match(panelSource, /persona_preset_id:\s*personaPresetId/);
+  assert.match(panelSource, /initialAgentId === "team"[\s\S]*\? null/);
+  assert.match(panelSource, /initialConfig\.persona_preset_id \|\| null/);
+  assert.match(panelSource, /channelPersonaPresetId/);
+  assert.match(panelSource, /persona_preset_id:\s*channelPersonaPresetId/);
   assert.match(channelTypesSource, /persona_preset_id\?: string \| null/);
+});
+
+test("feishu channel form switches from persona to team selection for team agent", () => {
+  assert.match(formSource, /ChannelTeamSelect/);
+  assert.match(formSource, /agentId\s*===\s*"team"/);
+  assert.match(formSource, /teamId/);
+  assert.match(panelSource, /const\s+\[teamId,\s*setTeamId\]/);
+  assert.match(panelSource, /channelTeamId/);
+  assert.match(panelSource, /team_id:\s*channelTeamId/);
+  assert.match(panelSource, /setPersonaPresetId\(null\)/);
+  assert.match(panelSource, /setTeamId\(null\)/);
+  assert.match(channelTypesSource, /team_id\?: string \| null/);
 });

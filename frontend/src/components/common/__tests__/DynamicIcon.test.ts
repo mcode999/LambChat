@@ -7,7 +7,7 @@ import { DynamicIcon } from "../DynamicIcon";
 test("emoji icons render inside a fixed-size box with a tight line height", () => {
   const markup = renderToStaticMarkup(
     React.createElement(DynamicIcon, {
-      name: "📁",
+      name: "💬",
       size: 18,
       className: "text-stone-500",
     }),

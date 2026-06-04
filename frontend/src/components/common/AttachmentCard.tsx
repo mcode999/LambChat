@@ -1,13 +1,16 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
 import type { MessageAttachment } from "../../types";
 import { ImageWithSkeleton } from "../chat/ChatMessage/ImageWithSkeleton";
+import { ExcalidrawThumbnail } from "./ExcalidrawThumbnail";
 import {
   getFileTypeInfo,
   formatFileSize as formatFileSizeUtil,
+  isExcalidrawFile,
 } from "../documents/utils";
+import { getFullUrl } from "../../services/api";
 
 // Re-export formatFileSize for external use
 // eslint-disable-next-line react-refresh/only-export-components
@@ -66,6 +69,14 @@ export const AttachmentCard = memo(function AttachmentCard({
     label,
   } = getAttachmentIconInfo(attachment.mimeType, attachment.name);
   const isImage = attachment.mimeType?.startsWith("image/") && attachment.url;
+  const fileExt = useMemo(() => {
+    const idx = attachment.name?.lastIndexOf(".");
+    return idx != null && idx > 0
+      ? attachment.name!.slice(idx + 1).toLowerCase()
+      : "";
+  }, [attachment.name]);
+  const isExcalidraw = isExcalidrawFile(fileExt) && !!attachment.url;
+  const isThumbnail = isImage || isExcalidraw;
   const isCompact = size === "compact";
 
   const handleClick = () => {
@@ -101,7 +112,9 @@ export const AttachmentCard = memo(function AttachmentCard({
             "shrink-0 flex items-center justify-center rounded-lg overflow-hidden",
             "transition-transform duration-200",
             !isUploading && "group-hover:scale-105",
-            isImage ? "size-10" : clsx("size-10", bgColor),
+            isThumbnail
+              ? "size-10 relative overflow-hidden"
+              : clsx("size-10", bgColor),
           )}
         >
           {isUploading ? (
@@ -112,6 +125,11 @@ export const AttachmentCard = memo(function AttachmentCard({
               alt={attachment.name}
               skipUrlResolve
               inline
+            />
+          ) : isExcalidraw ? (
+            <ExcalidrawThumbnail
+              url={getFullUrl(attachment.url) ?? attachment.url!}
+              alt={attachment.name}
             />
           ) : (
             <FileIcon size={18} className={iconColor} />
@@ -202,7 +220,7 @@ export const AttachmentCard = memo(function AttachmentCard({
           "shrink-0 flex items-center justify-center",
           "transition-transform duration-300",
           !isUploading && "group-hover:scale-105",
-          isImage
+          isThumbnail
             ? "size-12 sm:size-14 rounded-l-2xl sm:rounded-l-xl overflow-hidden"
             : clsx("size-12 sm:size-14 rounded-l-2xl sm:rounded-l-xl", bgColor),
         )}
@@ -219,6 +237,12 @@ export const AttachmentCard = memo(function AttachmentCard({
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </>
+        ) : isExcalidraw ? (
+          <ExcalidrawThumbnail
+            url={getFullUrl(attachment.url) ?? attachment.url!}
+            alt={attachment.name}
+            className="w-full h-full object-cover"
+          />
         ) : (
           <FileIcon
             size={18}

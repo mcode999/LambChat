@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import QRCode from "qrcode";
 import { BackIcon } from "../../../common/BackIcon";
-import { MessageSquare, Save, Trash2 } from "lucide-react";
+import { BotMessageSquare, Save, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../../../hooks/useAuth";
@@ -62,6 +62,7 @@ export function FeishuPanel({
   );
   const [agentId, setAgentId] = useState<string | null>(null);
   const [modelId, setModelId] = useState<string | null>(null);
+  const [teamId, setTeamId] = useState<string | null>(null);
   const [personaPresetId, setPersonaPresetId] = useState<string | null>(null);
   const [registrationSessionId, setRegistrationSessionId] = useState<
     string | null
@@ -118,9 +119,17 @@ export function FeishuPanel({
           DEFAULT_AUDIO_TRANSCRIBE_PROMPT,
       );
       setCredentialMode("manual");
-      setAgentId(initialConfig.agent_id || null);
+      const initialAgentId = initialConfig.agent_id || null;
+      setAgentId(initialAgentId);
       setModelId(initialConfig.model_id || null);
-      setPersonaPresetId(initialConfig.persona_preset_id || null);
+      setTeamId(
+        initialAgentId === "team" ? initialConfig.team_id || null : null,
+      );
+      setPersonaPresetId(
+        initialAgentId === "team"
+          ? null
+          : initialConfig.persona_preset_id || null,
+      );
 
       const emojiValue = (feishuConfig?.react_emoji as string) || "THUMBSUP";
       const isPredefined = PREDEFINED_EMOJIS.some(
@@ -152,6 +161,7 @@ export function FeishuPanel({
       setCredentialMode("scan");
       setAgentId(null);
       setModelId(null);
+      setTeamId(null);
       setPersonaPresetId(null);
     }
 
@@ -182,6 +192,9 @@ export function FeishuPanel({
         setAudioTranscribePrompt(DEFAULT_AUDIO_TRANSCRIBE_PROMPT);
         setCredentialMode("scan");
         setStatus(null);
+        setAgentId(null);
+        setModelId(null);
+        setTeamId(null);
         setPersonaPresetId(null);
         setIsLoading(false);
         return;
@@ -209,9 +222,17 @@ export function FeishuPanel({
             DEFAULT_AUDIO_TRANSCRIBE_PROMPT,
         );
         setCredentialMode("manual");
-        setAgentId(configResponse.agent_id || null);
+        const loadedAgentId = configResponse.agent_id || null;
+        setAgentId(loadedAgentId);
         setModelId(configResponse.model_id || null);
-        setPersonaPresetId(configResponse.persona_preset_id || null);
+        setTeamId(
+          loadedAgentId === "team" ? configResponse.team_id || null : null,
+        );
+        setPersonaPresetId(
+          loadedAgentId === "team"
+            ? null
+            : configResponse.persona_preset_id || null,
+        );
 
         // Check if the emoji is a predefined one or custom
         const emojiValue = feishuConfig?.react_emoji || "THUMBSUP";
@@ -244,6 +265,7 @@ export function FeishuPanel({
         setCredentialMode("scan");
         setAgentId(null);
         setModelId(null);
+        setTeamId(null);
         setPersonaPresetId(null);
       }
 
@@ -258,6 +280,15 @@ export function FeishuPanel({
 
   const getEmojiValue = () => {
     return useCustomEmoji ? customEmoji : reactEmoji;
+  };
+
+  const handleAgentIdChange = (value: string | null) => {
+    setAgentId(value);
+    if (value === "team") {
+      setPersonaPresetId(null);
+    } else {
+      setTeamId(null);
+    }
   };
 
   useEffect(() => {
@@ -394,6 +425,9 @@ export function FeishuPanel({
     setIsSaving(true);
     try {
       const emojiValue = getEmojiValue();
+      const channelTeamId = agentId === "team" ? teamId : null;
+      const channelPersonaPresetId =
+        agentId === "team" ? null : personaPresetId;
 
       if (hasExistingConfig) {
         const updateData: Record<string, unknown> = {
@@ -421,7 +455,8 @@ export function FeishuPanel({
           enabled,
           agent_id: agentId,
           model_id: modelId,
-          persona_preset_id: personaPresetId,
+          team_id: channelTeamId,
+          persona_preset_id: channelPersonaPresetId,
         });
         const feishuConfig = updated.config as FeishuConfigResponse;
         setConfig(feishuConfig);
@@ -444,7 +479,8 @@ export function FeishuPanel({
           },
           agent_id: agentId,
           model_id: modelId,
-          persona_preset_id: personaPresetId,
+          team_id: channelTeamId,
+          persona_preset_id: channelPersonaPresetId,
         });
         const feishuConfig = created.config as FeishuConfigResponse;
         setConfig(feishuConfig);
@@ -502,6 +538,9 @@ export function FeishuPanel({
       setAutoTranscribeAudio(true);
       setAudioTranscribePrompt(DEFAULT_AUDIO_TRANSCRIBE_PROMPT);
       setCredentialMode("scan");
+      setAgentId(null);
+      setModelId(null);
+      setTeamId(null);
       setPersonaPresetId(null);
       setStatus(null);
       toast.success(t("feishu.deleteSuccess", "Feishu configuration deleted"));
@@ -561,6 +600,7 @@ export function FeishuPanel({
       audioTranscribePrompt={audioTranscribePrompt}
       agentId={agentId}
       modelId={modelId}
+      teamId={teamId}
       personaPresetId={personaPresetId}
       credentialMode={credentialMode}
       registrationStatus={registrationStatus}
@@ -580,8 +620,9 @@ export function FeishuPanel({
       setStreamReply={setStreamReply}
       setAutoTranscribeAudio={setAutoTranscribeAudio}
       setAudioTranscribePrompt={setAudioTranscribePrompt}
-      setAgentId={setAgentId}
+      setAgentId={handleAgentIdChange}
       setModelId={setModelId}
+      setTeamId={setTeamId}
       setPersonaPresetId={setPersonaPresetId}
       setCredentialMode={setCredentialMode}
       handleStartRegistration={handleStartRegistration}
@@ -632,9 +673,9 @@ export function FeishuPanel({
         }
         subtitle={t("feishu.description")}
         icon={
-          <MessageSquare
+          <BotMessageSquare
             size={20}
-            className="text-blue-600 dark:text-blue-400"
+            className="text-[#3370ff] dark:text-[#7aa2ff]"
           />
         }
         footer={actionButtons}
@@ -651,9 +692,9 @@ export function FeishuPanel({
         title={t("feishu.title", "Feishu/Lark Channel")}
         subtitle={t("feishu.description")}
         icon={
-          <MessageSquare
+          <BotMessageSquare
             size={20}
-            className="text-blue-600 dark:text-blue-400"
+            className="text-[#3370ff] dark:text-[#7aa2ff]"
           />
         }
         actions={

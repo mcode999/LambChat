@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import deepagents.backends.protocol as _protocol
 
@@ -296,6 +296,35 @@ def read_result_to_string(value: object) -> str:
     return str(file_data.get("content", ""))
 
 
+ExtendedFileError = Literal[
+    "file_not_found",
+    "permission_denied",
+    "is_directory",
+    "invalid_path",
+    "too_many_files",
+    "file_too_large",
+]
+
+
+def file_upload_response(
+    *,
+    path: str,
+    error: ExtendedFileError | None = None,
+) -> FileUploadResponse:
+    """Create an upload response with LambChat's extended sandbox error codes."""
+    return FileUploadResponse(path=path, error=cast(Any, error))
+
+
+def file_download_response(
+    *,
+    path: str,
+    content: bytes | None = None,
+    error: ExtendedFileError | None = None,
+) -> FileDownloadResponse:
+    """Create a download response with LambChat's extended sandbox error codes."""
+    return FileDownloadResponse(path=path, content=content, error=cast(Any, error))
+
+
 # Re-export upstream protocol types so that mypy treats our aliases as
 # identical to the ones used in BaseSandbox / BackendProtocol signatures.
 __all__ = [
@@ -311,6 +340,9 @@ __all__ = [
     "LsResult",
     "ReadResult",
     "WriteResult",
+    "ExtendedFileError",
+    "file_download_response",
+    "file_upload_response",
     "is_read_result",
     "read_result_to_string",
 ]

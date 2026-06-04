@@ -3,6 +3,7 @@ import {
   formatFileSize,
   getFileExtension,
   getFileTypeInfo,
+  isExcalidrawFile,
   isImageFile,
 } from "../documents/utils";
 import { formatTimeAgo } from "../../utils/datetime";
@@ -79,6 +80,7 @@ export function getImagePreviewNavigation(
 
 export type FileCardPreviewKind =
   | "image"
+  | "excalidraw"
   | "text"
   | "code"
   | "markdown"
@@ -328,6 +330,18 @@ export function buildFileCardPreview(
       title,
       subtitle: description || fileInfo.label,
       badge: ext || "Image",
+      lines: [],
+      colorName,
+      imageUrl: file.url,
+    };
+  }
+
+  if (file.url && isExcalidrawFile(getFileExtension(file.file_name))) {
+    return {
+      kind: "excalidraw" as const,
+      title,
+      subtitle: description || fileInfo.label,
+      badge: ext || "Excalidraw",
       lines: [],
       colorName,
       imageUrl: file.url,

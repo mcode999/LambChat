@@ -339,7 +339,7 @@ export const ProjectItem = forwardRef<ProjectItemHandle, ProjectItemProps>(
               <DynamicIcon
                 name={project.icon}
                 size={20}
-                className="text-stone-500 dark:text-stone-400 fill-current text-[20px]"
+                className="text-primary text-[20px]"
               />
             </button>
           )}

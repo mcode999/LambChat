@@ -41,6 +41,8 @@ import type {
   PersonaPresetUpdate,
 } from "../../types";
 
+const PERSONA_SKILL_PAGE_SIZE = 20;
+
 const AVATAR_EMOJIS: { emoji: string; labelKey: string }[] = [
   { emoji: "✨", labelKey: "personaPresets.emojiSparkles" },
   { emoji: "🤖", labelKey: "personaPresets.emojiRobot" },
@@ -128,29 +130,56 @@ export function PersonaEditorModal({
 
   const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
   const [skillSearch, setSkillSearch] = useState("");
+  const [skillPage, setSkillPage] = useState(1);
   const skillDropdownRef = useRef<HTMLDivElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const iconPickerRef = useRef<HTMLDivElement>(null);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  const { skills: allSkills } = useSkills({ enabled: showModal });
+  const skillListParams = useMemo(
+    () => ({
+      skip: (skillPage - 1) * PERSONA_SKILL_PAGE_SIZE,
+      limit: PERSONA_SKILL_PAGE_SIZE,
+      q: skillSearch.trim() || undefined,
+    }),
+    [skillPage, skillSearch],
+  );
+
+  const {
+    skills: allSkills,
+    total: totalSkills,
+    isLoading: skillsLoading,
+  } = useSkills({
+    enabled: showModal && skillDropdownOpen,
+    listParams: skillListParams,
+    appendPages: true,
+  });
+
+  const hasMoreSkills = allSkills.length < totalSkills;
+
+  const handleSkillListScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      if (skillsLoading || !hasMoreSkills) {
+        return;
+      }
+      const target = event.currentTarget;
+      const distanceToBottom =
+        target.scrollHeight - target.scrollTop - target.clientHeight;
+      if (distanceToBottom <= 48) {
+        setSkillPage((page) => page + 1);
+      }
+    },
+    [hasMoreSkills, skillsLoading],
+  );
 
   const displayedSkills = useMemo(() => {
-    const q = skillSearch.trim().toLowerCase();
-    return allSkills
-      .filter(
-        (s) =>
-          !q ||
-          s.name.toLowerCase().includes(q) ||
-          (s.description || "").toLowerCase().includes(q),
-      )
-      .sort((a, b) => {
-        const aSel = draft.skill_names.includes(a.name) ? 0 : 1;
-        const bSel = draft.skill_names.includes(b.name) ? 0 : 1;
-        return aSel - bSel;
-      });
-  }, [allSkills, draft.skill_names, skillSearch]);
+    return [...allSkills].sort((a, b) => {
+      const aSel = draft.skill_names.includes(a.name) ? 0 : 1;
+      const bSel = draft.skill_names.includes(b.name) ? 0 : 1;
+      return aSel - bSel;
+    });
+  }, [allSkills, draft.skill_names]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -664,6 +693,7 @@ export function PersonaEditorModal({
                 onClick={() => {
                   setSkillDropdownOpen((v) => !v);
                   setSkillSearch("");
+                  setSkillPage(1);
                 }}
                 className={`ppe-skill-trigger ${
                   skillDropdownOpen ? "ppe-skill-trigger--open" : ""
@@ -722,7 +752,10 @@ export function PersonaEditorModal({
                       <input
                         type="text"
                         value={skillSearch}
-                        onChange={(e) => setSkillSearch(e.target.value)}
+                        onChange={(e) => {
+                          setSkillSearch(e.target.value);
+                          setSkillPage(1);
+                        }}
                         placeholder={t(
                           "skills.searchPlaceholder",
                           "搜索技能...",
@@ -766,7 +799,10 @@ export function PersonaEditorModal({
                     </div>
                   )}
 
-                  <div className="ppe-skill-dropdown__list">
+                  <div
+                    className="ppe-skill-dropdown__list"
+                    onScroll={handleSkillListScroll}
+                  >
                     {displayedSkills.length > 0 ? (
                       displayedSkills.map((skill) => {
                         const isSelected = draft.skill_names.includes(
@@ -825,6 +861,12 @@ export function PersonaEditorModal({
                         <span>
                           {t("skills.noMatchingSkills", "没有匹配的技能")}
                         </span>
+                      </div>
+                    )}
+                    {skillsLoading && displayedSkills.length > 0 && (
+                      <div className="ppe-skill-dropdown__loading">
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>{t("common.loading", "加载中...")}</span>
                       </div>
                     )}
                   </div>

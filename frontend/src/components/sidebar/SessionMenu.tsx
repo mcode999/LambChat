@@ -3,6 +3,7 @@
  */
 
 import { useRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   Edit2,
@@ -332,7 +333,7 @@ export function SessionMenu({
     zIndex: 50,
   };
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       style={{
@@ -343,6 +344,7 @@ export function SessionMenu({
       className="w-56 rounded-xl border shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top-right"
     >
       {subPanel ? projectSubPanel : mainMenu}
-    </div>
+    </div>,
+    document.body,
   );
 }

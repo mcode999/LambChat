@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { MessageCircle, Radio, Plus, MoreVertical } from "lucide-react";
+import { BotMessageSquare, Bot, Radio, Plus, MoreVertical } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../hooks/useAuth";
@@ -27,13 +27,14 @@ import { formatDate } from "../../utils/datetime";
 
 // Icon map for channel icons
 const CHANNEL_ICONS: Record<string, React.FC<{ className?: string }>> = {
-  "message-circle": MessageCircle,
-  feishu: Radio,
+  BotMessageSquare,
+  "message-circle": Bot,
+  feishu: BotMessageSquare,
 };
 
 // Get icon component
 function getChannelIcon(iconName: string, className?: string) {
-  const IconComponent = CHANNEL_ICONS[iconName] || MessageCircle;
+  const IconComponent = CHANNEL_ICONS[iconName] || Bot;
   return <IconComponent className={className} />;
 }
 
@@ -297,9 +298,10 @@ export function ChannelsPage() {
         <PanelHeader
           title={metadata?.display_name || selectedChannel!}
           subtitle={metadata?.description || ""}
-          icon={
-            <Radio size={24} className="text-[var(--theme-text-secondary)]" />
-          }
+          icon={getChannelIcon(
+            metadata?.icon || selectedChannel!,
+            "h-6 w-6 text-[var(--theme-text-secondary)]",
+          )}
           actions={
             canWrite && (
               <button
@@ -376,10 +378,21 @@ export function ChannelsPage() {
                             : "-"}
                         </p>
                       </div>
-                      <MoreVertical
-                        size={18}
-                        className="text-[var(--theme-text-secondary)]"
-                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(
+                            `/channels/${selectedChannel}/${instance.instance_id}`,
+                          );
+                        }}
+                        className="flex-shrink-0 rounded p-1 hover:bg-stone-200/60 dark:hover:bg-stone-700/60 transition-colors"
+                        title={t("channel.moreOptions", "View details")}
+                      >
+                        <MoreVertical
+                          size={18}
+                          className="text-[var(--theme-text-secondary)]"
+                        />
+                      </button>
                     </div>
                   </div>
                 );
