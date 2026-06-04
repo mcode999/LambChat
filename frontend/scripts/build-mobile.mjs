@@ -1,0 +1,23 @@
+import { spawnSync } from "node:child_process";
+
+const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const appUrl = process.env.LAMBCHAT_APP_URL || process.env.VITE_API_BASE || "";
+
+if (!appUrl) {
+  console.error(
+    "Missing LAMBCHAT_APP_URL. Example: LAMBCHAT_APP_URL=https://chat.example.com pnpm mobile:build",
+  );
+  process.exit(1);
+}
+
+const normalizedAppUrl = appUrl.replace(/\/+$/, "");
+
+const result = spawnSync(pnpmCommand, ["build"], {
+  stdio: "inherit",
+  env: {
+    ...process.env,
+    VITE_API_BASE: normalizedAppUrl,
+  },
+});
+
+process.exit(result.status ?? 1);

@@ -85,7 +85,7 @@ docs/.vitepress/cache/
 # YubbChat (external project, not part of this repo)
 YubbChat/
 .codex
-scripts/
+/scripts/
 docs/docs/.vitepress/
 .gitignore
 k8s/lambchat-secret.yaml
