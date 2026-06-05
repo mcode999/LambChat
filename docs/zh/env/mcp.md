@@ -49,6 +49,8 @@ Model Context Protocol (MCP) 和工具系统设置。
 | `IMAGE_GENERATION_API_KEY` | _(空)_ | 是 | 图像生成 API 密钥。 |
 | `IMAGE_GENERATION_BASE_URL` | `https://api.openai.com/v1` | 否 | OpenAI 兼容图像 API 基础 URL。 |
 | `IMAGE_GENERATION_MODEL` | `gpt-image-2` | 否 | 图像模型名称。 |
+| `IMAGE_GENERATION_PROVIDER` | `openai_images` | 否 | 图像生成供应商适配器：`openai_images`、`generic_openai_images` 或 `siliconflow`。 |
+| `IMAGE_GENERATION_CAPABILITIES_JSON` | `{}` | 否 | 图像供应商能力覆盖 JSON，用于声明支持参数、字段映射、端点和默认值。 |
 | `IMAGE_GENERATION_TIMEOUT` | `120` | 否 | 请求超时时间（秒）。 |
 
 ## 示例
@@ -73,6 +75,7 @@ AUDIO_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
 ENABLE_IMAGE_GENERATION=true
 IMAGE_GENERATION_API_KEY=sk-your-key
 IMAGE_GENERATION_MODEL=gpt-image-2
+IMAGE_GENERATION_PROVIDER=openai_images
 ```
 
 ::: tip

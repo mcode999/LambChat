@@ -91,6 +91,69 @@ def _stub_context_tool_imports(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
+def _patch_successful_generation(
+    monkeypatch: pytest.MonkeyPatch,
+    image_generation_tool,
+    captured: dict[str, object],
+    *,
+    payload_key: str = "data",
+) -> None:
+    b64_image = base64.b64encode(b"fake-png").decode("ascii")
+
+    class _FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {payload_key: [{"b64_json": b64_image}]}
+
+    class _FakeHttpClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+        async def post(self, request_url: str, **kwargs):
+            captured["request_url"] = request_url
+            captured["kwargs"] = kwargs
+            return _FakeResponse()
+
+    class _FakeStorage:
+        async def upload_file(self, file, folder: str, filename: str, content_type: str):
+            captured["upload"] = {
+                "data": file.read(),
+                "folder": folder,
+                "filename": filename,
+                "content_type": content_type,
+            }
+            return SimpleNamespace(
+                key=f"{folder}/{filename}",
+                url="https://oss.example.com/generated.png",
+            )
+
+    async def fake_get_or_init_storage():
+        return _FakeStorage()
+
+    monkeypatch.setattr(
+        image_generation_tool.httpx,
+        "AsyncClient",
+        lambda **kwargs: _FakeHttpClient(),
+    )
+    monkeypatch.setattr(image_generation_tool, "get_or_init_storage", fake_get_or_init_storage)
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_API_KEY", "sk-test")
+    monkeypatch.setattr(
+        image_generation_tool.settings,
+        "IMAGE_GENERATION_BASE_URL",
+        "https://api.example.com/v1",
+    )
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_MODEL", "gpt-image-2")
+    monkeypatch.setattr(
+        image_generation_tool.settings, "IMAGE_GENERATION_PROVIDER", "openai_images"
+    )
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_CAPABILITIES_JSON", {})
+
+
 def test_get_image_generation_tool_returns_expected_tool() -> None:
     from src.infra.tool.image_generation_tool import get_image_generation_tool
 
@@ -206,6 +269,176 @@ async def test_image_generate_calls_images_api_and_uploads_base64_result(
     assert captured["upload"]["content_type"] == "image/png"
 
 
+@pytest.mark.asyncio
+async def test_image_generate_accepts_model_override_and_extra_options(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.infra.tool import image_generation_tool
+
+    captured: dict[str, object] = {}
+    _patch_successful_generation(monkeypatch, image_generation_tool, captured)
+
+    result = json.loads(
+        await image_generation_tool.image_generate.coroutine(
+            prompt="draw a cat",
+            model="custom-image-model",
+            extra_options={"response_format": "b64_json", "quality": None},
+            runtime=_Runtime("user-1"),
+        )
+    )
+
+    assert result["success"] is True
+    assert captured["kwargs"]["json"]["model"] == "custom-image-model"
+    assert captured["kwargs"]["json"]["response_format"] == "b64_json"
+    assert "quality" not in captured["kwargs"]["json"]
+
+
+@pytest.mark.asyncio
+async def test_image_generate_filters_unsupported_parameters_for_generic_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.infra.tool import image_generation_tool
+
+    captured: dict[str, object] = {}
+    _patch_successful_generation(monkeypatch, image_generation_tool, captured)
+    monkeypatch.setattr(
+        image_generation_tool.settings,
+        "IMAGE_GENERATION_PROVIDER",
+        "generic_openai_images",
+    )
+
+    result = json.loads(
+        await image_generation_tool.image_generate.coroutine(
+            prompt="draw a cat",
+            negative_prompt="text",
+            seed=123,
+            runtime=_Runtime("user-1"),
+        )
+    )
+
+    payload = captured["kwargs"]["json"]
+    assert payload == {
+        "model": "gpt-image-2",
+        "prompt": "draw a cat",
+        "size": "1024x1024",
+        "n": 1,
+    }
+    assert result["metadata"]["provider"] == "generic_openai_images"
+    assert set(result["metadata"]["dropped_parameters"]) == {
+        "background",
+        "negative_prompt",
+        "output_format",
+        "quality",
+        "seed",
+    }
+
+
+@pytest.mark.asyncio
+async def test_image_generate_maps_siliconflow_parameters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.infra.tool import image_generation_tool
+
+    captured: dict[str, object] = {}
+    _patch_successful_generation(monkeypatch, image_generation_tool, captured)
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_PROVIDER", "siliconflow")
+    monkeypatch.setattr(
+        image_generation_tool.settings, "IMAGE_GENERATION_MODEL", "black-forest-labs/FLUX.1"
+    )
+
+    result = json.loads(
+        await image_generation_tool.image_generate.coroutine(
+            prompt="draw a cat",
+            size="768x1024",
+            n=8,
+            negative_prompt="text",
+            seed=7,
+            steps=24,
+            guidance_scale=3.5,
+            runtime=_Runtime("user-1"),
+        )
+    )
+
+    assert result["success"] is True
+    assert captured["kwargs"]["json"] == {
+        "model": "black-forest-labs/FLUX.1",
+        "prompt": "draw a cat",
+        "image_size": "1024x1536",
+        "batch_size": 4,
+        "negative_prompt": "text",
+        "seed": 7,
+        "num_inference_steps": 24,
+        "guidance_scale": 3.5,
+    }
+
+
+@pytest.mark.asyncio
+async def test_image_generate_uses_capability_json_provider_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.infra.tool import image_generation_tool
+
+    captured: dict[str, object] = {}
+    _patch_successful_generation(monkeypatch, image_generation_tool, captured, payload_key="images")
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_PROVIDER", "custom")
+    monkeypatch.setattr(
+        image_generation_tool.settings,
+        "IMAGE_GENERATION_CAPABILITIES_JSON",
+        {
+            "providers": {
+                "custom": {
+                    "generation_endpoint": "/v1/render",
+                    "supported_parameters": ["model", "prompt", "n", "size", "negative_prompt"],
+                    "parameter_map": {"n": "batch_size", "size": "image_size"},
+                    "max_n": 2,
+                    "defaults": {"response_format": "url"},
+                }
+            }
+        },
+    )
+
+    result = json.loads(
+        await image_generation_tool.image_generate.coroutine(
+            prompt="draw a cat",
+            n=9,
+            negative_prompt="text",
+            runtime=_Runtime("user-1"),
+        )
+    )
+
+    assert result["success"] is True
+    assert captured["request_url"] == "https://api.example.com/v1/v1/render"
+    assert captured["kwargs"]["json"] == {
+        "response_format": "url",
+        "model": "gpt-image-2",
+        "prompt": "draw a cat",
+        "image_size": "1024x1024",
+        "batch_size": 2,
+        "negative_prompt": "text",
+    }
+
+
+@pytest.mark.asyncio
+async def test_image_generate_returns_error_when_provider_does_not_support_edits(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.infra.tool import image_generation_tool
+
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_API_KEY", "sk-test")
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_PROVIDER", "siliconflow")
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_CAPABILITIES_JSON", {})
+
+    result = json.loads(
+        await image_generation_tool.image_generate.coroutine(
+            prompt="make it brighter",
+            input_images=["https://files.example.com/source.png"],
+            runtime=_Runtime("user-1"),
+        )
+    )
+
+    assert result == {"error": "Image provider 'siliconflow' does not support image edits"}
+
+
 def test_image_generate_schema_describes_supported_parameters() -> None:
     from src.infra.tool.image_generation_tool import get_image_generation_tool
 
@@ -215,11 +448,21 @@ def test_image_generate_schema_describes_supported_parameters() -> None:
     supported_fields = {
         "prompt",
         "input_images",
+        "mode",
+        "model",
+        "provider",
         "background",
         "input_fidelity",
         "size",
         "quality",
+        "n",
         "output_format",
+        "negative_prompt",
+        "seed",
+        "steps",
+        "guidance_scale",
+        "strength",
+        "extra_options",
     }
     assert supported_fields.issubset(fields)
     assert "mask_url" not in fields

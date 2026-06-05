@@ -754,6 +754,23 @@ SETTING_DEFINITIONS: dict[str, dict] = {
         "default": "gpt-image-2",
         "depends_on": "ENABLE_IMAGE_GENERATION",
     },
+    "IMAGE_GENERATION_PROVIDER": {
+        "type": SettingType.SELECT,
+        "category": SettingCategory.TOOLS,
+        "subcategory": "image_generation",
+        "description": "settingDesc.IMAGE_GENERATION_PROVIDER",
+        "default": "openai_images",
+        "options": ["openai_images", "generic_openai_images", "siliconflow"],
+        "depends_on": "ENABLE_IMAGE_GENERATION",
+    },
+    "IMAGE_GENERATION_CAPABILITIES_JSON": {
+        "type": SettingType.JSON,
+        "category": SettingCategory.TOOLS,
+        "subcategory": "image_generation",
+        "description": "settingDesc.IMAGE_GENERATION_CAPABILITIES_JSON",
+        "default": {},
+        "depends_on": "ENABLE_IMAGE_GENERATION",
+    },
     "IMAGE_GENERATION_TIMEOUT": {
         "type": SettingType.NUMBER,
         "category": SettingCategory.TOOLS,

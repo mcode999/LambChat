@@ -1924,6 +1924,8 @@
     "IMAGE_GENERATION_API_KEY": "画像生成・編集 API キー",
     "IMAGE_GENERATION_BASE_URL": "OpenAI互換画像APIのベースURL",
     "IMAGE_GENERATION_MODEL": "画像生成モデル名",
+    "IMAGE_GENERATION_PROVIDER": "画像生成プロバイダーアダプター",
+    "IMAGE_GENERATION_CAPABILITIES_JSON": "画像生成プロバイダーの機能上書き設定",
     "IMAGE_GENERATION_TIMEOUT": "画像生成リクエストのタイムアウト（秒）",
     "JSON_SCHEMA_ADD_ITEM": "追加",
     "JSON_SCHEMA_EMPTY": "設定項目がありません",

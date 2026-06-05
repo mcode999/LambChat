@@ -1,4 +1,4 @@
-"""OpenAI-compatible image generation tool for LambChat agents."""
+"""Provider-adapted image generation tool for LambChat agents."""
 
 from __future__ import annotations
 
@@ -9,6 +9,8 @@ import json
 import mimetypes
 import re
 import sys
+from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from tempfile import SpooledTemporaryFile
 from typing import Annotated, Any
@@ -41,6 +43,7 @@ logger = get_logger(__name__)
 
 DEFAULT_IMAGE_GENERATION_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_IMAGE_GENERATION_MODEL = "gpt-image-2"
+DEFAULT_IMAGE_GENERATION_PROVIDER = "openai_images"
 IMAGE_API_MAX_ATTEMPTS = 3
 IMAGE_API_RETRY_BASE_DELAY_SECONDS = 1.0
 _SPOOL_MAX_MEMORY_BYTES = 2 * 1024 * 1024
@@ -57,6 +60,13 @@ class ImageBackground(str, Enum):
 class ImageInputFidelity(str, Enum):
     LOW = "low"
     HIGH = "high"
+
+
+class ImageMode(str, Enum):
+    AUTO = "auto"
+    GENERATE = "generate"
+    EDIT = "edit"
+    IMG2IMG = "img2img"
 
 
 class ImageSize(str, Enum):
@@ -76,6 +86,109 @@ class ImageOutputFormat(str, Enum):
     PNG = "png"
     JPEG = "jpeg"
     WEBP = "webp"
+
+
+@dataclass(frozen=True)
+class ImageProviderProfile:
+    """Provider-specific request shape for image APIs."""
+
+    name: str
+    generation_endpoint: str = "/images/generations"
+    edit_endpoint: str | None = "/images/edits"
+    supports_edit: bool = True
+    generation_parameters: frozenset[str] = field(default_factory=frozenset)
+    edit_parameters: frozenset[str] = field(default_factory=frozenset)
+    parameter_map: dict[str, str] = field(default_factory=dict)
+    blocked_parameters: frozenset[str] = field(default_factory=frozenset)
+    defaults: dict[str, Any] = field(default_factory=dict)
+    generation_defaults: dict[str, Any] = field(default_factory=dict)
+    edit_defaults: dict[str, Any] = field(default_factory=dict)
+    max_n: int = 10
+    max_input_images: int = 16
+    file_field_name: str = "image"
+    strict_parameters: bool = False
+    allow_extra_options: bool = True
+
+
+@dataclass(frozen=True)
+class PreparedImagePayload:
+    payload: dict[str, Any]
+    dropped_parameters: tuple[str, ...] = ()
+
+
+_OPENAI_GENERATION_PARAMETERS = frozenset(
+    {
+        "model",
+        "prompt",
+        "background",
+        "size",
+        "quality",
+        "n",
+        "output_format",
+    }
+)
+_OPENAI_EDIT_PARAMETERS = _OPENAI_GENERATION_PARAMETERS | frozenset({"input_fidelity"})
+_GENERIC_OPENAI_PARAMETERS = frozenset({"model", "prompt", "size", "n"})
+_SILICONFLOW_GENERATION_PARAMETERS = frozenset(
+    {
+        "model",
+        "prompt",
+        "size",
+        "n",
+        "negative_prompt",
+        "seed",
+        "steps",
+        "guidance_scale",
+    }
+)
+_MANDATORY_IMAGE_PARAMETERS = frozenset({"model", "prompt"})
+_PROFILE_OVERRIDE_KEYS = {
+    "generation_endpoint",
+    "edit_endpoint",
+    "supports_edit",
+    "supported_parameters",
+    "generation_parameters",
+    "supported_generation_parameters",
+    "edit_parameters",
+    "supported_edit_parameters",
+    "parameter_map",
+    "blocked_parameters",
+    "blocked_params",
+    "drop_parameters",
+    "defaults",
+    "generation_defaults",
+    "edit_defaults",
+    "max_n",
+    "max_input_images",
+    "file_field_name",
+    "strict_parameters",
+    "allow_extra_options",
+}
+
+DEFAULT_PROVIDER_PROFILES: dict[str, ImageProviderProfile] = {
+    "openai_images": ImageProviderProfile(
+        name="openai_images",
+        generation_parameters=_OPENAI_GENERATION_PARAMETERS,
+        edit_parameters=_OPENAI_EDIT_PARAMETERS,
+    ),
+    "generic_openai_images": ImageProviderProfile(
+        name="generic_openai_images",
+        generation_parameters=_GENERIC_OPENAI_PARAMETERS,
+        edit_parameters=_GENERIC_OPENAI_PARAMETERS,
+    ),
+    "siliconflow": ImageProviderProfile(
+        name="siliconflow",
+        generation_parameters=_SILICONFLOW_GENERATION_PARAMETERS,
+        edit_endpoint=None,
+        supports_edit=False,
+        max_n=4,
+        parameter_map={
+            "size": "image_size",
+            "n": "batch_size",
+            "steps": "num_inference_steps",
+        },
+    ),
+}
 
 
 def _json(data: dict[str, Any]) -> str:
@@ -134,6 +247,21 @@ def _resolve_model() -> str:
     return str(model).strip() or DEFAULT_IMAGE_GENERATION_MODEL
 
 
+def _resolve_provider_name(provider: str | None = None) -> str:
+    resolved = (
+        provider
+        or getattr(settings, "IMAGE_GENERATION_PROVIDER", "")
+        or DEFAULT_IMAGE_GENERATION_PROVIDER
+    )
+    return str(resolved).strip() or DEFAULT_IMAGE_GENERATION_PROVIDER
+
+
+def _resolve_model_override(model: str | None = None) -> str:
+    if model and str(model).strip():
+        return str(model).strip()
+    return _resolve_model()
+
+
 def _enum_value(value: Any) -> str:
     return str(getattr(value, "value", value))
 
@@ -171,6 +299,263 @@ def _is_retryable_image_api_status(status_code: int | None) -> bool:
 
 def _image_api_retry_delay(attempt: int) -> float:
     return IMAGE_API_RETRY_BASE_DELAY_SECONDS * (2 ** max(0, attempt - 1))
+
+
+def _coerce_mapping(value: Any) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _coerce_string_set(value: Any, default: frozenset[str]) -> frozenset[str]:
+    if value is None:
+        return default
+    if not isinstance(value, list | tuple | set):
+        return default
+    return frozenset(str(item).strip() for item in value if str(item).strip())
+
+
+def _coerce_bool(value: Any, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"true", "1", "yes", "on"}:
+            return True
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+    return default
+
+
+def _coerce_positive_int(value: Any, default: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(1, parsed)
+
+
+def _load_capabilities_config() -> dict[str, Any]:
+    raw = getattr(settings, "IMAGE_GENERATION_CAPABILITIES_JSON", "") or ""
+    if isinstance(raw, Mapping):
+        return dict(raw)
+    if not str(raw).strip():
+        return {}
+    try:
+        parsed = json.loads(str(raw))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"IMAGE_GENERATION_CAPABILITIES_JSON is invalid JSON: {exc}") from exc
+    if not isinstance(parsed, Mapping):
+        raise ValueError("IMAGE_GENERATION_CAPABILITIES_JSON must be a JSON object")
+    return dict(parsed)
+
+
+def _merge_profile(
+    profile: ImageProviderProfile, override: Mapping[str, Any]
+) -> ImageProviderProfile:
+    supported_parameters = override.get("supported_parameters")
+    generation_parameters = _coerce_string_set(
+        override.get("generation_parameters", override.get("supported_generation_parameters")),
+        _coerce_string_set(supported_parameters, profile.generation_parameters),
+    )
+    edit_parameters = _coerce_string_set(
+        override.get("edit_parameters", override.get("supported_edit_parameters")),
+        _coerce_string_set(supported_parameters, profile.edit_parameters),
+    )
+
+    parameter_map = dict(profile.parameter_map)
+    parameter_map.update(
+        {
+            str(key): str(value)
+            for key, value in _coerce_mapping(override.get("parameter_map")).items()
+        }
+    )
+
+    blocked_parameters = profile.blocked_parameters
+    for key in ("blocked_parameters", "blocked_params", "drop_parameters"):
+        blocked_parameters = _coerce_string_set(override.get(key), blocked_parameters)
+
+    defaults = dict(profile.defaults)
+    defaults.update(_coerce_mapping(override.get("defaults")))
+    generation_defaults = dict(profile.generation_defaults)
+    generation_defaults.update(_coerce_mapping(override.get("generation_defaults")))
+    edit_defaults = dict(profile.edit_defaults)
+    edit_defaults.update(_coerce_mapping(override.get("edit_defaults")))
+
+    edit_endpoint = override.get("edit_endpoint", profile.edit_endpoint)
+    if isinstance(edit_endpoint, str) and not edit_endpoint.strip():
+        edit_endpoint = None
+
+    return replace(
+        profile,
+        generation_endpoint=str(
+            override.get("generation_endpoint", profile.generation_endpoint)
+        ).strip()
+        or profile.generation_endpoint,
+        edit_endpoint=str(edit_endpoint).strip() if edit_endpoint is not None else None,
+        supports_edit=_coerce_bool(override.get("supports_edit"), profile.supports_edit),
+        generation_parameters=generation_parameters,
+        edit_parameters=edit_parameters,
+        parameter_map=parameter_map,
+        blocked_parameters=blocked_parameters,
+        defaults=defaults,
+        generation_defaults=generation_defaults,
+        edit_defaults=edit_defaults,
+        max_n=_coerce_positive_int(override.get("max_n"), profile.max_n),
+        max_input_images=_coerce_positive_int(
+            override.get("max_input_images"),
+            profile.max_input_images,
+        ),
+        file_field_name=str(override.get("file_field_name", profile.file_field_name)).strip()
+        or profile.file_field_name,
+        strict_parameters=_coerce_bool(
+            override.get("strict_parameters"),
+            profile.strict_parameters,
+        ),
+        allow_extra_options=_coerce_bool(
+            override.get("allow_extra_options"),
+            profile.allow_extra_options,
+        ),
+    )
+
+
+def _default_provider_profile(provider_name: str) -> ImageProviderProfile:
+    profile = DEFAULT_PROVIDER_PROFILES.get(provider_name)
+    if profile is not None:
+        return profile
+    return replace(DEFAULT_PROVIDER_PROFILES["generic_openai_images"], name=provider_name)
+
+
+def _select_model_override(overrides: Mapping[str, Any], model: str) -> dict[str, Any]:
+    if not isinstance(overrides, Mapping):
+        return {}
+    candidates = [model]
+    if "/" in model:
+        candidates.append(model.split("/", 1)[1])
+    for candidate in candidates:
+        value = overrides.get(candidate)
+        if isinstance(value, Mapping):
+            return dict(value)
+    return {}
+
+
+def _resolve_provider_profile(provider_name: str, model: str) -> ImageProviderProfile:
+    profile = _default_provider_profile(provider_name)
+    capabilities = _load_capabilities_config()
+    if not capabilities:
+        return profile
+
+    global_override = {
+        key: value for key, value in capabilities.items() if key in _PROFILE_OVERRIDE_KEYS
+    }
+    if global_override:
+        profile = _merge_profile(profile, global_override)
+
+    direct_provider_override = capabilities.get(provider_name)
+    if isinstance(direct_provider_override, Mapping):
+        profile = _merge_profile(profile, direct_provider_override)
+
+    providers = capabilities.get("providers")
+    provider_override = providers.get(provider_name) if isinstance(providers, Mapping) else None
+    if isinstance(provider_override, Mapping):
+        profile = _merge_profile(profile, provider_override)
+        profile = _merge_profile(
+            profile,
+            _select_model_override(_coerce_mapping(provider_override.get("models")), model),
+        )
+
+    profile = _merge_profile(
+        profile,
+        _select_model_override(_coerce_mapping(capabilities.get("models")), model),
+    )
+    return profile
+
+
+def _join_api_url(base_url: str, endpoint: str) -> str:
+    if endpoint.startswith(("http://", "https://")):
+        return endpoint
+    return f"{base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+
+
+def _is_sendable_parameter_value(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str) and value == "":
+        return False
+    return True
+
+
+def _build_prepared_payload(
+    profile: ImageProviderProfile,
+    *,
+    operation: str,
+    canonical: dict[str, Any],
+    extra_options: Mapping[str, Any] | None,
+) -> PreparedImagePayload:
+    supported = (
+        profile.edit_parameters if operation == "edit" else profile.generation_parameters
+    ) | _MANDATORY_IMAGE_PARAMETERS
+    provider_defaults = dict(profile.defaults)
+    provider_defaults.update(
+        profile.edit_defaults if operation == "edit" else profile.generation_defaults
+    )
+    payload = {
+        key: value
+        for key, value in provider_defaults.items()
+        if key not in profile.blocked_parameters and value is not None
+    }
+    dropped: list[str] = []
+
+    for name, value in canonical.items():
+        if not _is_sendable_parameter_value(value):
+            continue
+        if name not in supported:
+            dropped.append(name)
+            continue
+        provider_key = profile.parameter_map.get(name, name)
+        if provider_key in profile.blocked_parameters or name in profile.blocked_parameters:
+            dropped.append(name)
+            continue
+        payload[provider_key] = value
+
+    if profile.strict_parameters and dropped:
+        dropped_text = ", ".join(sorted(set(dropped)))
+        raise ValueError(f"Image provider '{profile.name}' does not support: {dropped_text}")
+
+    if extra_options:
+        for key, value in extra_options.items():
+            provider_key = str(key).strip()
+            if not provider_key:
+                continue
+            if provider_key in profile.blocked_parameters:
+                dropped.append(f"extra_options.{provider_key}")
+                continue
+            if value is None:
+                payload.pop(provider_key, None)
+                continue
+            if profile.allow_extra_options:
+                payload[provider_key] = value
+            else:
+                dropped.append(f"extra_options.{provider_key}")
+
+    return PreparedImagePayload(payload=payload, dropped_parameters=tuple(sorted(set(dropped))))
+
+
+def _response_with_metadata(
+    result: dict[str, Any],
+    *,
+    profile: ImageProviderProfile,
+    model: str,
+    operation: str,
+    dropped_parameters: tuple[str, ...],
+) -> dict[str, Any]:
+    if not dropped_parameters:
+        return result
+    result["metadata"] = {
+        "provider": profile.name,
+        "model": model,
+        "operation": operation,
+        "dropped_parameters": list(dropped_parameters),
+    }
+    return result
 
 
 async def _post_image_api_with_retries(
@@ -352,6 +737,30 @@ def _extract_image_payload(data: dict[str, Any]) -> tuple[SpooledTemporaryFile |
     raise ValueError("Image API response did not include a readable image payload")
 
 
+def _extract_response_items(body: dict[str, Any]) -> list[dict[str, Any]]:
+    for key in ("data", "images", "output"):
+        raw_items = body.get(key)
+        if isinstance(raw_items, list):
+            items: list[dict[str, Any]] = []
+            for item in raw_items:
+                if isinstance(item, dict):
+                    items.append(item)
+                elif isinstance(item, str) and item.strip():
+                    items.append({"url": item})
+            if items:
+                return items
+        if isinstance(raw_items, dict):
+            return [raw_items]
+        if isinstance(raw_items, str) and raw_items.strip():
+            return [{"url": raw_items}]
+
+    for key in ("b64_json", "url"):
+        value = body.get(key)
+        if isinstance(value, str) and value.strip():
+            return [body]
+    return []
+
+
 async def _convert_result_item(
     item: dict[str, Any],
     *,
@@ -404,6 +813,14 @@ async def _call_generation_api(
     quality: str,
     n: int,
     output_format: str,
+    model: str | None,
+    provider: str | None,
+    negative_prompt: str | None,
+    seed: int | None,
+    steps: int | None,
+    guidance_scale: float | None,
+    strength: float | None,
+    extra_options: Mapping[str, Any] | None,
     runtime: ToolRuntime | None,
 ) -> dict[str, Any]:
     api_key = getattr(settings, "IMAGE_GENERATION_API_KEY", "") or ""
@@ -411,39 +828,46 @@ async def _call_generation_api(
         return {"error": "IMAGE_GENERATION_API_KEY is not configured"}
 
     base_url = _resolve_base_url()
-    model = _resolve_model()
+    resolved_model = _resolve_model_override(model)
+    provider_name = _resolve_provider_name(provider)
+    profile = _resolve_provider_profile(provider_name, resolved_model)
     timeout = getattr(settings, "IMAGE_GENERATION_TIMEOUT", 120) or 120
     user_id = get_user_id_from_runtime(runtime) or "anonymous"
 
     headers = {
         "Authorization": f"Bearer {api_key}",
     }
-    payload: dict[str, Any] = {
-        "model": model,
+    canonical: dict[str, Any] = {
+        "model": resolved_model,
         "prompt": prompt,
         "background": _enum_value(background),
         "size": _normalize_image_size(size),
         "quality": _enum_value(quality),
-        "n": max(1, min(int(n), 10)),
+        "n": max(1, min(int(n), profile.max_n)),
         "output_format": _enum_value(output_format),
+        "negative_prompt": negative_prompt,
+        "seed": seed,
+        "steps": steps,
+        "guidance_scale": guidance_scale,
+        "strength": strength,
     }
+    prepared = _build_prepared_payload(
+        profile,
+        operation="generation",
+        canonical=canonical,
+        extra_options=extra_options,
+    )
 
     async with httpx.AsyncClient(timeout=timeout) as client:
         body = await _post_image_api_with_retries(
             client,
-            f"{base_url}/images/generations",
+            _join_api_url(base_url, profile.generation_endpoint),
             operation="generation",
             headers=headers,
-            json=payload,
+            json=prepared.payload,
         )
 
-    items = []
-    if isinstance(body, dict):
-        raw_items = body.get("data")
-        if isinstance(raw_items, list):
-            items = [item for item in raw_items if isinstance(item, dict)]
-        elif isinstance(raw_items, dict):
-            items = [raw_items]
+    items = _extract_response_items(body) if isinstance(body, dict) else []
 
     if not items:
         return {
@@ -462,10 +886,16 @@ async def _call_generation_api(
             )
         )
 
-    return {
-        "success": True,
-        "images": images,
-    }
+    return _response_with_metadata(
+        {
+            "success": True,
+            "images": images,
+        },
+        profile=profile,
+        model=resolved_model,
+        operation="generation",
+        dropped_parameters=prepared.dropped_parameters,
+    )
 
 
 async def _call_edit_api(
@@ -478,6 +908,14 @@ async def _call_edit_api(
     quality: str,
     n: int,
     output_format: str,
+    model: str | None,
+    provider: str | None,
+    negative_prompt: str | None,
+    seed: int | None,
+    steps: int | None,
+    guidance_scale: float | None,
+    strength: float | None,
+    extra_options: Mapping[str, Any] | None,
     runtime: ToolRuntime | None,
 ) -> dict[str, Any]:
     api_key = getattr(settings, "IMAGE_GENERATION_API_KEY", "") or ""
@@ -485,53 +923,63 @@ async def _call_edit_api(
         return {"error": "IMAGE_GENERATION_API_KEY is not configured"}
 
     base_url = _resolve_base_url()
-    model = _resolve_model()
+    resolved_model = _resolve_model_override(model)
+    provider_name = _resolve_provider_name(provider)
+    profile = _resolve_provider_profile(provider_name, resolved_model)
+    if not profile.supports_edit or not profile.edit_endpoint:
+        return {"error": f"Image provider '{profile.name}' does not support image edits"}
+
     timeout = getattr(settings, "IMAGE_GENERATION_TIMEOUT", 120) or 120
     user_id = get_user_id_from_runtime(runtime) or "anonymous"
 
     source_files = []
     files: list[tuple[str, tuple[str, Any, str]]] = []
     try:
-        for index, image_url in enumerate(input_images[:16]):
+        for index, image_url in enumerate(input_images[: profile.max_input_images]):
             image_file, content_type, filename = await _download_image_source(
                 image_url,
                 runtime,
                 index=index,
             )
             source_files.append(image_file)
-            files.append(("image", (filename, image_file, content_type)))
+            files.append((profile.file_field_name, (filename, image_file, content_type)))
 
-        data: dict[str, Any] = {
-            "model": model,
+        canonical: dict[str, Any] = {
+            "model": resolved_model,
             "prompt": prompt,
             "background": _enum_value(background),
             "input_fidelity": _enum_value(input_fidelity),
             "size": _normalize_image_size(size),
             "quality": _enum_value(quality),
-            "n": max(1, min(int(n), 10)),
+            "n": max(1, min(int(n), profile.max_n)),
             "output_format": _enum_value(output_format),
+            "negative_prompt": negative_prompt,
+            "seed": seed,
+            "steps": steps,
+            "guidance_scale": guidance_scale,
+            "strength": strength,
         }
+        prepared = _build_prepared_payload(
+            profile,
+            operation="edit",
+            canonical=canonical,
+            extra_options=extra_options,
+        )
 
         async with httpx.AsyncClient(timeout=timeout) as client:
             body = await _post_image_api_with_retries(
                 client,
-                f"{base_url}/images/edits",
+                _join_api_url(base_url, profile.edit_endpoint),
                 operation="edit",
                 headers={"Authorization": f"Bearer {api_key}"},
-                data=data,
+                data=prepared.payload,
                 files=files,
             )
     finally:
         for image_file in source_files:
             image_file.close()
 
-    items = []
-    if isinstance(body, dict):
-        raw_items = body.get("data")
-        if isinstance(raw_items, list):
-            items = [item for item in raw_items if isinstance(item, dict)]
-        elif isinstance(raw_items, dict):
-            items = [raw_items]
+    items = _extract_response_items(body) if isinstance(body, dict) else []
 
     if not items:
         return {
@@ -550,10 +998,16 @@ async def _call_edit_api(
             )
         )
 
-    return {
-        "success": True,
-        "images": images,
-    }
+    return _response_with_metadata(
+        {
+            "success": True,
+            "images": images,
+        },
+        profile=profile,
+        model=resolved_model,
+        operation="edit",
+        dropped_parameters=prepared.dropped_parameters,
+    )
 
 
 @tool
@@ -562,6 +1016,18 @@ async def image_generate(
     input_images: Annotated[
         list[str] | None,
         "Optional source image URLs or project file URLs. Provide one or more images to switch to image-to-image mode; leave empty for pure text-to-image.",
+    ] = None,
+    mode: Annotated[
+        ImageMode,
+        "Operation mode. Use auto to generate when no input image is provided and edit when input images are provided.",
+    ] = ImageMode.AUTO,
+    model: Annotated[
+        str | None,
+        "Optional image model override. Defaults to IMAGE_GENERATION_MODEL.",
+    ] = None,
+    provider: Annotated[
+        str | None,
+        "Optional provider adapter override such as openai_images, generic_openai_images, or siliconflow.",
     ] = None,
     background: Annotated[
         ImageBackground,
@@ -587,6 +1053,26 @@ async def image_generate(
         ImageOutputFormat,
         "Output file format. Choose png, jpeg, or webp.",
     ] = ImageOutputFormat.PNG,
+    negative_prompt: Annotated[
+        str | None,
+        "Optional negative prompt for providers or models that support it.",
+    ] = None,
+    seed: Annotated[int | None, "Optional random seed for providers that support it."] = None,
+    steps: Annotated[
+        int | None, "Optional inference step count for providers that support it."
+    ] = None,
+    guidance_scale: Annotated[
+        float | None,
+        "Optional guidance scale / CFG value for providers that support it.",
+    ] = None,
+    strength: Annotated[
+        float | None,
+        "Optional image-to-image strength for providers that support it.",
+    ] = None,
+    extra_options: Annotated[
+        dict[str, Any] | None,
+        "Provider-specific raw options. Null values remove a generated provider parameter.",
+    ] = None,
     runtime: Annotated[ToolRuntime, InjectedToolArg] = None,  # type: ignore[assignment]
 ) -> str:
     """Generate or edit images with an OpenAI-compatible image API.
@@ -595,24 +1081,47 @@ async def image_generate(
     - text-to-image generation when only `prompt` is provided
     - image-to-image editing when `input_images` is provided
 
-    The tool accepts a small, opinionated set of options for canvas size, edit fidelity,
-    background handling, quality, and output format. Input images can be uploaded files,
+    The tool accepts a common set of image options and maps them through the configured
+    provider profile before calling the remote API. Unsupported options are dropped unless
+    the profile enables strict parameter validation. Input images can be uploaded files,
     project file URLs, or other accessible image URLs.
 
     The response contains uploaded image URLs plus metadata such as the generated file key
     and any revised prompt returned by the image API.
     """
     try:
-        if input_images:
+        input_image_list = list(input_images or [])
+        resolved_mode = _enum_value(mode)
+        if resolved_mode == ImageMode.AUTO.value:
+            operation = "edit" if input_image_list else "generation"
+        elif resolved_mode in {ImageMode.EDIT.value, ImageMode.IMG2IMG.value}:
+            operation = "edit"
+        else:
+            operation = "generation"
+
+        if operation == "edit" and not input_image_list:
+            return await _json_dumps_result({"error": "input_images is required for image edits"})
+        if operation == "generation" and input_image_list and resolved_mode != ImageMode.AUTO.value:
+            return await _json_dumps_result({"error": "mode=generate does not accept input_images"})
+
+        if operation == "edit":
             result = await _call_edit_api(
                 prompt=prompt,
-                input_images=list(input_images),
+                input_images=input_image_list,
                 background=background,
                 input_fidelity=input_fidelity,
                 size=size,
                 quality=quality,
                 n=n,
                 output_format=output_format,
+                model=model,
+                provider=provider,
+                negative_prompt=negative_prompt,
+                seed=seed,
+                steps=steps,
+                guidance_scale=guidance_scale,
+                strength=strength,
+                extra_options=extra_options,
                 runtime=runtime,
             )
         else:
@@ -623,6 +1132,14 @@ async def image_generate(
                 quality=quality,
                 n=n,
                 output_format=output_format,
+                model=model,
+                provider=provider,
+                negative_prompt=negative_prompt,
+                seed=seed,
+                steps=steps,
+                guidance_scale=guidance_scale,
+                strength=strength,
+                extra_options=extra_options,
                 runtime=runtime,
             )
         return await _json_dumps_result(result)

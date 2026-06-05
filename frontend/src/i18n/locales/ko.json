@@ -1924,6 +1924,8 @@
     "IMAGE_GENERATION_API_KEY": "이미지 생성/편집 API 키",
     "IMAGE_GENERATION_BASE_URL": "OpenAI 호환 이미지 API 기본 URL",
     "IMAGE_GENERATION_MODEL": "이미지 생성 모델 이름",
+    "IMAGE_GENERATION_PROVIDER": "이미지 생성 제공자 어댑터",
+    "IMAGE_GENERATION_CAPABILITIES_JSON": "이미지 생성 제공자 기능 재정의 설정",
     "IMAGE_GENERATION_TIMEOUT": "이미지 생성 요청 타임아웃(초)",
     "JSON_SCHEMA_ADD_ITEM": "추가",
     "JSON_SCHEMA_EMPTY": "구성 항목 없음",

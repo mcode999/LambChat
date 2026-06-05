@@ -1924,6 +1924,8 @@
     "IMAGE_GENERATION_API_KEY": "图像生成/编辑 API 密钥",
     "IMAGE_GENERATION_BASE_URL": "OpenAI 兼容图像 API 基础 URL",
     "IMAGE_GENERATION_MODEL": "图像生成模型名称",
+    "IMAGE_GENERATION_PROVIDER": "图像生成供应商适配器",
+    "IMAGE_GENERATION_CAPABILITIES_JSON": "图像生成供应商能力覆盖配置",
     "IMAGE_GENERATION_TIMEOUT": "图像生成请求超时时间（秒）",
     "JSON_SCHEMA_ADD_ITEM": "添加",
     "JSON_SCHEMA_EMPTY": "暂无配置项",

@@ -1924,6 +1924,8 @@
     "IMAGE_GENERATION_API_KEY": "Image generation API key",
     "IMAGE_GENERATION_BASE_URL": "OpenAI-compatible image API base URL",
     "IMAGE_GENERATION_MODEL": "Image generation model name",
+    "IMAGE_GENERATION_PROVIDER": "Image generation provider adapter",
+    "IMAGE_GENERATION_CAPABILITIES_JSON": "Provider capability overrides for image generation",
     "IMAGE_GENERATION_TIMEOUT": "Image generation request timeout in seconds",
     "JSON_SCHEMA_ADD_ITEM": "Add",
     "JSON_SCHEMA_EMPTY": "No items configured",

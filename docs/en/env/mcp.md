@@ -49,6 +49,8 @@ For MCP servers with many tools, deferred loading reduces prompt size by loading
 | `IMAGE_GENERATION_API_KEY` | _(empty)_ | Yes | Image generation API key. |
 | `IMAGE_GENERATION_BASE_URL` | `https://api.openai.com/v1` | No | OpenAI-compatible image API base URL. |
 | `IMAGE_GENERATION_MODEL` | `gpt-image-2` | No | Image model name. |
+| `IMAGE_GENERATION_PROVIDER` | `openai_images` | No | Image provider adapter: `openai_images`, `generic_openai_images`, or `siliconflow`. |
+| `IMAGE_GENERATION_CAPABILITIES_JSON` | `{}` | No | Image provider capability override JSON for supported parameters, field mappings, endpoints, and defaults. |
 | `IMAGE_GENERATION_TIMEOUT` | `120` | No | Request timeout in seconds. |
 
 ## Example
@@ -73,6 +75,7 @@ AUDIO_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
 ENABLE_IMAGE_GENERATION=true
 IMAGE_GENERATION_API_KEY=sk-your-key
 IMAGE_GENERATION_MODEL=gpt-image-2
+IMAGE_GENERATION_PROVIDER=openai_images
 ```
 
 ::: tip
