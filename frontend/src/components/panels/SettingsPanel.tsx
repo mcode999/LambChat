@@ -21,6 +21,11 @@ import { useTranslation } from "react-i18next";
 import { useSettingsContext } from "../../contexts/SettingsContext";
 import { JsonSchemaEditor } from "./JsonSchemaEditor";
 import { SystemHealthSection } from "./SystemHealthSection";
+import {
+  ImageGenerationCapabilitiesHelper,
+  ImageGenerationProviderHint,
+} from "./ImageGenerationSettingsHelper";
+import { getImageGenerationProviderLabelKey } from "./imageGenerationSettingsHelperUtils";
 import { useAuth } from "../../hooks/useAuth";
 import { roleApi, agentApi, modelApi } from "../../services/api";
 import type { ModelOption } from "../../services/api/model";
@@ -195,6 +200,7 @@ export function SettingsPanel() {
       llm: t("subcategories.llm"),
       model: t("subcategories.model"),
       policy: t("subcategories.policy"),
+      image_generation: t("subcategories.image_generation"),
     }),
     [t],
   );
@@ -464,6 +470,27 @@ export function SettingsPanel() {
       return String(setting.value);
     },
     [editValues],
+  );
+
+  const getEffectiveSettingValue = useCallback(
+    (key: string) => {
+      const editValue = editValues[key];
+      if (editValue !== undefined) {
+        return typeof editValue === "string"
+          ? editValue
+          : JSON.stringify(editValue);
+      }
+
+      const allSettings = settings
+        ? Object.values(settings.settings).flat()
+        : [];
+      const setting = allSettings.find((item) => item.key === key);
+      if (!setting) return "";
+      return typeof setting.value === "string"
+        ? setting.value
+        : JSON.stringify(setting.value);
+    },
+    [editValues, settings],
   );
 
   // Clear saved indicator on unmount
@@ -798,11 +825,27 @@ export function SettingsPanel() {
                                                   ),
                                                 },
                                               ]
-                                            : setting.options?.map((opt) => ({
-                                                value: opt,
-                                                label: opt,
-                                              })) ?? []
+                                            : setting.key ===
+                                                "IMAGE_GENERATION_PROVIDER"
+                                              ? setting.options?.map((opt) => ({
+                                                  value: opt,
+                                                  label: t(
+                                                    getImageGenerationProviderLabelKey(
+                                                      opt,
+                                                    ),
+                                                    opt,
+                                                  ),
+                                                })) ?? []
+                                              : setting.options?.map((opt) => ({
+                                                  value: opt,
+                                                  label: opt,
+                                                })) ?? []
                                 }
+                              />
+                            )}
+                            {setting.key === "IMAGE_GENERATION_PROVIDER" && (
+                              <ImageGenerationProviderHint
+                                provider={getDisplayValue(setting)}
                               />
                             )}
                             {setting.type === "text" && (
@@ -841,19 +884,38 @@ export function SettingsPanel() {
                               />
                             )}
                             {isJson && !setting.json_schema && (
-                              <textarea
-                                value={getDisplayValue(setting)}
-                                onChange={(e) =>
-                                  handleValueChange(
-                                    setting.key,
-                                    e.target.value,
-                                    setting.type,
-                                  )
-                                }
-                                disabled={!canManage}
-                                rows={20}
-                                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--theme-bg-card)] px-3 py-2 font-mono text-xs text-stone-900 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm dark:text-stone-100"
-                              />
+                              <>
+                                <textarea
+                                  value={getDisplayValue(setting)}
+                                  onChange={(e) =>
+                                    handleValueChange(
+                                      setting.key,
+                                      e.target.value,
+                                      setting.type,
+                                    )
+                                  }
+                                  disabled={!canManage}
+                                  rows={20}
+                                  className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--theme-bg-card)] px-3 py-2 font-mono text-xs text-stone-900 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm dark:text-stone-100"
+                                />
+                                {setting.key ===
+                                  "IMAGE_GENERATION_CAPABILITIES_JSON" && (
+                                  <ImageGenerationCapabilitiesHelper
+                                    provider={getEffectiveSettingValue(
+                                      "IMAGE_GENERATION_PROVIDER",
+                                    )}
+                                    value={getDisplayValue(setting)}
+                                    disabled={!canManage}
+                                    onApplyTemplate={(template) =>
+                                      handleValueChange(
+                                        setting.key,
+                                        JSON.stringify(template, null, 2),
+                                        setting.type,
+                                      )
+                                    }
+                                  />
+                                )}
+                              </>
                             )}
                             {!isSelect &&
                               setting.type !== "text" &&

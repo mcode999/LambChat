@@ -2044,6 +2044,28 @@
   },
   "settings": {
     "defaultModel": "기본 모델",
+    "imageGeneration": {
+      "applyDefaults": "기본값 사용",
+      "applyGeneric": "범용 OpenAI",
+      "applySiliconFlow": "SiliconFlow",
+      "capabilitiesDescription": "선택한 제공자 {{provider}}에 대한 선택적 JSON 재정의입니다.",
+      "capabilitiesTitle": "제공자 기능",
+      "jsonInvalid": "유효하지 않은 JSON 객체",
+      "jsonValid": "사용자 재정의",
+      "provider": {
+        "custom": "{{provider}}",
+        "generic_openai_images": "범용 OpenAI Images",
+        "openai_images": "OpenAI Images",
+        "siliconflow": "SiliconFlow"
+      },
+      "providerHint": {
+        "custom": "capabilities가 이 제공자를 재정의하지 않으면 범용 OpenAI 호환 이미지 profile을 사용합니다.",
+        "generic_openai_images": "OpenAI 호환 이미지 엔드포인트로 model, prompt, size, n 같은 일반 매개변수를 사용합니다.",
+        "openai_images": "생성과 편집을 지원하는 기본 OpenAI Images profile입니다.",
+        "siliconflow": "SiliconFlow 이미지 profile은 size, n, steps를 해당 요청 필드로 매핑하고 기본적으로 편집을 비활성화합니다."
+      },
+      "usingDefaults": "기본값 사용 중"
+    },
     "exportSettings": "설정 내보내기",
     "exportSuccess": "설정 내보내기 완료",
     "false": "아니오",
@@ -2380,6 +2402,7 @@
     "general": "일반",
     "github": "GitHub",
     "google": "Google",
+    "image_generation": "이미지 생성",
     "index": "인덱스",
     "jwt": "JWT 토큰",
     "langsmith": "LangSmith",

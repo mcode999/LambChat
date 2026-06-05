@@ -2044,6 +2044,28 @@
   },
   "settings": {
     "defaultModel": "Default Model",
+    "imageGeneration": {
+      "applyDefaults": "Built-in defaults",
+      "applyGeneric": "Generic OpenAI",
+      "applySiliconFlow": "SiliconFlow",
+      "capabilitiesDescription": "Optional JSON overrides for the selected provider: {{provider}}.",
+      "capabilitiesTitle": "Provider capabilities",
+      "jsonInvalid": "Invalid JSON object",
+      "jsonValid": "Custom overrides",
+      "provider": {
+        "custom": "{{provider}}",
+        "generic_openai_images": "Generic OpenAI Images",
+        "openai_images": "OpenAI Images",
+        "siliconflow": "SiliconFlow"
+      },
+      "providerHint": {
+        "custom": "Uses the generic OpenAI-compatible image profile unless capabilities override this provider.",
+        "generic_openai_images": "OpenAI-compatible image endpoints with the common model, prompt, size, and n parameters.",
+        "openai_images": "Default OpenAI Images profile with generation and edit support.",
+        "siliconflow": "SiliconFlow image profile maps size, n, and steps to its request fields and disables editing by default."
+      },
+      "usingDefaults": "Built-in defaults"
+    },
     "exportSettings": "Export settings",
     "exportSuccess": "Settings exported successfully",
     "false": "false",
@@ -2380,6 +2402,7 @@
     "general": "General",
     "github": "GitHub",
     "google": "Google",
+    "image_generation": "Image Generation",
     "index": "Index",
     "jwt": "JWT Tokens",
     "langsmith": "LangSmith",

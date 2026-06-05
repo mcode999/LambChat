@@ -2046,6 +2046,28 @@
   },
   "settings": {
     "defaultModel": "Модель по умолчанию",
+    "imageGeneration": {
+      "applyDefaults": "Встроенные значения",
+      "applyGeneric": "Generic OpenAI",
+      "applySiliconFlow": "SiliconFlow",
+      "capabilitiesDescription": "Необязательные JSON-переопределения для выбранного провайдера: {{provider}}.",
+      "capabilitiesTitle": "Возможности провайдера",
+      "jsonInvalid": "Недопустимый JSON-объект",
+      "jsonValid": "Пользовательские переопределения",
+      "provider": {
+        "custom": "{{provider}}",
+        "generic_openai_images": "Generic OpenAI Images",
+        "openai_images": "OpenAI Images",
+        "siliconflow": "SiliconFlow"
+      },
+      "providerHint": {
+        "custom": "Использует общий OpenAI-совместимый профиль изображений, если capabilities не переопределяет этого провайдера.",
+        "generic_openai_images": "OpenAI-совместимые image endpoints с обычными параметрами model, prompt, size и n.",
+        "openai_images": "Профиль OpenAI Images по умолчанию с поддержкой генерации и редактирования.",
+        "siliconflow": "Профиль SiliconFlow сопоставляет size, n и steps с полями запроса и по умолчанию отключает редактирование."
+      },
+      "usingDefaults": "Встроенные значения"
+    },
     "exportSettings": "Экспорт настроек",
     "exportSuccess": "Настройки успешно экспортированы",
     "false": "нет",
@@ -2382,6 +2404,7 @@
     "general": "Общие",
     "github": "GitHub",
     "google": "Google",
+    "image_generation": "Генерация изображений",
     "index": "Индекс",
     "jwt": "JWT токены",
     "langsmith": "LangSmith",

@@ -2044,6 +2044,28 @@
   },
   "settings": {
     "defaultModel": "默认模型",
+    "imageGeneration": {
+      "applyDefaults": "内置默认",
+      "applyGeneric": "通用 OpenAI",
+      "applySiliconFlow": "SiliconFlow",
+      "capabilitiesDescription": "当前供应商 {{provider}} 的可选 JSON 覆盖配置。",
+      "capabilitiesTitle": "供应商能力",
+      "jsonInvalid": "JSON 对象无效",
+      "jsonValid": "自定义覆盖",
+      "provider": {
+        "custom": "{{provider}}",
+        "generic_openai_images": "通用 OpenAI Images",
+        "openai_images": "OpenAI Images",
+        "siliconflow": "SiliconFlow"
+      },
+      "providerHint": {
+        "custom": "默认使用通用 OpenAI 兼容图像 profile，除非 capabilities 覆盖了该供应商。",
+        "generic_openai_images": "OpenAI 兼容图像端点，使用常见的 model、prompt、size、n 参数。",
+        "openai_images": "默认 OpenAI Images profile，支持生成和编辑。",
+        "siliconflow": "SiliconFlow 图像 profile 会把 size、n、steps 映射到对应请求字段，并默认关闭编辑。"
+      },
+      "usingDefaults": "使用内置默认"
+    },
     "exportSettings": "导出设置",
     "exportSuccess": "设置导出成功",
     "false": "否",
@@ -2380,6 +2402,7 @@
     "general": "通用",
     "github": "GitHub",
     "google": "Google",
+    "image_generation": "图像生成",
     "index": "索引",
     "jwt": "JWT 令牌",
     "langsmith": "LangSmith",

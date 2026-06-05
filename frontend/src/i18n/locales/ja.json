@@ -2044,6 +2044,28 @@
   },
   "settings": {
     "defaultModel": "デフォルトモデル",
+    "imageGeneration": {
+      "applyDefaults": "組み込み既定値",
+      "applyGeneric": "汎用 OpenAI",
+      "applySiliconFlow": "SiliconFlow",
+      "capabilitiesDescription": "選択中のプロバイダー {{provider}} に対する任意の JSON 上書き設定です。",
+      "capabilitiesTitle": "プロバイダー機能",
+      "jsonInvalid": "JSON オブジェクトが無効です",
+      "jsonValid": "カスタム上書き",
+      "provider": {
+        "custom": "{{provider}}",
+        "generic_openai_images": "汎用 OpenAI Images",
+        "openai_images": "OpenAI Images",
+        "siliconflow": "SiliconFlow"
+      },
+      "providerHint": {
+        "custom": "capabilities でこのプロバイダーを上書きしない限り、汎用 OpenAI 互換画像 profile を使用します。",
+        "generic_openai_images": "OpenAI 互換画像エンドポイントで、model、prompt、size、n の一般的なパラメータを使用します。",
+        "openai_images": "生成と編集をサポートする既定の OpenAI Images profile です。",
+        "siliconflow": "SiliconFlow 画像 profile は size、n、steps を対応するリクエスト項目にマッピングし、既定で編集を無効にします。"
+      },
+      "usingDefaults": "組み込み既定値を使用"
+    },
     "exportSettings": "設定をエクスポート",
     "exportSuccess": "設定をエクスポートしました",
     "false": "いいえ",
@@ -2380,6 +2402,7 @@
     "general": "一般",
     "github": "GitHub",
     "google": "Google",
+    "image_generation": "画像生成",
     "index": "インデックス",
     "jwt": "JWT トークン",
     "langsmith": "LangSmith",
