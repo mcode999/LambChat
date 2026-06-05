@@ -8,7 +8,8 @@ Feishu 消息处理器模块
 import asyncio
 import json
 import os
-import sys
+import threading
+from collections import OrderedDict
 from datetime import datetime, timezone
 from tempfile import NamedTemporaryFile
 from typing import Any, AsyncGenerator, Callable, Optional, cast
@@ -16,6 +17,12 @@ from typing import Any, AsyncGenerator, Callable, Optional, cast
 from src.infra.async_utils import run_blocking_io
 from src.infra.channel.feishu import handler_helpers
 from src.infra.channel.feishu.channel import FeishuChannel
+from src.infra.channel.feishu.conversation import (
+    FeishuResolvedConversation,
+    build_feishu_conversation_scope,
+    create_new_feishu_conversation,
+    resolve_feishu_conversation,
+)
 from src.infra.channel.feishu.handler_helpers import (
     _SESSION_LINK_TEXT,
     EVENT_MESSAGE_CHUNK,
@@ -27,19 +34,42 @@ from src.infra.channel.feishu.handler_helpers import (
     FEISHU_STREAM_FIRST_PAINT_CHARS,
     FEISHU_STREAM_UPDATE_DEBOUNCE_SECONDS,
     _build_session_run_url,
-    _create_new_feishu_session,
     _extract_tool_media_files,
-    _get_feishu_session_id,
 )
 from src.infra.channel.feishu.manager import FeishuChannelManager
 from src.infra.channel.feishu.markdown import FeishuMarkdownAdapter
 from src.infra.logging import get_logger
+from src.infra.task.concurrency import ConcurrencyResult, get_concurrency_limiter
+from src.infra.task.run_ids import generate_run_id
 from src.infra.utils.datetime import utc_now
 from src.kernel.config import settings  # noqa: F401 - compatibility for handler tests/patching
 
 logger = get_logger(__name__)
 
 _STREAM_UPDATE_SIGNAL = object()
+_FEISHU_SCOPE_LOCKS_MAX = 2048
+_FEISHU_SCOPE_LOCKS: OrderedDict[tuple[int, str], asyncio.Lock] = OrderedDict()
+_FEISHU_SCOPE_LOCKS_GUARD = threading.Lock()
+
+
+async def _get_feishu_scope_lock(lock_key: str) -> asyncio.Lock:
+    loop_key = (id(asyncio.get_running_loop()), lock_key)
+    with _FEISHU_SCOPE_LOCKS_GUARD:
+        lock = _FEISHU_SCOPE_LOCKS.get(loop_key)
+        if lock is None:
+            lock = asyncio.Lock()
+            _FEISHU_SCOPE_LOCKS[loop_key] = lock
+        else:
+            _FEISHU_SCOPE_LOCKS.move_to_end(loop_key)
+
+        while len(_FEISHU_SCOPE_LOCKS) > _FEISHU_SCOPE_LOCKS_MAX:
+            oldest_key, oldest_lock = next(iter(_FEISHU_SCOPE_LOCKS.items()))
+            if oldest_lock.locked():
+                _FEISHU_SCOPE_LOCKS.move_to_end(oldest_key)
+                break
+            _FEISHU_SCOPE_LOCKS.popitem(last=False)
+
+        return lock
 
 
 async def _download_storage_object_to_file(
@@ -594,6 +624,176 @@ async def execute_feishu_agent(
         raise
 
 
+def _build_feishu_session_metadata(
+    *,
+    conversation: FeishuResolvedConversation,
+    channel_name: str | None,
+    agent_id: str,
+    model_id: str | None,
+    project_id: str | None,
+    team_id: str | None,
+    agent_options: dict[str, Any] | None,
+) -> dict[str, Any]:
+    metadata: dict[str, Any] = {
+        **conversation.scope.metadata,
+        "agent_id": agent_id,
+        "executor_key": "agent_stream",
+    }
+    optional_fields: dict[str, Any | None] = {
+        "channel_name": channel_name,
+        "model_id": model_id,
+        "project_id": project_id,
+        "team_id": team_id,
+        "agent_options": agent_options,
+    }
+    for key, value in optional_fields.items():
+        if value is not None:
+            metadata[key] = value
+    return metadata
+
+
+def _build_feishu_task_context(
+    *,
+    agent_id: str,
+    message: str,
+    agent_options: dict[str, Any] | None,
+    attachments: list[dict] | None,
+    trace_id: str,
+    enabled_skills: list[str] | None,
+    persona_system_prompt: str | None,
+    team_id: str | None,
+) -> dict[str, Any]:
+    """Build the Redis-serializable queue context for Feishu runs."""
+    return {
+        "executor_key": "agent_stream",
+        "agent_id": agent_id,
+        "message": message,
+        "display_message": message,
+        "disabled_tools": None,
+        "agent_options": agent_options,
+        "attachments": attachments,
+        "trace_id": trace_id,
+        "user_message_written": True,
+        "disabled_skills": None,
+        "enabled_skills": enabled_skills,
+        "persona_system_prompt": persona_system_prompt,
+        "disabled_mcp_tools": None,
+        "team_id": team_id,
+        "active_goal": None,
+    }
+
+
+def _create_feishu_trace_id(
+    *,
+    session_id: str,
+    agent_id: str,
+    user_id: str,
+    run_id: str,
+) -> str:
+    from src.agents.core import resolve_agent_name
+    from src.infra.writer.present import Presenter, PresenterConfig
+
+    presenter = Presenter(
+        PresenterConfig(
+            session_id=session_id,
+            agent_id=agent_id,
+            agent_name=resolve_agent_name(agent_id),
+            user_id=user_id,
+            run_id=run_id,
+            enable_storage=False,
+        )
+    )
+    return presenter.trace_id
+
+
+async def _get_feishu_owner_roles(user_id: str) -> list[str]:
+    try:
+        from src.infra.user.storage import UserStorage
+
+        user = await UserStorage().get_by_id(user_id)
+        roles = list(getattr(user, "roles", None) or []) if user else []
+        if roles:
+            return roles
+    except Exception as e:
+        logger.warning("[Feishu] Failed to load owner roles for concurrency: %s", e)
+
+    default_role = getattr(settings, "DEFAULT_USER_ROLE", None) or "user"
+    return [default_role]
+
+
+async def _persist_feishu_session_metadata(session_id: str, metadata: dict[str, Any]) -> None:
+    if not metadata:
+        return
+    try:
+        from src.infra.session.manager import SessionManager
+        from src.kernel.schemas.session import SessionUpdate
+
+        await SessionManager().update_session(
+            session_id,
+            SessionUpdate(metadata=metadata),
+        )
+    except Exception as e:
+        logger.warning("[Feishu] Failed to persist Feishu session metadata: %s", e)
+
+
+async def _mark_feishu_run_queued(
+    *,
+    task_manager: Any,
+    session_id: str,
+    run_id: str,
+    trace_id: str,
+    agent_id: str,
+    message: str,
+    user_id: str,
+    attachments: list[dict] | None,
+    project_id: str | None,
+    session_name: str,
+) -> None:
+    from src.agents.core import resolve_agent_name
+    from src.infra.task.executor import TaskExecutor
+    from src.infra.task.status import TaskStatus
+    from src.infra.writer.present import Presenter, PresenterConfig
+
+    if getattr(task_manager, "_executor", None) is None:
+        task_manager._executor = TaskExecutor(
+            task_manager.storage,
+            task_manager._run_info,
+            task_manager._heartbeat,
+        )
+
+    executor = task_manager._executor
+    await executor.ensure_session(
+        session_id,
+        agent_id,
+        user_id,
+        project_id=project_id,
+        session_name=session_name,
+    )
+    await executor._update_session_status(session_id, TaskStatus.QUEUED, run_id=run_id)
+
+    presenter = Presenter(
+        PresenterConfig(
+            session_id=session_id,
+            agent_id=agent_id,
+            agent_name=resolve_agent_name(agent_id),
+            user_id=user_id,
+            run_id=run_id,
+            trace_id=trace_id,
+            enable_storage=True,
+        )
+    )
+    await presenter._ensure_trace()
+    await presenter.emit_user_message(message, attachments=attachments)
+
+    task_manager._run_info[run_id] = {
+        "session_id": session_id,
+        "agent_id": agent_id,
+        "user_id": user_id,
+        "trace_id": trace_id,
+        "user_message_written": True,
+    }
+
+
 def create_feishu_message_handler(
     manager: "FeishuChannelManager",
     default_agent: str,
@@ -617,16 +817,12 @@ def create_feishu_message_handler(
         metadata: dict,
     ) -> None:
         """处理飞书消息"""
-        print(
-            f"[DEBUG] feishu_message_handler: {content[:50]}",
-            file=sys.stderr,
-            flush=True,
-        )
-
         original_message_id = metadata.get("message_id")
         received_reaction_id = metadata.get("reaction_id")
         instance_id = metadata.get("instance_id")
         delivery_chat_id = chat_id
+        scope_lock: asyncio.Lock | None = None
+        scope_lock_acquired = False
 
         try:
             logger.info(
@@ -639,21 +835,51 @@ def create_feishu_message_handler(
             if chat_type_from_msg == "p2p":
                 delivery_chat_id = metadata.get("reply_chat_id") or chat_id
             attachments = metadata.get("attachments")
+            conversation_scope = build_feishu_conversation_scope(
+                chat_id=chat_id,
+                sender_id=sender_id,
+                metadata=metadata,
+                instance_id=instance_id,
+            )
+            scope_lock = await _get_feishu_scope_lock(conversation_scope.lock_key)
+            await scope_lock.acquire()
+            scope_lock_acquired = True
 
             # 处理 /new 命令 - 严格匹配
             if content.strip() == "/new":
-                new_session_id = await _create_new_feishu_session(chat_id)
+                new_conversation = await create_new_feishu_conversation(
+                    user_id=user_id,
+                    chat_id=chat_id,
+                    sender_id=sender_id,
+                    metadata=metadata,
+                    instance_id=instance_id,
+                    scope=conversation_scope,
+                )
                 await manager.send_message(
                     user_id,
                     delivery_chat_id,
                     "✅ 已创建新对话，请发送消息开始",
                     instance_id,
                 )
-                logger.info(f"[Feishu] New session created for chat {chat_id}: {new_session_id}")
+                logger.info(
+                    "[Feishu] New session created user=%s instance=%s scope_type=%s session=%s",
+                    user_id,
+                    instance_id,
+                    new_conversation.scope.scope_type,
+                    new_conversation.session_id,
+                )
                 return
 
             # 获取当前 session ID
-            session_id = await _get_feishu_session_id(chat_id)
+            conversation = await resolve_feishu_conversation(
+                user_id=user_id,
+                chat_id=chat_id,
+                sender_id=sender_id,
+                metadata=metadata,
+                instance_id=instance_id,
+                scope=conversation_scope,
+            )
+            session_id = conversation.session_id
             task_manager = get_task_manager()
 
             # Resolve agent, model & project: use per-channel config if available
@@ -749,7 +975,7 @@ def create_feishu_message_handler(
                     logger.warning(f"[Feishu] Failed to auto-create project: {e}")
 
             # Build agent_options with model_id if configured
-            feishu_agent_options: dict | None = None
+            feishu_agent_options: dict[str, Any] | None = None
             if model_id:
                 feishu_agent_options = {"model_id": model_id}
 
@@ -798,35 +1024,135 @@ def create_feishu_message_handler(
                 ):
                     yield event
 
-            # Use time-based session title for Feishu
-            session_title = utc_now().strftime("%Y-%m-%d %H:%M")
-
-            run_id, _ = await task_manager.submit(
+            session_title = (
+                f"{conversation.scope.display_name} · {utc_now().strftime('%Y-%m-%d %H:%M')}"
+            )
+            effective_team_id = team_id if agent_to_use == "team" else None
+            run_id = generate_run_id()
+            trace_id = _create_feishu_trace_id(
                 session_id=session_id,
                 agent_id=agent_to_use,
-                message=content,
                 user_id=user_id,
-                executor=executor,
-                attachments=attachments,
-                project_id=project_id,
+                run_id=run_id,
+            )
+            task_context = _build_feishu_task_context(
+                agent_id=agent_to_use,
+                message=content,
                 agent_options=feishu_agent_options,
-                session_name=session_title,
+                attachments=attachments,
+                trace_id=trace_id,
                 enabled_skills=enabled_skills,
                 persona_system_prompt=persona_system_prompt,
-                team_id=team_id if agent_to_use == "team" else None,
+                team_id=effective_team_id,
             )
-            collector.set_session_link(session_id, run_id)
+            session_metadata = _build_feishu_session_metadata(
+                conversation=conversation,
+                channel_name=channel_name,
+                agent_id=agent_to_use,
+                model_id=model_id,
+                project_id=project_id,
+                team_id=effective_team_id,
+                agent_options=feishu_agent_options,
+            )
             if persona_metadata:
-                try:
-                    from src.infra.session.manager import SessionManager
-                    from src.kernel.schemas.session import SessionUpdate
+                session_metadata.update(persona_metadata)
 
-                    await SessionManager().update_session(
-                        session_id,
-                        SessionUpdate(metadata=persona_metadata),
+            owner_roles = await _get_feishu_owner_roles(user_id)
+            limiter = get_concurrency_limiter()
+            concurrency_result = await limiter.acquire(
+                user_id=user_id,
+                roles=owner_roles,
+                run_id=run_id,
+                session_id=session_id,
+                task_context=task_context,
+            )
+
+            if concurrency_result.result == ConcurrencyResult.REJECTED_QUEUE:
+                await manager.send_message(
+                    user_id,
+                    delivery_chat_id,
+                    (
+                        "⏳ 当前任务较多，排队已满，请稍后再试。"
+                        f"活跃 {concurrency_result.active_count}/"
+                        f"{concurrency_result.max_concurrent}，"
+                        f"排队 {concurrency_result.queue_length}"
+                    ),
+                    instance_id,
+                )
+                logger.info(
+                    "[Feishu] Task rejected by concurrency queue user=%s session=%s run=%s",
+                    user_id,
+                    session_id,
+                    run_id,
+                )
+                return
+
+            collector.set_session_link(session_id, run_id)
+            if concurrency_result.result == ConcurrencyResult.QUEUED:
+                try:
+                    await _mark_feishu_run_queued(
+                        task_manager=task_manager,
+                        session_id=session_id,
+                        run_id=run_id,
+                        trace_id=trace_id,
+                        agent_id=agent_to_use,
+                        message=content,
+                        user_id=user_id,
+                        attachments=attachments,
+                        project_id=project_id,
+                        session_name=session_title,
                     )
                 except Exception as e:
-                    logger.warning(f"[Feishu] Failed to persist persona metadata: {e}")
+                    logger.warning("[Feishu] Failed to mark queued run: %s", e, exc_info=True)
+                await _persist_feishu_session_metadata(session_id, session_metadata)
+                session_link = collector._session_link_markdown() or ""
+                try:
+                    await manager.send_message(
+                        user_id,
+                        delivery_chat_id,
+                        (
+                            "⏳ 已进入队列，当前位置 "
+                            f"{concurrency_result.queue_position}/"
+                            f"{concurrency_result.queue_length}。"
+                            f"\n{session_link}"
+                        ),
+                        instance_id,
+                    )
+                except Exception as e:
+                    logger.warning("[Feishu] Failed to send queue notice: %s", e)
+                logger.info(
+                    "[Feishu] Task queued user=%s session=%s run=%s position=%s",
+                    user_id,
+                    session_id,
+                    run_id,
+                    concurrency_result.queue_position,
+                )
+            else:
+                task_submitted = False
+                try:
+                    _, _ = await task_manager.submit(
+                        session_id=session_id,
+                        agent_id=agent_to_use,
+                        message=content,
+                        user_id=user_id,
+                        executor=executor,
+                        attachments=attachments,
+                        run_id=run_id,
+                        project_id=project_id,
+                        agent_options=feishu_agent_options,
+                        session_name=session_title,
+                        enabled_skills=enabled_skills,
+                        persona_system_prompt=persona_system_prompt,
+                        team_id=effective_team_id,
+                        trace_id=trace_id,
+                        display_message=content,
+                        write_user_message_immediately=True,
+                    )
+                    task_submitted = True
+                finally:
+                    if not task_submitted:
+                        await limiter.release(user_id, run_id, dequeue=False)
+                await _persist_feishu_session_metadata(session_id, session_metadata)
 
             logger.info(f"[Feishu] Task submitted: session={session_id}, run_id={run_id}")
 
@@ -856,6 +1182,8 @@ def create_feishu_message_handler(
             except Exception:
                 pass
         finally:
+            if scope_lock_acquired and scope_lock is not None:
+                scope_lock.release()
             if original_message_id and received_reaction_id:
                 try:
                     await manager.delete_reaction(

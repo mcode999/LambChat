@@ -724,6 +724,7 @@ class FeishuChannel(FeishuSenderMixin, BaseChannel):
             # Determine reply_to and handle topic groups
             reply_to = chat_id if chat_type == "group" else sender_id
             root_id = None
+            thread_id = getattr(message, "thread_id", None)
 
             if chat_type == "group":
                 chat_mode = await self._get_chat_mode(chat_id)
@@ -742,6 +743,8 @@ class FeishuChannel(FeishuSenderMixin, BaseChannel):
             }
             if reaction_id:
                 metadata["reaction_id"] = reaction_id
+            if thread_id:
+                metadata["thread_id"] = thread_id
             if root_id:
                 metadata["root_id"] = root_id
             if attachments:

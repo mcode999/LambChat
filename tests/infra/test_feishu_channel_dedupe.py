@@ -47,6 +47,8 @@ def _build_message_event(
     message_type: str,
     content: str,
     chat_type: str = "p2p",
+    root_id: str | None = None,
+    thread_id: str | None = None,
 ):
     message = SimpleNamespace(
         message_id="om_1",
@@ -54,7 +56,8 @@ def _build_message_event(
         chat_id="oc_chat",
         chat_type=chat_type,
         message_type=message_type,
-        root_id=None,
+        root_id=root_id,
+        thread_id=thread_id,
         mentions=[],
     )
     sender = SimpleNamespace(
@@ -382,3 +385,44 @@ async def test_audio_message_uses_configured_transcription_prompt(
 
     assert captured["content"] == "Please transcribe this voice message."
     assert captured["metadata"]["attachments"][0]["type"] == "audio"
+
+
+@pytest.mark.asyncio
+async def test_topic_group_metadata_includes_thread_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    channel = _build_channel()
+    channel.config.group_policy = FeishuGroupPolicy.OPEN
+    captured: dict[str, object] = {}
+
+    async def _mark_processed(_message_id: str) -> bool:
+        return True
+
+    async def _add_reaction(_message_id: str, _emoji: str) -> str:
+        return "reaction-1"
+
+    async def _get_chat_mode(_chat_id: str) -> str:
+        return "thread"
+
+    async def _handle_message(**kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(channel, "_mark_message_processed", _mark_processed)
+    monkeypatch.setattr(channel, "_add_reaction", _add_reaction)
+    monkeypatch.setattr(channel, "_get_chat_mode", _get_chat_mode)
+    monkeypatch.setattr(channel, "_handle_message", _handle_message)
+
+    await channel._on_message(
+        _build_message_event(
+            message_type="text",
+            content='{"text":"hello"}',
+            chat_type="group",
+            root_id="om_root",
+            thread_id="omt_thread",
+        )
+    )
+
+    assert captured["chat_id"] == "oc_chat#om_root"
+    assert captured["metadata"]["reply_chat_id"] == "oc_chat"
+    assert captured["metadata"]["root_id"] == "om_root"
+    assert captured["metadata"]["thread_id"] == "omt_thread"
