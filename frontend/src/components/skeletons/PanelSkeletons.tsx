@@ -520,13 +520,16 @@ export function FeedbackPanelSkeleton() {
 /** Scheduled task panel: header + grid of task cards matching real layout */
 export function ScheduledTaskPanelSkeleton() {
   return (
-    <div className="glass-shell scheduled-task-panel flex h-full min-h-0 flex-col animate-fade-in">
+    <div className="flex h-full min-h-0 flex-col animate-fade-in">
       <PanelHeaderSkeleton hasSearch={false} />
 
       <div className="flex-1 overflow-y-auto px-4 py-3 sm:p-6">
         <div className="grid auto-grid-cols gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="glass-card scheduled-task-card">
+            <div
+              key={i}
+              className="glass-card scheduled-task-card border border-[var(--theme-border)]"
+            >
               <div className="scheduled-task-card__content">
                 {/* Title + status badge */}
                 <div className="scheduled-task-card__title-row">

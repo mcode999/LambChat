@@ -16,6 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { PanelHeader } from "../../common/PanelHeader";
+import { Button } from "../../common/ui/Button";
 import { ScheduledTaskPanelSkeleton } from "../../skeletons";
 import { Pagination } from "../../common/Pagination";
 import { scheduledTaskApi } from "../../../services/api/scheduledTask";
@@ -34,8 +35,8 @@ import type { AvailableModel } from "../../../contexts/SettingsContext";
 import { formatDateTimeShort } from "../../../utils/datetime";
 import { getAgentOptionsFromScheduledTaskPayload } from "../scheduledTaskPayload";
 import { notifyScheduledTaskMutation } from "../../../stores/scheduledTaskMutationStore";
-import { RunStatusBadge, StatusBadge } from "./Badges";
-import { DeleteConfirmModal } from "./DeleteConfirmModal";
+import { RunStatusBadge, StatusBadgeForTask as StatusBadge } from "./Badges";
+import { ConfirmDialog } from "../../common/ConfirmDialog";
 import { StatusFilter } from "./StatusFilter";
 import { TaskFormModal } from "./TaskFormModal";
 import { TaskSessionList } from "./TaskSessionList";
@@ -349,14 +350,14 @@ export function ScheduledTaskPanel({
               <div className="flex items-center gap-2">
                 <StatusFilter value={statusFilter} onChange={setStatusFilter} />
                 {canWrite && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="primary"
+                    size="md"
                     onClick={() => setIsCreating(true)}
-                    className="btn-primary h-10"
+                    leftIcon={<Plus size={16} />}
                   >
-                    <Plus size={16} />
                     {t("scheduledTask.create")}
-                  </button>
+                  </Button>
                 )}
               </div>
             }
@@ -555,12 +556,16 @@ export function ScheduledTaskPanel({
           )}
 
           {/* Delete Confirmation Modal */}
-          {deleteTarget && canDelete && (
-            <DeleteConfirmModal
-              onConfirm={handleDelete}
-              onCancel={() => setDeleteTarget(null)}
-            />
-          )}
+          <ConfirmDialog
+            isOpen={!!deleteTarget && canDelete}
+            title={t("scheduledTask.deleteConfirm")}
+            message={t("scheduledTask.deleteWarning")}
+            confirmText={t("scheduledTask.delete")}
+            cancelText={t("scheduledTask.cancel")}
+            onConfirm={handleDelete}
+            onCancel={() => setDeleteTarget(null)}
+            variant="danger"
+          />
         </>
       )}
     </div>

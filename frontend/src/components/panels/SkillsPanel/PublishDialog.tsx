@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { PackageX, Sparkles, Tag } from "lucide-react";
 import { useSwipeToClose } from "../../../hooks/useSwipeToClose";
+import { Button, FormField, Input, Textarea } from "../../common";
 
 interface PublishConfirm {
   isOpen: boolean;
@@ -77,11 +78,8 @@ export function PublishDialog({
             </p>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[var(--theme-text)]">
-              {t("skills.publishMarketplaceName")}
-            </label>
-            <input
+          <FormField label={t("skills.publishMarketplaceName")}>
+            <Input
               type="text"
               value={publishConfirm.marketplaceSkillName}
               onChange={(e) =>
@@ -91,14 +89,11 @@ export function PublishDialog({
                   error: undefined,
                 })
               }
-              className="w-full rounded-xl border border-[var(--skill-border)] bg-[var(--theme-bg)] px-3.5 py-2.5 text-sm text-[var(--theme-text)] placeholder:text-[var(--theme-text-secondary)]/60 focus:border-[var(--skill-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--skill-accent)]/14 transition-[border-color,box-shadow] duration-180"
+              className="rounded-xl border-[var(--skill-border)] px-3.5 py-2.5 focus:border-[var(--skill-border-strong)]"
             />
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[var(--theme-text)]">
-              {t("skills.form.description")}
-            </label>
-            <textarea
+          </FormField>
+          <FormField label={t("skills.form.description")}>
+            <Textarea
               value={publishConfirm.description}
               onChange={(e) =>
                 setPublishConfirm({
@@ -108,19 +103,20 @@ export function PublishDialog({
                 })
               }
               rows={4}
-              className="w-full rounded-xl border border-[var(--skill-border)] bg-[var(--theme-bg)] px-3.5 py-2.5 text-sm text-[var(--theme-text)] placeholder:text-[var(--theme-text-secondary)]/60 focus:border-[var(--skill-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--skill-accent)]/14 transition-[border-color,box-shadow] duration-180 resize-none"
+              className="rounded-xl border-[var(--skill-border)] px-3.5 py-2.5 focus:border-[var(--skill-border-strong)]"
               placeholder={t("skills.form.descriptionPlaceholder")}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--theme-text)]">
-              <Tag className="h-3.5 w-3.5 text-[var(--theme-text-secondary)]" />
-              {t("adminMarketplace.tags")}
-            </label>
-            <p className="text-xs leading-5 text-[var(--theme-text-secondary)]/80">
-              {t("adminMarketplace.tagsHint")}
-            </p>
-            <input
+          </FormField>
+          <FormField
+            label={
+              <span className="flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5 text-[var(--theme-text-secondary)]" />
+                {t("adminMarketplace.tags")}
+              </span>
+            }
+            hint={t("adminMarketplace.tagsHint")}
+          >
+            <Input
               type="text"
               value={publishConfirm.tagsInput}
               onChange={(e) =>
@@ -130,7 +126,7 @@ export function PublishDialog({
                   error: undefined,
                 })
               }
-              className="w-full rounded-xl border border-[var(--skill-border)] bg-[var(--theme-bg)] px-3.5 py-2.5 text-sm text-[var(--theme-text)] placeholder:text-[var(--theme-text-secondary)]/60 focus:border-[var(--skill-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--skill-accent)]/14 transition-[border-color,box-shadow] duration-180"
+              className="rounded-xl border-[var(--skill-border)] px-3.5 py-2.5 focus:border-[var(--skill-border-strong)]"
               placeholder={t("adminMarketplace.tagsPlaceholder")}
             />
             <div className="mt-3 flex flex-wrap gap-2">
@@ -155,7 +151,7 @@ export function PublishDialog({
                 </span>
               )}
             </div>
-          </div>
+          </FormField>
           {publishConfirm.error && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400">
               {publishConfirm.error}
@@ -163,17 +159,14 @@ export function PublishDialog({
           )}
         </div>
         <div className="flex flex-col-reverse gap-2 border-t border-[color-mix(in_srgb,var(--theme-border)_40%,transparent)] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
-          <button
-            onClick={() => setPublishConfirm(null)}
-            className="btn-secondary"
-          >
+          <Button variant="secondary" onClick={() => setPublishConfirm(null)}>
             {t("common.cancel")}
-          </button>
-          <button onClick={onConfirm} className="btn-primary">
+          </Button>
+          <Button variant="primary" onClick={onConfirm}>
             {publishConfirm.isPublished
               ? t("skills.republish")
               : t("skills.publish")}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

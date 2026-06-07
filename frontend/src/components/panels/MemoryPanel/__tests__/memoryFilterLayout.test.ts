@@ -22,18 +22,27 @@ const marketplaceSource = readFileSync(
 test("memory filter trigger uses shared stable panel filter sizing", () => {
   assert.match(filterSource, /data-filter-menu/);
   assert.doesNotMatch(filterSource, /className="panel-search[^"]*h-10/);
+  assert.match(filterSource, /import \{ PanelFilterSelect \}/);
+  assert.match(
+    filterSource,
+    /<PanelFilterSelect[\s\S]*onChange=\{typeOnChange\}/,
+  );
+  assert.match(
+    filterSource,
+    /<PanelFilterSelect[\s\S]*onChange=\{sourceOnChange\}/,
+  );
   assert.match(filterSource, /panel-filter-trigger/);
   assert.match(filterSource, /panel-filter-trigger__label/);
-  assert.match(filterSource, /panel-filter-menu/);
-  assert.match(filterSource, /aria-haspopup="menu"/);
-  assert.match(filterSource, /aria-expanded=\{open\}/);
-  assert.match(filterSource, /role="menu"/);
-  assert.match(filterSource, /aria-pressed=\{typeValue === opt\.value\}/);
-  assert.match(filterSource, /aria-pressed=\{sourceValue === opt\.value\}/);
+  assert.doesNotMatch(filterSource, /<Button[\s\S]*panel-filter-trigger/);
+  assert.doesNotMatch(filterSource, /import \{ Select \}/);
 
   assert.match(
     componentsCss,
-    /\.panel-filter-trigger\s*\{[\s\S]*?height:\s*2\.5rem;[\s\S]*?max-width:\s*min\(13rem,\s*42vw\);[\s\S]*?white-space:\s*nowrap;/,
+    /\.panel-filter-select\s*\{[\s\S]*?min-width:\s*min\(10rem,\s*42vw\);[\s\S]*?max-width:\s*min\(13rem,\s*42vw\);/,
+  );
+  assert.match(
+    componentsCss,
+    /\.panel-filter-trigger\s*\{[\s\S]*?max-width:\s*100%;[\s\S]*?justify-content:\s*flex-start;/,
   );
   assert.match(
     componentsCss,
@@ -41,11 +50,11 @@ test("memory filter trigger uses shared stable panel filter sizing", () => {
   );
   assert.match(
     componentsCss,
-    /\.panel-filter-menu\s*\{[\s\S]*?max-height:\s*min\(22rem,\s*calc\(100dvh - 8rem\)\);[\s\S]*?overflow-y:\s*auto;/,
+    /\.ui-select-dropdown,\s*[\s\S]*?\.glass-select-dropdown\s*\{[\s\S]*?max-height:\s*14rem;[\s\S]*?overflow-y:\s*auto;/,
   );
   assert.match(
     componentsCss,
-    /\.panel-header__mobile-menu-accessory \[data-filter-menu\] \.panel-filter-menu\s*\{[\s\S]*?width:\s*100%;[\s\S]*?max-height:\s*min\(46dvh,\s*18rem\);/,
+    /\.panel-header__mobile-menu-accessory \[data-filter-menu\] \.panel-filter-trigger\s*\{[\s\S]*?max-width:\s*none;/,
   );
 });
 

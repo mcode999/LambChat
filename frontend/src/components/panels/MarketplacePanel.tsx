@@ -3,6 +3,7 @@ import { X, ShoppingBag, Plus, RotateCw, Tag, ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { PanelHeader } from "../common/PanelHeader";
+import { Button, IconButton } from "../common";
 import { MarketplacePanelSkeleton } from "../skeletons";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { SkillFormSidebar } from "./SkillsPanel/SkillFormSidebar";
@@ -251,12 +252,13 @@ export function MarketplacePanel({ embedded = false }: MarketplacePanelProps) {
 
   const filterMenu = tags.length > 0 && (
     <div className="relative shrink-0" data-filter-menu>
-      <button
+      <Button
+        variant="secondary"
         type="button"
         aria-haspopup="menu"
         aria-expanded={isFilterOpen}
         onClick={() => setIsFilterOpen((prev) => !prev)}
-        className={`btn-secondary panel-filter-trigger h-10 px-3 ${
+        className={`panel-filter-trigger h-10 px-3 ${
           selectedTags.length > 0
             ? "border-[var(--theme-primary)] text-[var(--theme-text)]"
             : ""
@@ -275,7 +277,7 @@ export function MarketplacePanel({ embedded = false }: MarketplacePanelProps) {
           size={16}
           className={`transition-transform ${isFilterOpen ? "rotate-180" : ""}`}
         />
-      </button>
+      </Button>
       {isFilterOpen && (
         <div
           className="skill-filter-dropdown panel-filter-menu absolute right-0 top-[calc(100%+0.5rem)] z-20 w-72 rounded-2xl border  p-3 shadow-lg"
@@ -318,21 +320,22 @@ export function MarketplacePanel({ embedded = false }: MarketplacePanelProps) {
   const headerActions = (
     <>
       {canWrite && (
-        <button onClick={handleCreate} className="btn-primary h-10">
+        <Button variant="primary" onClick={handleCreate} className="h-10">
           <Plus size={16} />
           <span className="hidden sm:inline">
             {t("marketplace.createAndPublish")}
           </span>
-        </button>
+        </Button>
       )}
-      <button
+      <Button
+        variant="secondary"
         onClick={() => fetchSkills()}
-        className="btn-secondary h-10"
+        className="h-10"
         title={t("common.refresh")}
       >
         <RotateCw size={16} />
         <span className="hidden sm:inline">{t("common.refresh")}</span>
-      </button>
+      </Button>
     </>
   );
 
@@ -380,12 +383,12 @@ export function MarketplacePanel({ embedded = false }: MarketplacePanelProps) {
       {error && (
         <div className="mx-4 mt-4 flex items-center justify-between rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
           <span>{error}</span>
-          <button
+          <IconButton
+            aria-label={t("common.close")}
+            icon={<X size={18} />}
             onClick={clearError}
-            className="btn-icon hover:text-red-900 dark:hover:text-red-300"
-          >
-            <X size={18} />
-          </button>
+            className="hover:text-red-900 dark:hover:text-red-300"
+          />
         </div>
       )}
 
@@ -407,9 +410,13 @@ export function MarketplacePanel({ embedded = false }: MarketplacePanelProps) {
                 : t("marketplace.createHint")}
             </p>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="btn-secondary mt-4">
+              <Button
+                variant="secondary"
+                onClick={clearFilters}
+                className="mt-4"
+              >
                 {t("marketplace.clearFilters")}
-              </button>
+              </Button>
             )}
           </div>
         ) : (

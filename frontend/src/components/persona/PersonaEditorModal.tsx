@@ -131,7 +131,10 @@ export function PersonaEditorModal({
   const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
   const [skillSearch, setSkillSearch] = useState("");
   const [skillPage, setSkillPage] = useState(1);
+  const [skillActiveIndex, setSkillActiveIndex] = useState(-1);
   const skillDropdownRef = useRef<HTMLDivElement>(null);
+  const skillItemRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const skillSearchInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const iconPickerRef = useRef<HTMLDivElement>(null);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
@@ -181,6 +184,20 @@ export function PersonaEditorModal({
     });
   }, [allSkills, draft.skill_names]);
 
+  // Reset active index when search query changes
+  useEffect(() => {
+    setSkillActiveIndex(-1);
+    skillItemRefs.current.clear();
+  }, [skillSearch]);
+
+  // Clamp active index when list length changes (e.g. pagination)
+  useEffect(() => {
+    setSkillActiveIndex((prev) => {
+      if (prev >= displayedSkills.length) return -1;
+      return prev;
+    });
+  }, [displayedSkills.length]);
+
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -202,6 +219,71 @@ export function PersonaEditorModal({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [skillDropdownOpen, iconPickerOpen]);
+
+  // Keyboard navigation for skill dropdown
+  useEffect(() => {
+    if (!skillDropdownOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (!skillDropdownRef.current?.contains(target)) return;
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSkillDropdownOpen(false);
+        skillSearchInputRef.current?.blur();
+        return;
+      }
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSkillActiveIndex((prev) => {
+          if (displayedSkills.length === 0) return -1;
+          const next = prev < displayedSkills.length - 1 ? prev + 1 : 0;
+          skillItemRefs.current.get(next)?.scrollIntoView({ block: "nearest" });
+          return next;
+        });
+        return;
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSkillActiveIndex((prev) => {
+          if (prev <= 0) {
+            skillSearchInputRef.current?.focus();
+            return -1;
+          }
+          const next = prev - 1;
+          skillItemRefs.current.get(next)?.scrollIntoView({ block: "nearest" });
+          return next;
+        });
+        return;
+      }
+
+      if (e.key === "Enter" || e.key === " ") {
+        // Allow typing in the search input
+        if (target === skillSearchInputRef.current) return;
+        e.preventDefault();
+        if (
+          skillActiveIndex >= 0 &&
+          skillActiveIndex < displayedSkills.length
+        ) {
+          const skill = displayedSkills[skillActiveIndex];
+          const isSelected = draft.skill_names.includes(skill.name);
+          setDraft((prev) => ({
+            ...prev,
+            skill_names: isSelected
+              ? prev.skill_names.filter((n) => n !== skill.name)
+              : [...prev.skill_names, skill.name],
+          }));
+        }
+        return;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [skillDropdownOpen, displayedSkills, draft.skill_names]);
 
   const handleSave = useCallback(async () => {
     if (!draft.name.trim() || !draft.system_prompt.trim()) return;
@@ -694,7 +776,11 @@ export function PersonaEditorModal({
                   setSkillDropdownOpen((v) => !v);
                   setSkillSearch("");
                   setSkillPage(1);
+                  setSkillActiveIndex(-1);
+                  skillItemRefs.current.clear();
                 }}
+                aria-haspopup="listbox"
+                aria-expanded={skillDropdownOpen}
                 className={`ppe-skill-trigger ${
                   skillDropdownOpen ? "ppe-skill-trigger--open" : ""
                 }`}
@@ -750,6 +836,7 @@ export function PersonaEditorModal({
                         className="ppe-skill-dropdown__search-icon"
                       />
                       <input
+                        ref={skillSearchInputRef}
                         type="text"
                         value={skillSearch}
                         onChange={(e) => {
@@ -762,6 +849,16 @@ export function PersonaEditorModal({
                         )}
                         className="ppe-skill-search"
                         autoFocus
+                        role="combobox"
+                        aria-expanded={skillDropdownOpen}
+                        aria-controls="ppe-skill-listbox"
+                        aria-activedescendant={
+                          skillActiveIndex >= 0 &&
+                          skillActiveIndex < displayedSkills.length
+                            ? `ppe-skill-option-${skillActiveIndex}`
+                            : undefined
+                        }
+                        aria-label={t("skills.searchSkills", "搜索技能")}
                       />
                     </div>
                     {draft.skill_names.length > 0 && (
@@ -802,9 +899,12 @@ export function PersonaEditorModal({
                   <div
                     className="ppe-skill-dropdown__list"
                     onScroll={handleSkillListScroll}
+                    role="listbox"
+                    id="ppe-skill-listbox"
+                    aria-label={t("skills.skillList", "技能列表")}
                   >
                     {displayedSkills.length > 0 ? (
-                      displayedSkills.map((skill) => {
+                      displayedSkills.map((skill, index) => {
                         const isSelected = draft.skill_names.includes(
                           skill.name,
                         );
@@ -812,6 +912,13 @@ export function PersonaEditorModal({
                           <button
                             key={skill.name}
                             type="button"
+                            ref={(el) => {
+                              if (el) {
+                                skillItemRefs.current.set(index, el);
+                              } else {
+                                skillItemRefs.current.delete(index);
+                              }
+                            }}
                             onClick={() => {
                               setDraft((prev) => ({
                                 ...prev,
@@ -822,9 +929,17 @@ export function PersonaEditorModal({
                                   : [...prev.skill_names, skill.name],
                               }));
                             }}
+                            onMouseEnter={() => setSkillActiveIndex(index)}
                             className={`ppe-skill-option ${
                               isSelected ? "ppe-skill-option--selected" : ""
+                            } ${
+                              index === skillActiveIndex
+                                ? "ppe-skill-option--active"
+                                : ""
                             }`}
+                            role="option"
+                            aria-selected={isSelected}
+                            id={`ppe-skill-option-${index}`}
                           >
                             <div className="ppe-skill-option__check-ring">
                               {isSelected ? (

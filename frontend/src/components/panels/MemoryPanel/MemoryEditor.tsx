@@ -3,6 +3,13 @@ import { useTranslation } from "react-i18next";
 import { Plus, Pencil, Save } from "lucide-react";
 import toast from "react-hot-toast";
 import { EditorSidebar } from "../../common/EditorSidebar";
+import {
+  Button,
+  FormField,
+  Input,
+  PanelFooterActions,
+  Textarea,
+} from "../../common";
 import { memoryApi, type MemoryItem } from "../../../services/api/memory";
 import {
   TYPE_OPTIONS_LIST,
@@ -137,47 +144,45 @@ export function MemoryEditor({
       }
       icon={isEdit ? <Pencil size={16} /> : <Plus size={16} />}
       footer={
-        <div className="flex items-center gap-3">
-          <button onClick={onClose} className="btn-secondary">
-            {t("common.cancel")}
-          </button>
-          <div className="flex-1" />
-          <button
+        <PanelFooterActions align="between">
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
+          <span className="panel-footer-actions__spacer" />
+          <Button
+            variant="primary"
             onClick={handleSave}
             disabled={saving || loadingContent}
-            className="btn-primary inline-flex items-center gap-1.5"
+            leftIcon={
+              <Save size={14} className={saving ? "animate-pulse" : ""} />
+            }
           >
-            <Save size={14} className={saving ? "animate-pulse" : ""} />
             {saving ? t("memory.saving") : t("common.save")}
-          </button>
-        </div>
+          </Button>
+        </PanelFooterActions>
       }
     >
       <div className="es-form">
         <div className="es-section">
-          <div className="es-field">
-            <label className="es-label">{t("memory.titleLabel")}</label>
-            <input
+          <FormField label={t("memory.titleLabel")} className="es-field">
+            <Input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t("memory.titlePlaceholder")}
-              className="glass-input es-input"
+              className="es-input"
               maxLength={80}
             />
-          </div>
+          </FormField>
 
-          <div className="es-field">
-            <label className="es-label">{t("memory.summaryLabel")}</label>
-            <input
+          <FormField label={t("memory.summaryLabel")} className="es-field">
+            <Input
               type="text"
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               placeholder={t("memory.summaryPlaceholder")}
-              className="glass-input es-input"
+              className="es-input"
               maxLength={300}
             />
-          </div>
+          </FormField>
         </div>
 
         <div className="es-section">
@@ -269,24 +274,26 @@ export function MemoryEditor({
               </svg>
             </div>
           ) : (
-            <textarea
+            <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={t("memory.contentPlaceholder")}
-              className="glass-input es-textarea min-h-48"
+              className="es-textarea min-h-48"
               rows={8}
             />
           )}
         </div>
 
-        <div className="es-section">
-          <label className="es-label">{t("memory.tagsLabel")}</label>
-          <input
+        <FormField
+          label={t("memory.tagsLabel")}
+          className="es-section es-field"
+        >
+          <Input
             type="text"
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}
             placeholder={t("memory.tagsPlaceholder")}
-            className="glass-input es-input"
+            className="es-input"
           />
           {tagsInput.trim() && (
             <div className="flex flex-wrap gap-1.5">
@@ -302,7 +309,7 @@ export function MemoryEditor({
                 ))}
             </div>
           )}
-        </div>
+        </FormField>
       </div>
     </EditorSidebar>
   );

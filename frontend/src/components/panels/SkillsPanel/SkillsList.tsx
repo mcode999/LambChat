@@ -15,6 +15,7 @@ import { PanelHeader } from "../../common/PanelHeader";
 import { SkillsPanelSkeleton } from "../../skeletons";
 import { Pagination } from "../../common/Pagination";
 import { SkillCard } from "../../skill/SkillCard";
+import { Button, IconButton } from "../../common";
 import type { SkillResponse } from "../../../types";
 
 interface SkillsListProps {
@@ -115,12 +116,13 @@ export function SkillsList({
 
   const filterMenu = availableTags.length > 0 && (
     <div className="relative shrink-0" data-filter-menu ref={filterRef}>
-      <button
+      <Button
+        variant="secondary"
         type="button"
         aria-haspopup="menu"
         aria-expanded={isFilterOpen}
         onClick={() => setIsFilterOpen((prev) => !prev)}
-        className={`btn-secondary panel-filter-trigger h-10 px-3 ${
+        className={`panel-filter-trigger h-10 px-3 ${
           selectedTags.length > 0
             ? "border-[var(--theme-primary)] text-[var(--theme-text)]"
             : ""
@@ -139,7 +141,7 @@ export function SkillsList({
           size={16}
           className={`transition-transform ${isFilterOpen ? "rotate-180" : ""}`}
         />
-      </button>
+      </Button>
       {isFilterOpen && (
         <div
           className="skill-filter-dropdown panel-filter-menu absolute right-0 top-[calc(100%+0.5rem)] z-20 w-72 rounded-2xl border  p-3 shadow-lg"
@@ -182,7 +184,7 @@ export function SkillsList({
   const headerActions = (
     <div className="flex items-center gap-2">
       {filteredSkills.length > 0 && (
-        <button onClick={onSelectAll} className="btn-secondary h-10">
+        <Button variant="secondary" onClick={onSelectAll} className="h-10">
           <Check size={16} />
           <span className="hidden sm:inline">
             {selectedNames.size === filteredSkills.length &&
@@ -190,20 +192,20 @@ export function SkillsList({
               ? t("common.deselectAll")
               : t("common.selectAll")}
           </span>
-        </button>
+        </Button>
       )}
-      <button onClick={onGithubClick} className="btn-secondary h-10">
+      <Button variant="secondary" onClick={onGithubClick} className="h-10">
         <Github size={16} />
         <span className="hidden sm:inline">GitHub</span>
-      </button>
-      <button onClick={onZipClick} className="btn-secondary h-10">
+      </Button>
+      <Button variant="secondary" onClick={onZipClick} className="h-10">
         <Archive size={16} />
         <span className="hidden sm:inline">ZIP</span>
-      </button>
-      <button onClick={onCreate} className="btn-primary h-10">
+      </Button>
+      <Button variant="primary" onClick={onCreate} className="h-10">
         <Plus size={16} />
         <span className="hidden sm:inline">{t("skills.newSkill")}</span>
-      </button>
+      </Button>
     </div>
   );
 
@@ -240,12 +242,12 @@ export function SkillsList({
       {error && (
         <div className="mx-4 mt-4 flex items-center justify-between rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
           <span>{error}</span>
-          <button
+          <IconButton
+            aria-label={t("common.close")}
+            icon={<X size={18} />}
             onClick={clearError}
-            className="btn-icon hover:text-red-900 dark:hover:text-red-300"
-          >
-            <X size={18} />
-          </button>
+            className="hover:text-red-900 dark:hover:text-red-300"
+          />
         </div>
       )}
 
@@ -267,19 +269,20 @@ export function SkillsList({
                 : t("skills.createFirst")}
             </p>
             {!hasActiveFilters && canWrite && (
-              <button onClick={onCreate} className="btn-primary mt-4">
+              <Button variant="primary" onClick={onCreate} className="mt-4">
                 <Plus size={16} />
                 <span>{t("skills.newSkill")}</span>
-              </button>
+              </Button>
             )}
             {hasActiveFilters && (
-              <button
+              <Button
+                variant="secondary"
                 type="button"
                 onClick={clearFilters}
-                className="btn-secondary mt-4"
+                className="mt-4"
               >
                 {t("marketplace.clearFilters")}
-              </button>
+              </Button>
             )}
           </div>
         ) : (

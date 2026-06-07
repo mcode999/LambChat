@@ -13,9 +13,9 @@ import {
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { PanelHeader } from "../common/PanelHeader";
-import { LoadingSpinner } from "../common/LoadingSpinner";
 import { MCPPanelSkeleton } from "../skeletons";
 import { Pagination } from "../common/Pagination";
+import { Button, IconButton, PanelFooterActions, Textarea } from "../common";
 import { MCPServerCard } from "../mcp/MCPServerCard";
 import { MCPServerToolsSidebar } from "../mcp/MCPServerToolsSidebar";
 import { MCPServerForm } from "../mcp/MCPServerForm";
@@ -401,26 +401,27 @@ export function MCPPanel() {
         actions={
           canWrite && (
             <>
-              <button
+              <Button
                 onClick={handleImportClick}
-                className="btn-secondary"
+                leftIcon={<Upload size={16} />}
                 title={t("mcp.importFromJSON")}
               >
-                <Upload size={16} />
                 <span className="hidden sm:inline">{t("common.import")}</span>
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleExport}
-                className="btn-secondary"
+                leftIcon={<Download size={16} />}
                 title={t("mcp.exportToJSON")}
               >
-                <Download size={16} />
                 <span className="hidden sm:inline">{t("common.export")}</span>
-              </button>
-              <button onClick={handleCreate} className="btn-primary">
-                <Plus size={16} />
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleCreate}
+                leftIcon={<Plus size={16} />}
+              >
                 <span className="hidden sm:inline">{t("mcp.addServer")}</span>
-              </button>
+              </Button>
             </>
           )
         }
@@ -430,12 +431,12 @@ export function MCPPanel() {
       {error && (
         <div className="mx-4 mt-4 flex items-center justify-between rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
           <span>{error}</span>
-          <button
+          <IconButton
+            aria-label={t("common.close")}
+            icon={<X size={18} />}
             onClick={clearError}
-            className="btn-icon hover:bg-red-100 dark:hover:bg-red-900/50"
-          >
-            <X size={18} />
-          </button>
+            className="hover:bg-red-100 dark:hover:bg-red-900/50"
+          />
         </div>
       )}
 
@@ -453,12 +454,13 @@ export function MCPPanel() {
               {searchQuery ? t("mcp.noMatchingServers") : t("mcp.noServers")}
             </p>
             {!searchQuery && canWrite && (
-              <button
+              <Button
+                variant="ghost"
                 onClick={handleCreate}
                 className="mt-3 text-sm font-medium text-[var(--theme-text-secondary)] hover:text-[var(--theme-text)] transition-colors"
               >
                 {t("mcp.addFirst")}
-              </button>
+              </Button>
             )}
           </div>
         ) : (
@@ -588,36 +590,26 @@ export function MCPPanel() {
         icon={<Download size={16} />}
         width="wide"
         footer={
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => setShowImportModal(false)}
-              className="btn-secondary"
-            >
+          <PanelFooterActions>
+            <Button onClick={() => setShowImportModal(false)}>
               {t("common.cancel")}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleImport}
               disabled={isLoading || !importJson.trim()}
-              className="btn-primary disabled:opacity-50"
+              loading={isLoading}
+              leftIcon={<Upload size={18} />}
             >
-              <span className="inline-flex items-center justify-center gap-2">
-                <span className="inline-flex h-4 w-4 items-center justify-center">
-                  {isLoading ? (
-                    <LoadingSpinner size="sm" color="text-white" />
-                  ) : (
-                    <Upload size={18} />
-                  )}
-                </span>
-                <span>{t("common.import")}</span>
-              </span>
-            </button>
-          </div>
+              {t("common.import")}
+            </Button>
+          </PanelFooterActions>
         }
       >
         <div className="es-form">
           <div className="es-field">
             <label className="es-label">{t("mcp.jsonConfig")}</label>
-            <textarea
+            <Textarea
               value={importJson}
               onChange={(e) => setImportJson(e.target.value)}
               rows={8}
@@ -630,7 +622,7 @@ export function MCPPanel() {
     }
   }
 }`}
-              className="glass-input es-textarea font-mono"
+              className="es-textarea font-mono"
             />
           </div>
 

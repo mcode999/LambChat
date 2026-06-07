@@ -9,7 +9,6 @@ import {
   ThumbsUp,
   ThumbsDown,
   Trash2,
-  AlertCircle,
   MessageSquare,
   Star,
   TrendingUp,
@@ -17,7 +16,8 @@ import {
   Check,
 } from "lucide-react";
 import { PanelHeader } from "../common/PanelHeader";
-import { GlassSelect } from "../common/GlassSelect";
+import { ConfirmDialog } from "../common/ConfirmDialog";
+import { PanelFilterSelect } from "../common";
 import { FeedbackPanelSkeleton } from "../skeletons";
 import { Pagination } from "../common/Pagination";
 import { feedbackApi } from "../../services/api/feedback";
@@ -55,67 +55,6 @@ function StatsCard({
         </div>
       </div>
     </div>
-  );
-}
-
-// Delete confirmation modal with ChatGPT-style centered dialog
-function DeleteConfirmModal({
-  onConfirm,
-  onCancel,
-}: {
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-50 bg-black/50  transition-opacity"
-        onClick={onCancel}
-      />
-      {/* Modal */}
-      <div className="safe-area-viewport-padding fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div
-          className="w-full max-w-md transform overflow-hidden rounded-2xl bg-[var(--theme-bg-card)] p-6 text-left align-middle shadow-xl transition-all"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Icon */}
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
-            <AlertCircle className="text-red-600 dark:text-red-400" size={24} />
-          </div>
-
-          {/* Title */}
-          <h3 className="text-xl font-semibold text-stone-900 dark:text-stone-100 font-serif">
-            {t("feedback.deleteConfirmTitle")}
-          </h3>
-
-          {/* Description */}
-          <div className="mt-2">
-            <p className="text-sm text-stone-500 dark:text-stone-400">
-              {t("feedback.deleteConfirm")}
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-6 flex gap-3">
-            <button
-              onClick={onCancel}
-              className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--theme-bg-card)] px-4 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-700"
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              onClick={onConfirm}
-              className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700"
-            >
-              {t("feedback.delete")}
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
   );
 }
 
@@ -370,20 +309,17 @@ export function FeedbackPanel() {
         subtitle={t("feedback.subtitle")}
         icon={<Star size={20} className="text-stone-600 dark:text-stone-400" />}
         actions={
-          <div className="w-full sm:w-44">
-            <GlassSelect
-              value={ratingFilter || ""}
-              onChange={(v) =>
-                setRatingFilter(v ? (v as RatingValue) : undefined)
-              }
-              placeholder={t("feedback.allRatings")}
-              options={[
-                { value: "", label: t("feedback.allRatings") },
-                { value: "up", label: t("feedback.positive") },
-                { value: "down", label: t("feedback.negative") },
-              ]}
-            />
-          </div>
+          <PanelFilterSelect
+            value={ratingFilter || ""}
+            onChange={(v) =>
+              setRatingFilter(v ? (v as RatingValue) : undefined)
+            }
+            options={[
+              { value: "", label: t("feedback.allRatings") },
+              { value: "up", label: t("feedback.positive") },
+              { value: "down", label: t("feedback.negative") },
+            ]}
+          />
         }
       />
 
@@ -579,12 +515,16 @@ export function FeedbackPanel() {
       )}
 
       {/* Delete Confirmation Modal */}
-      {deleteTarget && (
-        <DeleteConfirmModal
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title={t("feedback.deleteConfirmTitle")}
+        message={t("feedback.deleteConfirm")}
+        confirmText={t("feedback.delete")}
+        cancelText={t("common.cancel")}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        variant="danger"
+      />
 
       {/* Feedback Detail Modal */}
       {selectedFeedback && (

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Power, Zap, Trash2, X } from "lucide-react";
 import { LoadingSpinner } from "../../common/LoadingSpinner";
+import { Button, IconButton } from "../../common";
 
 interface BatchActionBarProps {
   selectedCount: number;
@@ -29,36 +30,43 @@ export function BatchActionBar({
           {t("skills.batchSelected")}
         </span>
         <div className="w-px h-4 bg-[var(--theme-border)]" />
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => onBatchToggle(false)}
           disabled={batchLoading}
-          className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-hover)] hover:text-[var(--theme-text)] disabled:opacity-40 disabled:pointer-events-none"
+          className="text-xs text-[var(--theme-text-secondary)] hover:bg-[var(--theme-hover)] disabled:pointer-events-none disabled:opacity-40"
         >
           <Power size={13} />
           <span className="hidden sm:inline">{t("skills.card.disable")}</span>
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => onBatchToggle(true)}
           disabled={batchLoading}
-          className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-hover)] hover:text-[var(--theme-text)] disabled:opacity-40 disabled:pointer-events-none"
+          className="text-xs text-[var(--theme-text-secondary)] hover:bg-[var(--theme-hover)] disabled:pointer-events-none disabled:opacity-40"
         >
           <Zap size={13} />
           <span className="hidden sm:inline">{t("skills.card.enable")}</span>
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
           onClick={onBatchDelete}
           disabled={batchLoading}
-          className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:pointer-events-none dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+          className="text-xs disabled:pointer-events-none disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
         >
           {batchLoading ? <LoadingSpinner size="xs" /> : <Trash2 size={13} />}
           <span className="hidden sm:inline">{t("common.delete")}</span>
-        </button>
-        <button
+        </Button>
+        <IconButton
+          aria-label={t("common.clear")}
+          icon={<X size={13} />}
+          size="sm"
           onClick={onClearSelection}
-          className="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[var(--theme-text-tertiary)] transition-colors hover:bg-[var(--theme-hover)] hover:text-[var(--theme-text-secondary)]"
-        >
-          <X size={13} />
-        </button>
+          className="h-6 w-6 text-[var(--theme-text-tertiary)] hover:bg-[var(--theme-hover)] hover:text-[var(--theme-text-secondary)]"
+        />
       </div>
     </div>
   );

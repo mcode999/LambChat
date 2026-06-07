@@ -9,6 +9,7 @@ import type {
   MCPRoleQuota,
   MCPTransport,
 } from "../../types";
+import { Button, IconButton } from "../common";
 import { GlassSelect } from "../common/GlassSelect";
 import { EnvKeysSelector } from "./EnvKeysSelector";
 import { MCPToolPolicyEditor } from "./MCPToolPolicyEditor";
@@ -487,14 +488,16 @@ export function MCPServerForm({
           <div className="es-field">
             <div className="flex items-center justify-between">
               <label className="es-label">{t("mcp.form.httpHeaders")}</label>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 type="button"
                 onClick={addHeader}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-stone-500 hover:bg-stone-100 hover:text-stone-700 dark:text-stone-400 dark:hover:bg-stone-700 dark:hover:text-stone-200 transition-colors"
+                className="text-[11px] text-stone-500 hover:bg-stone-100 hover:text-stone-700 dark:text-stone-400 dark:hover:bg-stone-700 dark:hover:text-stone-200"
               >
                 <Plus size={12} />
                 {t("mcp.form.add")}
-              </button>
+              </Button>
             </div>
             <div className="space-y-2 mt-1">
               {headers.map((header) => (
@@ -517,13 +520,12 @@ export function MCPServerForm({
                     placeholder={t("mcp.form.valuePlaceholder")}
                     className="glass-input es-input font-mono"
                   />
-                  <button
-                    type="button"
+                  <IconButton
+                    aria-label={t("common.delete")}
+                    icon={<Trash2 size={14} />}
                     onClick={() => removeHeader(header.id)}
-                    className="btn-icon rounded-lg flex-shrink-0 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                    className="flex-shrink-0 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+                  />
                 </div>
               ))}
               {headers.length === 0 && (
@@ -537,18 +539,19 @@ export function MCPServerForm({
       {/* Actions */}
       <div className="es-divider" />
       <div className="flex justify-end gap-2">
-        <button
+        <Button
+          variant="secondary"
           type="button"
           onClick={onCancel}
           disabled={isLoading}
-          className="btn-secondary"
         >
           {t("mcp.form.cancel")}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="primary"
           type="submit"
           disabled={isLoading}
-          className="btn-primary disabled:opacity-50 min-w-[80px]"
+          className="min-w-[80px]"
         >
           {isLoading ? (
             <span className="inline-flex items-center gap-1.5">
@@ -560,7 +563,7 @@ export function MCPServerForm({
           ) : (
             t("mcp.form.createServer")
           )}
-        </button>
+        </Button>
       </div>
     </form>
   );

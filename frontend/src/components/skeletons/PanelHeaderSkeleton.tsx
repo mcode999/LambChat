@@ -22,7 +22,7 @@ export function PanelHeaderSkeleton({
         <div className="panel-header__identity flex min-w-0 items-center gap-3 lg:gap-4">
           {/* Icon box — matches real PanelHeader: size-10 lg:size-11 rounded-lg subtle-bg + ring-1 */}
           <div
-            className="flex size-10 flex-shrink-0 items-center justify-center rounded-lg ring-1 lg:size-11"
+            className="flex size-10 flex-shrink-0 items-center justify-center rounded-lg ring-1 ring-stone-200 dark:ring-stone-700 lg:size-11"
             style={{
               backgroundColor:
                 "var(--theme-bg-subtle, color-mix(in srgb, var(--theme-bg) 80%, white))",

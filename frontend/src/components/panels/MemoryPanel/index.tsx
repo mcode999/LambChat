@@ -22,6 +22,7 @@ import { PanelHeader } from "../../common/PanelHeader";
 import { PanelLoadingState } from "../../common/PanelLoadingState";
 import { Pagination } from "../../common/Pagination";
 import { Checkbox } from "../../common/Checkbox";
+import { Button, IconButton } from "../../common";
 import { BatchActionBar } from "../SkillsPanel/BatchActionBar";
 import { memoryApi, type MemoryItem } from "../../../services/api/memory";
 import {
@@ -229,57 +230,60 @@ export function MemoryPanel() {
         }
         actions={
           <>
-            <button
+            <Button
+              variant="primary"
               onClick={() => setEditingMemory(null)}
-              className="btn-primary"
+              leftIcon={<Plus size={16} />}
               title={t("memory.createTitle")}
             >
-              <Plus size={16} />
               <span className="hidden sm:inline">{t("memory.createBtn")}</span>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleImportClick}
               disabled={importLoading}
-              className="btn-secondary"
+              leftIcon={
+                <Upload
+                  size={16}
+                  className={importLoading ? "animate-pulse" : ""}
+                />
+              }
               title={t("memory.import")}
             >
-              <Upload
-                size={16}
-                className={importLoading ? "animate-pulse" : ""}
-              />
               <span className="hidden sm:inline">{t("memory.import")}</span>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleExport}
               disabled={exportLoading}
-              className="btn-secondary"
+              leftIcon={
+                <Download
+                  size={16}
+                  className={exportLoading ? "animate-pulse" : ""}
+                />
+              }
               title={t("memory.export")}
             >
-              <Download
-                size={16}
-                className={exportLoading ? "animate-pulse" : ""}
-              />
               <span className="hidden sm:inline">{t("memory.export")}</span>
-            </button>
-            <button onClick={toggleAll} className="btn-secondary">
-              <Check size={16} />
+            </Button>
+            <Button onClick={toggleAll} leftIcon={<Check size={16} />}>
               <span className="hidden sm:inline">
                 {allChecked ? t("common.deselectAll") : t("common.selectAll")}
               </span>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={fetchMemories}
               disabled={isLoading}
-              className="btn-primary"
+              leftIcon={
+                <RefreshCw
+                  size={14}
+                  className={isLoading ? "animate-spin" : ""}
+                />
+              }
             >
-              <RefreshCw
-                size={14}
-                className={isLoading ? "animate-spin" : ""}
-              />
               <span className="hidden sm:inline">
                 {t("common.refresh", "Refresh")}
               </span>
-            </button>
+            </Button>
           </>
         }
       />
@@ -395,26 +399,28 @@ export function MemoryPanel() {
 
                     <div className="ml-auto" />
 
-                    <button
+                    <IconButton
+                      aria-label={t("common.edit")}
+                      icon={<Pencil size={14} />}
                       onClick={(e) => {
                         e.stopPropagation();
                         setEditingMemory(memory);
                       }}
-                      className="btn-icon inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--theme-text-secondary)] transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+                      size="sm"
+                      className="h-8 w-8 rounded-lg text-[var(--theme-text-secondary)] hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
                       title={t("common.edit")}
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
+                    />
+                    <IconButton
+                      aria-label={t("common.delete")}
+                      icon={<Trash2 size={14} />}
                       onClick={(e) => {
                         e.stopPropagation();
                         setDeleteId(memory.memory_id);
                       }}
-                      className="btn-icon inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--theme-text-secondary)] transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                      size="sm"
+                      className="h-8 w-8 rounded-lg text-[var(--theme-text-secondary)] hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
                       title={t("common.delete")}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    />
                   </div>
                 </div>
               );

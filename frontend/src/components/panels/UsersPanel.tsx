@@ -19,10 +19,10 @@ import {
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { PanelHeader } from "../common/PanelHeader";
-import { LoadingSpinner } from "../common/LoadingSpinner";
 import { UsersPanelSkeleton } from "../skeletons";
 import { EditorSidebar } from "../common/EditorSidebar";
 import { ConfirmDialog } from "../common/ConfirmDialog";
+import { Button, IconButton, PanelFooterActions } from "../common";
 import { getFullUrl } from "../../services/api";
 import { Checkbox } from "../common/Checkbox";
 import { Pagination } from "../common/Pagination";
@@ -179,24 +179,21 @@ function UserFormModal({
       icon={isEditing ? <Edit size={16} /> : <Plus size={16} />}
       width="wide"
       footer={
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn-secondary flex-1"
-          >
+        <PanelFooterActions>
+          <Button type="button" onClick={onClose} className="flex-1">
             {t("common.cancel")}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             type="submit"
             form="user-form"
-            disabled={isLoading}
-            className="btn-primary flex-1 disabled:opacity-50"
+            loading={isLoading}
+            leftIcon={<Save size={16} />}
+            className="flex-1"
           >
-            {isLoading ? <LoadingSpinner size="sm" /> : <Save size={16} />}
             {t("common.save")}
-          </button>
-        </div>
+          </Button>
+        </PanelFooterActions>
       }
     >
       <form id="user-form" onSubmit={handleSubmit} className="es-form">
@@ -454,10 +451,13 @@ export function UsersPanel() {
         searchPlaceholder={t("users.searchPlaceholder")}
         actions={
           canCreate && (
-            <button onClick={openCreateModal} className="btn-primary">
-              <Plus size={16} className="sm:size-[18px]" />
+            <Button
+              variant="primary"
+              onClick={openCreateModal}
+              leftIcon={<Plus size={16} className="sm:size-[18px]" />}
+            >
               <span className="hidden sm:inline">{t("users.createUser")}</span>
-            </button>
+            </Button>
           )
         }
       />
@@ -562,22 +562,21 @@ export function UsersPanel() {
                         <td className="whitespace-nowrap px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             {canEdit && (
-                              <button
+                              <IconButton
+                                aria-label={t("users.edit")}
+                                icon={<Edit size={18} />}
                                 onClick={() => openEditModal(user)}
-                                className="btn-icon"
                                 title={t("users.edit")}
-                              >
-                                <Edit size={18} />
-                              </button>
+                              />
                             )}
                             {canDelete && (
-                              <button
+                              <IconButton
+                                aria-label={t("common.delete")}
+                                icon={<Trash2 size={18} />}
                                 onClick={() => setDeleteUser(user)}
-                                className="btn-icon hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                                className="hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
                                 title={t("common.delete")}
-                              >
-                                <Trash2 size={18} />
-                              </button>
+                              />
                             )}
                           </div>
                         </td>
@@ -638,22 +637,21 @@ export function UsersPanel() {
                     {(canEdit || canDelete) && (
                       <div className="flex items-center gap-1">
                         {canEdit && (
-                          <button
+                          <IconButton
+                            aria-label={t("users.edit")}
+                            icon={<Edit size={18} />}
                             onClick={() => openEditModal(user)}
-                            className="btn-icon"
                             title={t("users.edit")}
-                          >
-                            <Edit size={18} />
-                          </button>
+                          />
                         )}
                         {canDelete && (
-                          <button
+                          <IconButton
+                            aria-label={t("common.delete")}
+                            icon={<Trash2 size={18} />}
                             onClick={() => setDeleteUser(user)}
-                            className="btn-icon hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                            className="hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
                             title={t("common.delete")}
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          />
                         )}
                       </div>
                     )}

@@ -315,7 +315,7 @@ export function Toolbar({
           {/* ─── Right group: Search + View toggle ─── */}
           <div className="flex items-center gap-1.5 @sm:gap-2 shrink-0">
             {/* Search */}
-            <div className="group flex items-center h-9 w-[120px] @sm:w-[160px] @md:w-[200px] rounded-lg border border-theme-border bg-theme-bg-subtle/50 px-2 @sm:px-3 pl-9 relative focus-within:border-theme-border-hover focus-within:bg-theme-bg-elevated transition-all duration-150">
+            <div className="group flex items-center h-9 w-[160px] @sm:w-[200px] @md:w-[280px] rounded-lg border border-theme-border bg-theme-bg-subtle/50 px-2 @sm:px-3 pl-9 relative focus-within:border-theme-border-hover focus-within:bg-theme-bg-elevated transition-all duration-150">
               <Search
                 size={16}
                 className="absolute left-2 @sm:left-3 top-1/2 -translate-y-1/2 text-theme-text-tertiary pointer-events-none"

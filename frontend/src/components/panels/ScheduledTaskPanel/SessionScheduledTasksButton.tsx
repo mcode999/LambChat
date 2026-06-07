@@ -24,7 +24,7 @@ import {
   openPersistentToolPanel,
   updatePersistentToolPanel,
 } from "../../chat/ChatMessage/items/persistentToolPanelState";
-import { RunStatusBadge, StatusBadge } from "./Badges";
+import { RunStatusBadge, StatusBadgeForTask as StatusBadge } from "./Badges";
 import { formatTaskTrigger } from "./utils";
 
 const SESSION_TASK_PANEL_KEY = "session-scheduled-tasks";

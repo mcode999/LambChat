@@ -3,6 +3,7 @@ import { Archive, Upload, Sparkles, Github } from "lucide-react";
 import { LoadingSpinner } from "../../common/LoadingSpinner";
 import { EditorSidebar } from "../../common/EditorSidebar";
 import { Checkbox } from "../../common/Checkbox";
+import { Button, Input } from "../../common";
 
 interface GitHubSkill {
   name: string;
@@ -59,17 +60,17 @@ export function GithubImportModal({
       width="wide"
       footer={
         <div className="flex justify-end gap-2">
-          <button
+          <Button
+            variant="secondary"
             onClick={() => setShowGithubModal(false)}
             disabled={githubInstalling}
-            className="btn-secondary"
           >
             {t("common.cancel")}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={onGithubExport}
             disabled={githubExporting || selectedGithubSkills.length === 0}
-            className="btn-secondary disabled:opacity-50"
           >
             {githubExporting ? (
               <LoadingSpinner size="sm" color="text-[var(--theme-primary)]" />
@@ -77,11 +78,11 @@ export function GithubImportModal({
               <Archive size={16} />
             )}
             <span className="hidden sm:inline">{t("skills.exportZip")}</span>
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={onGithubInstall}
             disabled={githubInstalling || selectedGithubSkills.length === 0}
-            className="btn-primary disabled:opacity-50"
           >
             {githubInstalling ? (
               <LoadingSpinner size="sm" color="text-white" />
@@ -93,7 +94,7 @@ export function GithubImportModal({
                 count: selectedGithubSkills.length,
               })}
             </span>
-          </button>
+          </Button>
         </div>
       }
     >
@@ -117,27 +118,28 @@ export function GithubImportModal({
           <label className="es-label">{t("skills.githubRepoUrl")}</label>
           <div className="skill-github-import flex flex-col gap-2 sm:flex-row">
             <div className="skill-github-import__field skill-github-import__field--repo">
-              <input
+              <Input
                 type="text"
                 value={githubUrl}
                 onChange={(e) => setGithubUrl(e.target.value)}
                 placeholder="https://github.com/owner/repo"
-                className="input-field skill-github-import__input"
+                className="skill-github-import__input"
               />
             </div>
             <div className="skill-github-import__field skill-github-import__field--branch">
-              <input
+              <Input
                 type="text"
                 value={githubBranch}
                 onChange={(e) => setGithubBranch(e.target.value)}
                 placeholder="main"
-                className="input-field skill-github-import__input"
+                className="skill-github-import__input"
               />
             </div>
-            <button
+            <Button
+              variant="secondary"
               onClick={onGithubPreview}
               disabled={githubLoading || !githubUrl.trim()}
-              className="btn-secondary skill-github-import__button"
+              className="skill-github-import__button"
             >
               <span className="inline-flex items-center justify-center gap-2">
                 <span className="inline-flex h-4 w-4 items-center justify-center">
@@ -152,7 +154,7 @@ export function GithubImportModal({
                 </span>
                 <span>{t("skills.preview")}</span>
               </span>
-            </button>
+            </Button>
           </div>
         </div>
 

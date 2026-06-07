@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { CalendarClock, Pencil, Plus, Timer } from "lucide-react";
+import { GlassSelect } from "../../common/GlassSelect";
 import { EditorSidebar } from "../../common/EditorSidebar";
+import { ToggleSwitch } from "../AgentPanel/shared";
 import type {
   ScheduledTask,
   ScheduledTaskCreate,
@@ -201,20 +203,17 @@ export function TaskFormModal({
       title={isEdit ? t("scheduledTask.edit") : t("scheduledTask.create")}
       icon={isEdit ? <Pencil size={16} /> : <Plus size={16} />}
       footer={
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="scheduled-task-button scheduled-task-button--secondary flex-1"
-          >
-            {t("scheduledTask.cancel")}
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="btn-secondary">
+            {t("common.cancel")}
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="scheduled-task-button scheduled-task-button--primary flex-1"
+            className="btn-primary disabled:opacity-50"
           >
             {isSaving ? (
-              <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5">
                 <svg
                   className="h-4 w-4 animate-spin"
                   viewBox="0 0 24 24"
@@ -237,7 +236,7 @@ export function TaskFormModal({
                 {t("common.saving") || "Saving..."}
               </span>
             ) : (
-              t("scheduledTask.save")
+              t("common.save")
             )}
           </button>
         </div>
@@ -278,18 +277,17 @@ export function TaskFormModal({
             <label className="scheduled-task-label">
               {t("scheduledTask.agent")} *
             </label>
-            <select
+            <GlassSelect
               value={agentId}
-              onChange={(e) => setAgentId(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">{t("scheduledTask.agentPlaceholder")}</option>
-              {agents.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {t(agent.name)}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setAgentId(v)}
+              options={[
+                { value: "", label: t("scheduledTask.agentPlaceholder") },
+                ...agents.map((agent) => ({
+                  value: agent.id,
+                  label: t(agent.name),
+                })),
+              ]}
+            />
           </div>
 
           {/* Model selector */}
@@ -297,25 +295,24 @@ export function TaskFormModal({
             <label className="scheduled-task-label">
               {t("scheduledTask.model")}
             </label>
-            <select
+            <GlassSelect
               value={modelId}
-              onChange={(e) => {
+              onChange={(v) => {
                 const nextModel = availableModels?.find(
-                  (model) => model.id === e.target.value,
+                  (model) => model.id === v,
                 );
-                setModelId(e.target.value);
+                setModelId(v);
                 setModelValue(nextModel?.value || "");
               }}
-              className={inputClass}
               disabled={!availableModels || availableModels.length === 0}
-            >
-              <option value="">{t("scheduledTask.modelPlaceholder")}</option>
-              {(availableModels || []).map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.label || model.value}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: t("scheduledTask.modelPlaceholder") },
+                ...(availableModels || []).map((model) => ({
+                  value: model.id,
+                  label: model.label || model.value,
+                })),
+              ]}
+            />
           </div>
 
           {/* Trigger type */}
@@ -451,35 +448,35 @@ export function TaskFormModal({
           {/* Toggles */}
           <div className="space-y-3">
             {/* Enabled toggle */}
-            <div className="scheduled-task-toggle-row">
-              <p className="text-sm font-medium text-theme-text-secondary">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-theme-text-secondary">
                 {t("scheduledTask.enabled")}
-              </p>
-              <button
-                type="button"
-                onClick={() => setEnabled(!enabled)}
-                className={`scheduled-task-toggle ${
-                  enabled ? "scheduled-task-toggle--active" : ""
-                }`}
-              >
-                <span className="scheduled-task-toggle__thumb" />
-              </button>
+              </span>
+              <ToggleSwitch
+                enabled={enabled}
+                onToggle={() => setEnabled(!enabled)}
+                ariaLabel={
+                  enabled
+                    ? t("scheduledTask.disable")
+                    : t("scheduledTask.enable")
+                }
+              />
             </div>
 
             {triggerType !== "date" && (
-              <div className="scheduled-task-toggle-row">
-                <p className="text-sm font-medium text-theme-text-secondary">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-theme-text-secondary">
                   {t("scheduledTask.runOnStart")}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setRunOnStart(!runOnStart)}
-                  className={`scheduled-task-toggle ${
-                    runOnStart ? "scheduled-task-toggle--active" : ""
-                  }`}
-                >
-                  <span className="scheduled-task-toggle__thumb" />
-                </button>
+                </span>
+                <ToggleSwitch
+                  enabled={runOnStart}
+                  onToggle={() => setRunOnStart(!runOnStart)}
+                  ariaLabel={
+                    runOnStart
+                      ? t("scheduledTask.disableRunOnStart")
+                      : t("scheduledTask.enableRunOnStart")
+                  }
+                />
               </div>
             )}
           </div>
