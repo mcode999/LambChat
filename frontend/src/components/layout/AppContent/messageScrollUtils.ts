@@ -425,8 +425,11 @@ export function startVirtuosoScrollToBottom({
   };
   const scroll = () => {
     onAutoScroll?.();
-    if (preferPhysicalBottom && !virtuoso && (footer || scroller)) {
-      forceScrollerToPhysicalBottom({ scroller, footer });
+    if (preferPhysicalBottom && (footer || scroller)) {
+      forceVirtuosoToBottom({ virtuoso, footer: virtuoso ? null : footer });
+      if (scroller) {
+        scroller.scrollTop = scroller.scrollHeight;
+      }
       return;
     }
     if (typeof virtuoso.autoscrollToBottom === "function") {
