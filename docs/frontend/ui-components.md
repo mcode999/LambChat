@@ -5,7 +5,15 @@ Use the shared primitives in `frontend/src/components/common/ui` for generic app
 ## Imports
 
 ```tsx
-import { Button, FormField, Input, Select, Textarea } from "../common";
+import {
+  Button,
+  FormField,
+  IconButton,
+  Input,
+  PickerTrigger,
+  Select,
+  Textarea,
+} from "../common";
 ```
 
 Adjust the relative import depth for nested components, for example `../../common` or `../../../common`.
@@ -48,10 +56,33 @@ Use `Input` for single-line text and numbers:
 <Input placeholder="Search" leadingIcon={<Search size={16} />} />
 ```
 
+Use `Input`'s `trailingSlot` for small field-owned actions such as password
+visibility:
+
+```tsx
+<Input
+  type={showSecret ? "text" : "password"}
+  trailingSlot={
+    <IconButton
+      aria-label="Toggle visibility"
+      icon={showSecret ? <EyeOff size={14} /> : <Eye size={14} />}
+      size="sm"
+      onClick={() => setShowSecret((shown) => !shown)}
+    />
+  }
+/>
+```
+
 Use `Textarea` for multiline content:
 
 ```tsx
 <Textarea rows={5} value={prompt} onChange={(event) => setPrompt(event.target.value)} />
+```
+
+Use the shared `Checkbox` for generic assignment toggles:
+
+```tsx
+<Checkbox checked={enabled} onChange={() => setEnabled((current) => !current)} />
 ```
 
 ## Select
@@ -69,6 +100,24 @@ Use `Textarea` for multiline content:
 ```
 
 `GlassSelect` remains available for compatibility, but new generic selects should use `Select`.
+
+Use `PickerTrigger` for custom select-like pickers that need rich option rows,
+icons, search, or asynchronous lists that do not fit the plain `Select` API.
+Pair it with the shared `Input` for picker search fields:
+
+```tsx
+<PickerTrigger open={open} selected={Boolean(value)} onClick={() => setOpen(!open)}>
+  <ModelIconImg model={value} size={18} />
+  <span className="truncate">{label}</span>
+</PickerTrigger>
+
+<Input
+  ref={searchRef}
+  value={search}
+  onChange={(event) => setSearch(event.target.value)}
+  leadingIcon={<Search size={14} />}
+/>
+```
 
 ## Panel Controls
 
@@ -104,6 +153,10 @@ Use `PanelFooterActions` for modal and sidebar footer buttons:
 </PanelFooterActions>
 ```
 
+Header-level commands in admin shells should use `Button` or `IconButton`
+directly through `PanelHeader.actions`; keep tab/navigation buttons local when
+their selected-state styling is part of the panel layout.
+
 ## Migration Rules
 
 New generic frontend controls should use these primitives instead of adding new ad hoc class combinations.
@@ -111,3 +164,7 @@ New generic frontend controls should use these primitives instead of adding new 
 Existing `btn-primary`, `btn-secondary`, `btn-danger`, `btn-icon`, `glass-input`, and `glass-select-*` classes are compatibility styles. They now share the primitive visual system, but do not use them in new generic app code.
 
 Auth, landing, persona, team builder, and chat composer surfaces may keep local visual variants when they are intentionally part of the experience. Shared admin panels, settings, MCP, model, skill, user, memory, feedback, approval, and channel screens should prefer the primitives and panel controls.
+
+Panel-specific density classes such as `es-input`, `es-textarea`, or
+`approval-input` may be layered onto primitives when they preserve an existing
+admin layout. Avoid using legacy classes as the base control.

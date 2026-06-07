@@ -90,7 +90,7 @@ test("attempts browser notifications only after permission is granted and the ta
   );
 });
 
-test("does not attempt app task notifications while the native app is visible", () => {
+test("does not attempt app task notifications for the visible active session", () => {
   assert.equal(
     shouldAttemptAppTaskNotification({
       appRuntime: "capacitor-android",
@@ -100,6 +100,9 @@ test("does not attempt app task notifications while the native app is visible", 
     }),
     false,
   );
+});
+
+test("attempts app task notifications for other sessions while the native app is visible", () => {
   assert.equal(
     shouldAttemptAppTaskNotification({
       appRuntime: "tauri",
@@ -107,7 +110,7 @@ test("does not attempt app task notifications while the native app is visible", 
       currentSessionId: "session-1",
       visibilityState: "visible",
     }),
-    false,
+    true,
   );
 });
 

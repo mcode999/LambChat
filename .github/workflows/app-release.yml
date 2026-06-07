@@ -228,7 +228,7 @@ jobs:
           if-no-files-found: error
 
   ios:
-    name: iOS project check
+    name: iOS
     runs-on: macos-latest
 
     steps:
@@ -261,23 +261,45 @@ jobs:
         working-directory: frontend
 
       - name: Build and sync mobile web assets
-        run: pnpm mobile:sync
+        run: pnpm mobile:sync:ios
         working-directory: frontend
+
+      - name: Install iOS pods
+        run: pod install
+        working-directory: frontend/ios/App
 
       - name: Verify LambChat native brand assets
         run: pnpm brand:assets:check
         working-directory: frontend
 
-      - name: Build iOS project without signing
+      - name: Build iOS archive without signing
         run: |
           xcodebuild \
             -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
+            -destination generic/platform=iOS \
+            -archivePath "$RUNNER_TEMP/LambChat-ios.xcarchive" \
             -derivedDataPath "$RUNNER_TEMP/LambChatDerivedData" \
-            build \
-            CODE_SIGNING_ALLOWED=NO
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
         working-directory: frontend/ios/App
+
+      - name: Prepare iOS archive artifact
+        run: |
+          mkdir -p release-assets
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$RUNNER_TEMP/LambChat-ios.xcarchive" \
+            "release-assets/LambChat-ios-${RELEASE_TAG}-unsigned-xcarchive.zip"
+
+      - name: Upload iOS archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LambChat-ios-${{ env.RELEASE_TAG }}
+          path: release-assets/*
+          if-no-files-found: error
 
   release:
     name: Publish GitHub Release

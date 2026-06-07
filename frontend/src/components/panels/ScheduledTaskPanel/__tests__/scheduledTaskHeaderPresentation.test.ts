@@ -7,12 +7,15 @@ function source(path: string) {
 }
 
 const panelSource = source("../index.tsx");
+const statusFilterSource = source("../StatusFilter.tsx");
+const panelControlsSource = source("../../../common/PanelControls.tsx");
 
 test("scheduled task header uses shared panel action styling", () => {
-  assert.match(panelSource, /panel-filter-trigger/);
-  assert.match(panelSource, /data-filter-menu/);
-  assert.match(panelSource, /panel-filter-menu/);
-  assert.match(panelSource, /scheduledTask\.allStatuses/);
+  assert.match(statusFilterSource, /PanelFilterSelect/);
+  assert.match(statusFilterSource, /data-filter-menu/);
+  assert.match(statusFilterSource, /scheduledTask\.allStatuses/);
+  assert.match(panelControlsSource, /panel-filter-trigger/);
+  assert.match(panelControlsSource, /panel-filter-menu/);
   assert.match(panelSource, /scheduledTask\.create/);
   assert.doesNotMatch(
     panelSource,

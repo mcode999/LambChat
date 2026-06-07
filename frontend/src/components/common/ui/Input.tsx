@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import { forwardRef, type InputHTMLAttributes, type ReactNode } from "react";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   leadingIcon?: ReactNode;
@@ -10,15 +10,13 @@ function cx(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(" ");
 }
 
-export function Input({
-  leadingIcon,
-  trailingSlot,
-  error = false,
-  className,
-  ...props
-}: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { leadingIcon, trailingSlot, error = false, className, ...props },
+  ref,
+) {
   const input = (
     <input
+      ref={ref}
       className={cx(
         "ui-input",
         Boolean(leadingIcon) && "ui-input--with-leading-icon",
@@ -42,4 +40,4 @@ export function Input({
       )}
     </span>
   );
-}
+});

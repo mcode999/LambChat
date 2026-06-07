@@ -45,7 +45,16 @@ export type { StatusBadgeProps, StatusColor } from "./StatusBadge";
 export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps } from "./EmptyState";
 
-export { Button, IconButton, Input, Textarea, Select, FormField } from "./ui";
+export { Checkbox } from "./Checkbox";
+export {
+  Button,
+  IconButton,
+  Input,
+  Textarea,
+  Select,
+  PickerTrigger,
+  FormField,
+} from "./ui";
 export type {
   ButtonProps,
   ButtonSize,
@@ -55,6 +64,7 @@ export type {
   TextareaProps,
   SelectOption,
   SelectProps,
+  PickerTriggerProps,
   FormFieldProps,
 } from "./ui";
 

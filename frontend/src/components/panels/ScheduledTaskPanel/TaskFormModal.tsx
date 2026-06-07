@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { CalendarClock, Pencil, Plus, Timer } from "lucide-react";
-import { GlassSelect } from "../../common/GlassSelect";
+import { CalendarClock, Pencil, Plus, Save, Timer } from "lucide-react";
+import {
+  Button,
+  Input,
+  PanelFooterActions,
+  Select,
+  Textarea,
+} from "../../common";
 import { EditorSidebar } from "../../common/EditorSidebar";
 import { ToggleSwitch } from "../AgentPanel/shared";
 import type {
@@ -203,43 +209,17 @@ export function TaskFormModal({
       title={isEdit ? t("scheduledTask.edit") : t("scheduledTask.create")}
       icon={isEdit ? <Pencil size={16} /> : <Plus size={16} />}
       footer={
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="btn-secondary">
-            {t("common.cancel")}
-          </button>
-          <button
+        <PanelFooterActions>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
+          <Button
+            variant="primary"
             onClick={handleSave}
-            disabled={isSaving}
-            className="btn-primary disabled:opacity-50"
+            loading={isSaving}
+            leftIcon={<Save size={16} />}
           >
-            {isSaving ? (
-              <span className="inline-flex items-center gap-1.5">
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                {t("common.saving") || "Saving..."}
-              </span>
-            ) : (
-              t("common.save")
-            )}
-          </button>
-        </div>
+            {t("common.save")}
+          </Button>
+        </PanelFooterActions>
       }
     >
       <div className="es-form" style={{ gap: 0 }}>
@@ -249,7 +229,7 @@ export function TaskFormModal({
             <label className="scheduled-task-label">
               {t("scheduledTask.name")} *
             </label>
-            <input
+            <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -263,7 +243,7 @@ export function TaskFormModal({
             <label className="scheduled-task-label">
               {t("scheduledTask.description")}
             </label>
-            <textarea
+            <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
@@ -277,9 +257,10 @@ export function TaskFormModal({
             <label className="scheduled-task-label">
               {t("scheduledTask.agent")} *
             </label>
-            <GlassSelect
+            <Select
               value={agentId}
               onChange={(v) => setAgentId(v)}
+              triggerClassName={inputClass}
               options={[
                 { value: "", label: t("scheduledTask.agentPlaceholder") },
                 ...agents.map((agent) => ({
@@ -295,7 +276,7 @@ export function TaskFormModal({
             <label className="scheduled-task-label">
               {t("scheduledTask.model")}
             </label>
-            <GlassSelect
+            <Select
               value={modelId}
               onChange={(v) => {
                 const nextModel = availableModels?.find(
@@ -305,6 +286,7 @@ export function TaskFormModal({
                 setModelValue(nextModel?.value || "");
               }}
               disabled={!availableModels || availableModels.length === 0}
+              triggerClassName={inputClass}
               options={[
                 { value: "", label: t("scheduledTask.modelPlaceholder") },
                 ...(availableModels || []).map((model) => ({
@@ -347,7 +329,7 @@ export function TaskFormModal({
               <label className="scheduled-task-label">
                 {t("scheduledTask.intervalSeconds")} *
               </label>
-              <input
+              <Input
                 type="number"
                 min={1}
                 value={intervalSeconds}
@@ -360,7 +342,7 @@ export function TaskFormModal({
               <label className="scheduled-task-label">
                 {t("scheduledTask.runDate")} *
               </label>
-              <input
+              <Input
                 type="datetime-local"
                 value={runDate}
                 onChange={(e) => setRunDate(e.target.value)}
@@ -413,7 +395,7 @@ export function TaskFormModal({
                   <label className="scheduled-task-label text-xs">
                     {label}
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={value}
                     onChange={(e) => set(e.target.value)}
@@ -430,7 +412,7 @@ export function TaskFormModal({
             <label className="scheduled-task-label">
               {t("scheduledTask.inputPayload")}
             </label>
-            <textarea
+            <Textarea
               value={inputPayload}
               onChange={(e) => {
                 setInputPayload(e.target.value);
@@ -487,7 +469,7 @@ export function TaskFormModal({
               <label className="scheduled-task-label">
                 {t("scheduledTask.maxRetries")}
               </label>
-              <input
+              <Input
                 type="number"
                 min={0}
                 max={10}
@@ -500,7 +482,7 @@ export function TaskFormModal({
               <label className="scheduled-task-label">
                 {t("scheduledTask.timeoutSeconds")}
               </label>
-              <input
+              <Input
                 type="number"
                 min={10}
                 max={3600}

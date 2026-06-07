@@ -15,5 +15,8 @@ export { Select } from "./Select";
 export type { SelectOption } from "./Select";
 export type { SelectProps } from "./Select";
 
+export { PickerTrigger } from "./PickerTrigger";
+export type { PickerTriggerProps } from "./PickerTrigger";
+
 export { FormField } from "./FormField";
 export type { FormFieldProps } from "./FormField";

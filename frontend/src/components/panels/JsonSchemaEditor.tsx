@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { GlassSelect } from "../common/GlassSelect";
 import { Plus, Trash2 } from "lucide-react";
+import { Button, IconButton, Input, Select } from "../common";
 import type { JsonSchema, JsonSchemaField } from "../../types/settings";
 
 interface JsonSchemaEditorProps {
@@ -65,7 +65,7 @@ function FieldInput({
         <label className="mb-1 block text-xs font-medium text-stone-600 dark:text-stone-400">
           {label}
         </label>
-        <GlassSelect
+        <Select
           value={String(value)}
           disabled={disabled}
           onChange={onChange}
@@ -84,7 +84,7 @@ function FieldInput({
         {label}
         {field.required && <span className="ml-0.5 text-red-500">*</span>}
       </label>
-      <input
+      <Input
         type={
           field.type === "password"
             ? "password"
@@ -170,13 +170,13 @@ function ArrayEditor({
               {itemLabel} {index + 1}
             </span>
             {!disabled && (
-              <button
-                type="button"
+              <IconButton
                 onClick={() => removeItem(index)}
                 className="rounded p-1 text-stone-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-              >
-                <Trash2 size={14} />
-              </button>
+                icon={<Trash2 size={14} />}
+                size="sm"
+                aria-label={t("common.delete")}
+              />
             )}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -199,14 +199,15 @@ function ArrayEditor({
         </div>
       ))}
       {!disabled && (
-        <button
-          type="button"
+        <Button
           onClick={addItem}
+          variant="ghost"
+          size="sm"
+          leftIcon={<Plus size={14} />}
           className="flex items-center gap-1.5 rounded-lg border border-dashed border-[var(--glass-border)] px-3 py-2 text-sm text-stone-500 hover:border-blue-400 hover:text-blue-500 dark:text-stone-400 dark:hover:border-blue-500 dark:hover:text-blue-400"
         >
-          <Plus size={14} />
           {t("settingDesc.JSON_SCHEMA_ADD_ITEM")} {itemLabel}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -272,8 +273,7 @@ function ObjectArrayEditor({
                   </div>
                 ))}
                 {!disabled && (
-                  <button
-                    type="button"
+                  <IconButton
                     onClick={() => {
                       const next = { ...value };
                       const items = [...(next[key] || [])];
@@ -282,15 +282,15 @@ function ObjectArrayEditor({
                       onChange(next);
                     }}
                     className="mb-0.5 rounded p-1 text-stone-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                    icon={<Trash2 size={14} />}
+                    size="sm"
+                    aria-label={t("common.delete")}
+                  />
                 )}
               </div>
             ))}
             {!disabled && (
-              <button
-                type="button"
+              <Button
                 onClick={() => {
                   const newItem: Record<string, unknown> = {};
                   for (const field of schema.fields) {
@@ -302,11 +302,13 @@ function ObjectArrayEditor({
                   next[key] = [...(next[key] || []), newItem];
                   onChange(next);
                 }}
+                variant="ghost"
+                size="sm"
+                leftIcon={<Plus size={12} />}
                 className="flex items-center gap-1.5 rounded-lg border border-dashed border-[var(--glass-border)] px-3 py-1.5 text-xs text-stone-500 hover:border-blue-400 hover:text-blue-500 dark:text-stone-400 dark:hover:border-blue-500 dark:hover:text-blue-400"
               >
-                <Plus size={12} />
                 {t("settingDesc.JSON_SCHEMA_ADD_ITEM")} {itemLabel}
-              </button>
+              </Button>
             )}
           </div>
         </div>

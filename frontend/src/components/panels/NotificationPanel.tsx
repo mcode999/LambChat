@@ -20,7 +20,13 @@ import { PanelLoadingState } from "../common/PanelLoadingState";
 import { Pagination } from "../common/Pagination";
 import { StatusBadge } from "../common/StatusBadge";
 import type { StatusColor } from "../common/StatusBadge";
-import { Button, IconButton, PanelFooterActions } from "../common";
+import {
+  Button,
+  IconButton,
+  Input,
+  PanelFooterActions,
+  Textarea,
+} from "../common";
 import { notificationApi } from "../../services/api/notification";
 import { useAuth } from "../../hooks/useAuth";
 import { Permission } from "../../types";
@@ -173,7 +179,7 @@ function NotificationFormModal({
                     <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">
                       {label}
                     </label>
-                    <input
+                    <Input
                       type="text"
                       value={titleI18n[key]}
                       onChange={(e) =>
@@ -182,7 +188,7 @@ function NotificationFormModal({
                           [key]: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 transition-all focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-500/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+                      aria-label={`${t("notification.titleLabel")} - ${label}`}
                       placeholder={`${label} title`}
                     />
                   </div>
@@ -201,7 +207,7 @@ function NotificationFormModal({
                     <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">
                       {label}
                     </label>
-                    <textarea
+                    <Textarea
                       value={contentI18n[key]}
                       onChange={(e) =>
                         setContentI18n((prev) => ({
@@ -210,7 +216,9 @@ function NotificationFormModal({
                         }))
                       }
                       rows={3}
-                      className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 transition-all focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-500/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 resize-y"
+                      aria-label={`${t(
+                        "notification.contentLabel",
+                      )} - ${label}`}
                       placeholder={`${label} content`}
                     />
                   </div>
@@ -259,22 +267,20 @@ function NotificationFormModal({
                 <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
                   {t("notification.startTime")}
                 </label>
-                <input
+                <Input
                   type="datetime-local"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 transition-all focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-500/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
                   {t("notification.endTime")}
                 </label>
-                <input
+                <Input
                   type="datetime-local"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 transition-all focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-500/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
                 />
               </div>
             </div>

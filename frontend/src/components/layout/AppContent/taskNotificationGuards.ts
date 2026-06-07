@@ -51,7 +51,16 @@ export function shouldAttemptBrowserNotification({
 
 export function shouldAttemptAppTaskNotification({
   appRuntime,
+  notificationSessionId,
+  currentSessionId,
   visibilityState,
 }: AppTaskNotificationAttemptInput): boolean {
-  return appRuntime !== "unsupported" && visibilityState !== "visible";
+  return (
+    appRuntime !== "unsupported" &&
+    shouldSurfaceTaskNotification({
+      notificationSessionId,
+      currentSessionId,
+      visibilityState,
+    })
+  );
 }

@@ -547,7 +547,7 @@
   z-index: 20;
   border-radius: 0.75rem;
   border: 1px solid var(--theme-border);
-  background: color-mix(in srgb, var(--theme-bg-card) 85%, transparent);
+  background: var(--theme-bg-card);
   box-shadow:
     0 20px 25px -5px rgba(0, 0, 0, 0.1),
     0 8px 10px -6px rgba(0, 0, 0, 0.08);
@@ -556,7 +556,7 @@
 }
 
 .dark .ppe-skill-dropdown {
-  background: color-mix(in srgb, var(--theme-bg-card) 80%, transparent);
+  background: var(--theme-bg-card);
   box-shadow:
     0 20px 25px -5px rgba(0, 0, 0, 0.5),
     0 8px 10px -6px rgba(0, 0, 0, 0.35);

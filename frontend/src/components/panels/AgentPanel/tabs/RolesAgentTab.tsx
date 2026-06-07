@@ -5,6 +5,7 @@ import i18n from "../../../../i18n";
 import { AgentIcon } from "../../../agent/AgentIcon";
 import { AgentPanelSkeleton } from "../../../skeletons";
 import { Button } from "../../../common";
+import { Checkbox } from "../../../common/Checkbox";
 import {
   resolveAgentDescription,
   resolveAgentDisplayName,
@@ -130,11 +131,10 @@ export function RolesAgentTab({
                   }`}
                   style={{ animationDelay: `${index * 30}ms` }}
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={isSelected}
                     onChange={() => toggleAgent(agent.id)}
-                    className="h-4 w-4 rounded border-[var(--glass-border)] text-stone-600 focus:ring-stone-500"
+                    size="sm"
                   />
                   <div className="flex size-9 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--glass-bg-subtle)] text-theme-text-secondary ring-1 ring-[var(--glass-border)]">
                     <AgentIcon icon={agent.icon || "Bot"} size={16} />

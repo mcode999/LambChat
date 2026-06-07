@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Loader2, Pencil, Check } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Mail, ExternalLink } from "lucide-react";
+import { Button, IconButton, Input } from "../../common";
 import { useAuth } from "../../../hooks/useAuth";
 import { useSettings } from "../../../hooks/useSettings";
 import { Permission } from "../../../types";
@@ -197,13 +198,14 @@ export function ProfileInfoTab() {
               />
             </label>
             {user?.avatar_url && (
-              <button
+              <Button
+                variant="danger"
+                size="sm"
                 onClick={handleAvatarDelete}
                 disabled={isUploading}
-                className="rounded-lg bg-red-50 dark:bg-red-900/30 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
               >
                 {t("profile.deleteAvatar")}
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -215,14 +217,14 @@ export function ProfileInfoTab() {
         <div className="py-3.5 border-b border-stone-100 dark:border-stone-700/60">
           {isEditingUsername ? (
             <div className="space-y-2">
-              <input
+              <Input
                 type="text"
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
-                className="w-full rounded-lg border border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-stone-900 px-3 py-2.5 text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                 minLength={3}
                 maxLength={50}
                 placeholder={t("profile.usernamePlaceholder")}
+                error={!!usernameError}
                 autoFocus
               />
               {usernameError && (
@@ -231,30 +233,28 @@ export function ProfileInfoTab() {
                 </p>
               )}
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="primary"
                   onClick={handleUsernameUpdate}
                   disabled={
                     isUpdatingUsername || newUsername === user?.username
                   }
-                  className="flex-1 sm:flex-none px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  loading={isUpdatingUsername}
+                  leftIcon={<Check size={14} />}
+                  className="flex-1 sm:flex-none"
                 >
-                  {isUpdatingUsername ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <Check size={14} />
-                  )}
                   {t("common.save")}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => {
                     setIsEditingUsername(false);
                     setNewUsername("");
                     setUsernameError("");
                   }}
-                  className="flex-1 sm:flex-none px-4 py-2 border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 text-sm font-medium rounded-lg hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
+                  className="flex-1 sm:flex-none"
                 >
                   {t("common.cancel")}
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -266,16 +266,17 @@ export function ProfileInfoTab() {
                 <span className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
                   {user?.username || "-"}
                 </span>
-                <button
+                <IconButton
+                  aria-label={t("common.edit")}
                   onClick={() => {
                     setNewUsername(user?.username || "");
                     setIsEditingUsername(true);
                   }}
-                  className="shrink-0 text-amber-500 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-md p-1 transition-colors"
+                  icon={<Pencil size={13} />}
+                  size="sm"
+                  className="shrink-0 text-amber-500 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-md"
                   title={t("common.edit")}
-                >
-                  <Pencil size={13} />
-                </button>
+                />
               </div>
             </div>
           )}

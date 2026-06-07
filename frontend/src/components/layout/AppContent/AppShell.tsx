@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { ProfileModal } from "../../profile/ProfileModal";
 import { Header } from "./Header";
+import { NotificationBanner } from "../../notification/NotificationBanner";
 import {
   getAppViewportState,
   isKeyboardViewport,
@@ -314,6 +315,10 @@ export function AppShell({
             showOutlineButton={showOutlineButton}
             onToggleOutline={onToggleOutline}
           />
+
+          <div className="px-3 sm:px-5">
+            <NotificationBanner />
+          </div>
 
           {children}
         </div>

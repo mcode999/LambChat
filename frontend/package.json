@@ -16,6 +16,7 @@
     "mobile:add:android": "cap add android",
     "mobile:add:ios": "cap add ios",
     "mobile:sync": "pnpm packaged:build && cap sync",
+    "mobile:sync:ios": "pnpm packaged:build && cap sync ios",
     "mobile:open:android": "cap open android",
     "mobile:open:ios": "cap open ios",
     "i18n:extract": "tsx scripts/extract-i18n.ts",

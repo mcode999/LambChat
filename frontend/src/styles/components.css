@@ -1709,6 +1709,22 @@
   transition: transform 0.18s ease;
 }
 
+.ui-picker-trigger {
+  text-align: left;
+}
+
+.ui-picker-trigger__content {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ui-picker-trigger__content > * {
+  min-width: 0;
+}
+
 .ui-select-trigger:disabled,
 .glass-input.es-select-btn:disabled {
   opacity: 0.55;

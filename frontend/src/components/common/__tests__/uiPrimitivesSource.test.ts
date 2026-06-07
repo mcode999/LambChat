@@ -28,6 +28,7 @@ test("common ui primitives are exposed from a single reusable entrypoint", () =>
     "Input",
     "Textarea",
     "Select",
+    "PickerTrigger",
     "FormField",
   ]) {
     assertExports(uiIndex, name);
@@ -67,6 +68,7 @@ test("ui primitive styles share one visual system in components css", () => {
     ".ui-select-trigger",
     ".ui-select-dropdown",
     ".ui-select-option",
+    ".ui-picker-trigger",
   ]) {
     assertCssSelector(css, selector);
   }
@@ -120,6 +122,71 @@ test("mcp server form uses shared icon buttons for generic icon actions", () => 
   assert.doesNotMatch(source, /className="btn-icon[^"]*"/);
   assert.doesNotMatch(source, /GlassSelect/);
   assert.doesNotMatch(source, /className="glass-input/);
+});
+
+test("custom admin pickers reuse shared picker trigger and input primitives", () => {
+  const providerSelect = readSource(
+    "../../panels/AgentPanel/shared/ProviderSelect.tsx",
+  );
+  const modelIconSelect = readSource(
+    "../../panels/ModelPanel/tabs/ModelIconSelect.tsx",
+  );
+  const source = [providerSelect, modelIconSelect].join("\n");
+
+  assert.match(source, /import \{[\s\S]*Input[\s\S]*PickerTrigger/);
+  assert.match(providerSelect, /<PickerTrigger[\s\S]*selected=\{!!selected\}/);
+  assert.match(modelIconSelect, /<PickerTrigger[\s\S]*selected=\{!!selected\}/);
+  assert.match(source, /<Input[\s\S]*searchRef/);
+  assert.doesNotMatch(source, /className="glass-input/);
+  assert.doesNotMatch(source, /<input[\s\S]*searchRef/);
+});
+
+test("normal skill form uses shared primitives for generic form controls", () => {
+  const source = readSource("../../skill/SkillFormNormal.tsx");
+
+  assert.match(
+    source,
+    /import \{[\s\S]*Button[\s\S]*IconButton[\s\S]*Input[\s\S]*Textarea/,
+  );
+  assert.match(source, /<Input[\s\S]*skills\.form\.namePlaceholder/);
+  assert.match(source, /<Textarea[\s\S]*skills\.form\.descriptionPlaceholder/);
+  assert.match(source, /<Input[\s\S]*adminMarketplace\.tagsPlaceholder/);
+  assert.match(source, /<Input[\s\S]*skills\.form\.filePathPlaceholder/);
+  assert.match(source, /<IconButton[\s\S]*addFile/);
+  assert.match(source, /<IconButton[\s\S]*toggleFullscreen\(true\)/);
+  assert.match(source, /<Button[\s\S]*type="submit"/);
+  assert.doesNotMatch(
+    source,
+    /<input[\s\S]*(a\.name|a\.tagsInput|updateFilePath)/,
+  );
+  assert.doesNotMatch(source, /<textarea[\s\S]*a\.description/);
+});
+
+test("profile password form uses shared primitives for generic controls", () => {
+  const source = readSource("../../profile/tabs/ProfilePasswordTab.tsx");
+
+  assert.match(source, /import \{[\s\S]*Button[\s\S]*IconButton[\s\S]*Input/);
+  assert.match(source, /<Input[\s\S]*profile\.oldPassword/);
+  assert.match(source, /<Input[\s\S]*profile\.newPassword/);
+  assert.match(source, /<Input[\s\S]*profile\.confirmPassword/);
+  assert.match(source, /const visibilityToggle = \([\s\S]*<IconButton/);
+  assert.match(source, /trailingSlot=\{visibilityToggle\}/);
+  assert.match(source, /<Button[\s\S]*handlePasswordChange/);
+  assert.doesNotMatch(source, /<input[\s\S]*Password/);
+  assert.doesNotMatch(source, /LoadingSpinner/);
+});
+
+test("profile info editor uses shared primitives for generic controls", () => {
+  const source = readSource("../../profile/tabs/ProfileInfoTab.tsx");
+
+  assert.match(source, /import \{[\s\S]*Button[\s\S]*IconButton[\s\S]*Input/);
+  assert.match(source, /<Input[\s\S]*profile\.usernamePlaceholder/);
+  assert.match(source, /<Button[\s\S]*handleAvatarDelete/);
+  assert.match(source, /<Button[\s\S]*handleUsernameUpdate/);
+  assert.match(source, /<IconButton[\s\S]*setIsEditingUsername\(true\)/);
+  assert.doesNotMatch(source, /<input[\s\S]*value=\{newUsername\}/);
+  assert.doesNotMatch(source, /<button[\s\S]*handleUsernameUpdate/);
+  assert.doesNotMatch(source, /<button[\s\S]*handleAvatarDelete/);
 });
 
 test("skills list actions use shared buttons for generic commands", () => {
@@ -200,15 +267,19 @@ test("mcp panel generic shell actions use shared buttons", () => {
 
   assert.match(
     source,
-    /import \{ Button, IconButton, PanelFooterActions, Textarea \}/,
+    /import \{[\s\S]*Button[\s\S]*Checkbox[\s\S]*IconButton[\s\S]*PanelFooterActions[\s\S]*Textarea[\s\S]*\}/,
   );
   assert.match(source, /PanelFooterActions/);
   assert.match(source, /<Button[\s\S]*handleImportClick/);
   assert.match(source, /<Button[\s\S]*handleCreate/);
   assert.match(source, /<IconButton[\s\S]*clearError/);
+  assert.match(source, /<Checkbox[\s\S]*createAsSystem/);
+  assert.match(source, /<Checkbox[\s\S]*changeToSystem/);
+  assert.match(source, /<Checkbox[\s\S]*importOverwrite/);
   assert.match(source, /<Textarea[\s\S]*importJson/);
   assert.doesNotMatch(source, /className="btn-(primary|secondary|icon)[^"]*"/);
   assert.doesNotMatch(source, /className="glass-input es-textarea/);
+  assert.doesNotMatch(source, /<input[\s\S]*type="checkbox"/);
 });
 
 test("core admin crud panels use shared panel controls for generic actions", () => {
@@ -227,6 +298,18 @@ test("core admin crud panels use shared panel controls for generic actions", () 
     /className="btn-(primary|secondary|danger|icon)[^"]*"/,
   );
   assert.doesNotMatch(sources, /<GlassSelect/);
+});
+
+test("notification admin modal fields use shared field primitives", () => {
+  const source = readSource("../../panels/NotificationPanel.tsx");
+
+  assert.match(source, /import \{[\s\S]*Input[\s\S]*Textarea/);
+  assert.match(source, /<Input[\s\S]*notification\.titleLabel/);
+  assert.match(source, /<Textarea[\s\S]*notification\.contentLabel/);
+  assert.match(source, /<Input[\s\S]*notification\.startTime/);
+  assert.match(source, /<Input[\s\S]*notification\.endTime/);
+  assert.doesNotMatch(source, /<input[\s\S]*titleI18n/);
+  assert.doesNotMatch(source, /<textarea[\s\S]*contentI18n/);
 });
 
 test("roles admin form uses shared field primitives for generic fields", () => {
@@ -250,6 +333,36 @@ test("model admin modal footers use shared panel actions", () => {
   assert.match(source, /PanelFooterActions/);
   assert.match(source, /<Button[\s>]/);
   assert.doesNotMatch(source, /className="btn-(primary|secondary)[^"]*"/);
+});
+
+test("model admin modal form bodies use shared field primitives", () => {
+  const modelForm = readSource(
+    "../../panels/ModelPanel/tabs/ModelFormModal.tsx",
+  );
+  const batchCreate = readSource(
+    "../../panels/ModelPanel/tabs/BatchCreateModal.tsx",
+  );
+  const source = [modelForm, batchCreate].join("\n");
+
+  assert.match(source, /import \{ Checkbox \}/);
+  assert.match(source, /import \{[\s\S]*Input[\s\S]*Select[\s\S]*Textarea/);
+  assert.match(modelForm, /<Select[\s\S]*formFallbackModel/);
+  assert.match(modelForm, /<Checkbox[\s\S]*checked=\{formSupportsVision\}/);
+  assert.match(batchCreate, /<Textarea[\s\S]*importJson/);
+  assert.doesNotMatch(source, /GlassSelect/);
+  assert.doesNotMatch(source, /className="glass-input/);
+  assert.doesNotMatch(source, /<input[\s\S]*type="checkbox"/);
+});
+
+test("agent and model admin shells use shared buttons for header commands", () => {
+  const source = [
+    readSource("../../panels/AgentPanel/AgentConfigPanel.tsx"),
+    readSource("../../panels/ModelPanel/ModelPanel.tsx"),
+  ].join("\n");
+
+  assert.match(source, /import \{ Button \}/);
+  assert.match(source, /<Button[\s\S]*handleRefresh/);
+  assert.doesNotMatch(source, /className="btn-secondary[^"]*"/);
 });
 
 test("agent and model admin tab actions use shared buttons", () => {
@@ -276,6 +389,56 @@ test("global agent editor fields use shared field primitives", () => {
   assert.doesNotMatch(source, /className="glass-input/);
 });
 
+test("roles agent assignments use the shared checkbox primitive", () => {
+  const source = readSource("../../panels/AgentPanel/tabs/RolesAgentTab.tsx");
+
+  assert.match(source, /import \{ Checkbox \}/);
+  assert.match(source, /<Checkbox[\s\S]*checked=\{isSelected\}/);
+  assert.doesNotMatch(source, /<input[\s\S]*type="checkbox"/);
+});
+
+test("channel panel generic controls use shared primitives", () => {
+  const source = readSource("../../panels/ChannelPanel.tsx");
+
+  assert.match(source, /import \{[\s\S]*Button[\s\S]*Input[\s\S]*Select/);
+  assert.match(source, /<Select[\s\S]*field\.options/);
+  assert.match(source, /<Input[\s\S]*channel\.instanceNamePlaceholder/);
+  assert.match(source, /<Button[\s\S]*handleSave/);
+  assert.match(source, /<Button[\s\S]*handleDeleteClick/);
+  assert.doesNotMatch(source, /GlassSelect/);
+  assert.doesNotMatch(source, /className="[^"]*glass-input/);
+  assert.doesNotMatch(source, /className="btn-(primary|secondary|danger)/);
+});
+
+test("settings panel generic controls use shared primitives", () => {
+  const source = readSource("../../panels/SettingsPanel.tsx");
+
+  assert.match(
+    source,
+    /import \{[\s\S]*Button[\s\S]*Input[\s\S]*Select[\s\S]*Textarea/,
+  );
+  assert.match(source, /<Select[\s\S]*CATEGORY_ORDER/);
+  assert.match(source, /<Select[\s\S]*DEFAULT_AGENT/);
+  assert.match(source, /setting\.type === "text"[\s\S]*<Textarea/);
+  assert.match(source, /<Input[\s\S]*setting\.type === "number"/);
+  assert.match(source, /<Button[\s\S]*handleExport/);
+  assert.match(source, /<Button[\s\S]*handleSave\(setting\)/);
+  assert.doesNotMatch(source, /GlassSelect/);
+  assert.doesNotMatch(source, /className="btn-(primary|secondary|danger)/);
+});
+
+test("json schema editor uses shared primitives for generated controls", () => {
+  const source = readSource("../../panels/JsonSchemaEditor.tsx");
+
+  assert.match(source, /import \{ Button, IconButton, Input, Select \}/);
+  assert.match(source, /<Select[\s\S]*field\.options/);
+  assert.match(source, /<Input[\s\S]*field\.placeholder/);
+  assert.match(source, /<IconButton[\s\S]*removeItem/);
+  assert.match(source, /<Button[\s\S]*JSON_SCHEMA_ADD_ITEM/);
+  assert.doesNotMatch(source, /GlassSelect/);
+  assert.doesNotMatch(source, /<input[\s\S]*field\.placeholder/);
+});
+
 test("approval panel generated form fields use shared field primitives", () => {
   const source = readSource("../../panels/ApprovalPanel.tsx");
 
@@ -287,4 +450,25 @@ test("approval panel generated form fields use shared field primitives", () => {
   assert.doesNotMatch(source, /GlassSelect/);
   assert.doesNotMatch(source, /<input[\s\S]*approval-input/);
   assert.doesNotMatch(source, /<textarea[\s\S]*approval-input/);
+});
+
+test("scheduled task form uses shared primitives for generic form controls", () => {
+  const source = readSource(
+    "../../panels/ScheduledTaskPanel/TaskFormModal.tsx",
+  );
+
+  assert.match(
+    source,
+    /import \{[\s\S]*Button[\s\S]*Input[\s\S]*PanelFooterActions[\s\S]*Select[\s\S]*Textarea/,
+  );
+  assert.match(source, /<PanelFooterActions/);
+  assert.match(source, /<Button[\s\S]*handleSave/);
+  assert.match(source, /<Input[\s\S]*scheduledTask\.namePlaceholder/);
+  assert.match(source, /<Textarea[\s\S]*scheduledTask\.descriptionPlaceholder/);
+  assert.match(source, /<Select[\s\S]*scheduledTask\.agentPlaceholder/);
+  assert.match(source, /<Select[\s\S]*scheduledTask\.modelPlaceholder/);
+  assert.doesNotMatch(source, /GlassSelect/);
+  assert.doesNotMatch(source, /className="btn-(primary|secondary)[^"]*"/);
+  assert.doesNotMatch(source, /<input[\s\S]*scheduled-task-input/);
+  assert.doesNotMatch(source, /<textarea[\s\S]*scheduled-task-input/);
 });

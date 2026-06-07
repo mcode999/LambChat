@@ -15,7 +15,13 @@ import toast from "react-hot-toast";
 import { PanelHeader } from "../common/PanelHeader";
 import { MCPPanelSkeleton } from "../skeletons";
 import { Pagination } from "../common/Pagination";
-import { Button, IconButton, PanelFooterActions, Textarea } from "../common";
+import {
+  Button,
+  Checkbox,
+  IconButton,
+  PanelFooterActions,
+  Textarea,
+} from "../common";
 import { MCPServerCard } from "../mcp/MCPServerCard";
 import { MCPServerToolsSidebar } from "../mcp/MCPServerToolsSidebar";
 import { MCPServerForm } from "../mcp/MCPServerForm";
@@ -507,30 +513,11 @@ export function MCPPanel() {
           {/* Admin option for creating system server */}
           {isCreating && canAdmin && (
             <label className="group flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 mb-4 transition-colors hover:bg-[var(--theme-primary-light)]/30">
-              <input
-                type="checkbox"
-                id="createAsSystem"
+              <Checkbox
+                size="sm"
                 checked={createAsSystem}
-                onChange={(e) => setCreateAsSystem(e.target.checked)}
-                className="sr-only peer"
+                onChange={() => setCreateAsSystem(!createAsSystem)}
               />
-              <div className="h-[18px] w-[18px] rounded-md border-2 border-[var(--theme-border)] flex items-center justify-center transition-all peer-checked:bg-amber-500 peer-checked:border-amber-500 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500/30">
-                {createAsSystem && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-              </div>
               <span className="text-sm font-medium text-[var(--theme-text)]">
                 {t("mcp.createAsSystem")}
               </span>
@@ -539,30 +526,11 @@ export function MCPPanel() {
           {/* Admin option for changing server type when editing */}
           {!isCreating && editingServer && canAdmin && (
             <label className="group flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 mb-4 transition-colors hover:bg-[var(--theme-primary-light)]/30">
-              <input
-                type="checkbox"
-                id="changeToSystem"
+              <Checkbox
+                size="sm"
                 checked={changeToSystem}
-                onChange={(e) => setChangeToSystem(e.target.checked)}
-                className="sr-only peer"
+                onChange={() => setChangeToSystem(!changeToSystem)}
               />
-              <div className="h-[18px] w-[18px] rounded-md border-2 border-[var(--theme-border)] flex items-center justify-center transition-all peer-checked:bg-amber-500 peer-checked:border-amber-500 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500/30">
-                {changeToSystem && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-              </div>
               <span className="text-sm font-medium text-[var(--theme-text)]">
                 {changeToSystem
                   ? t("mcp.systemServerVisible")
@@ -628,30 +596,11 @@ export function MCPPanel() {
 
           <div className="es-field">
             <label className="group flex cursor-pointer items-center gap-2.5 es-label rounded-lg px-1 py-1 transition-colors hover:bg-[var(--theme-primary-light)]/30">
-              <input
-                type="checkbox"
-                id="overwrite"
+              <Checkbox
+                size="sm"
                 checked={importOverwrite}
-                onChange={(e) => setImportOverwrite(e.target.checked)}
-                className="sr-only peer"
+                onChange={() => setImportOverwrite(!importOverwrite)}
               />
-              <div className="h-[18px] w-[18px] rounded-md border-2 border-[var(--theme-border)] flex items-center justify-center transition-all peer-checked:bg-amber-500 peer-checked:border-amber-500 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500/30">
-                {importOverwrite && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-              </div>
               {t("mcp.overwriteExisting")}
             </label>
           </div>

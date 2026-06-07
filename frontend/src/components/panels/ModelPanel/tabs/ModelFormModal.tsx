@@ -1,10 +1,16 @@
 import { useState, useCallback } from "react";
-import { Save, Plus, Pencil } from "lucide-react";
+import { Eye, EyeOff, Save, Plus, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import { Checkbox } from "../../../common/Checkbox";
 import { EditorSidebar } from "../../../common/EditorSidebar";
-import { GlassSelect } from "../../../common/GlassSelect";
-import { Button, PanelFooterActions } from "../../../common";
+import {
+  Button,
+  IconButton,
+  Input,
+  PanelFooterActions,
+  Select,
+} from "../../../common";
 import { ProviderSelect } from "../../AgentPanel/shared";
 import { modelApi } from "../../../../services/api/model";
 import type {
@@ -190,13 +196,13 @@ export const ModelFormModal = ({
           <label className="es-label">
             {t("agentConfig.modelValue")} <span className="es-required">*</span>
           </label>
-          <input
+          <Input
             type="text"
             value={formValue}
             onChange={(e) => setFormValue(e.target.value)}
             disabled={isEditing}
             placeholder={t("agentConfig.modelValuePlaceholder")}
-            className="glass-input es-input disabled:opacity-50"
+            className="es-input disabled:opacity-50"
           />
           <p className="es-hint">
             {isEditing
@@ -211,12 +217,12 @@ export const ModelFormModal = ({
           <label className="es-label">
             {t("agentConfig.modelLabel")} <span className="es-required">*</span>
           </label>
-          <input
+          <Input
             type="text"
             value={formLabel}
             onChange={(e) => setFormLabel(e.target.value)}
             placeholder={t("agentConfig.modelLabelPlaceholder")}
-            className="glass-input es-input px-3"
+            className="es-input"
           />
         </div>
 
@@ -233,12 +239,12 @@ export const ModelFormModal = ({
               <label className="es-label">
                 {t("agentConfig.modelDescription")}
               </label>
-              <input
+              <Input
                 type="text"
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
                 placeholder={t("agentConfig.modelDescriptionPlaceholder")}
-                className="glass-input es-input px-3"
+                className="es-input"
               />
             </div>
             <div className="es-field">
@@ -265,7 +271,7 @@ export const ModelFormModal = ({
               <label className="es-label">
                 {t("agentConfig.fallbackModel", "Fallback Model")}
               </label>
-              <GlassSelect
+              <Select
                 value={formFallbackModel}
                 onChange={setFormFallbackModel}
                 placeholder={t("agentConfig.noFallback", "None")}
@@ -285,56 +291,21 @@ export const ModelFormModal = ({
             </div>
             <div className="es-field">
               <label className="es-label">{t("agentConfig.modelApiKey")}</label>
-              <div className="relative">
-                <input
-                  type={showApiKey ? "text" : "password"}
-                  value={formApiKey}
-                  onChange={(e) => setFormApiKey(e.target.value)}
-                  placeholder={t("agentConfig.apiKeyPlaceholder")}
-                  className="glass-input es-input pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-theme-text-secondary hover:text-theme-text rounded-md"
-                >
-                  {showApiKey ? (
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      />
-                    </svg>
-                  )}
-                </button>
-              </div>
+              <Input
+                type={showApiKey ? "text" : "password"}
+                value={formApiKey}
+                onChange={(e) => setFormApiKey(e.target.value)}
+                placeholder={t("agentConfig.apiKeyPlaceholder")}
+                className="es-input"
+                trailingSlot={
+                  <IconButton
+                    icon={showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    size="sm"
+                    aria-label={t("common.toggleVisibility", "切换可见性")}
+                  />
+                }
+              />
               <p className="es-hint">
                 {isEditing
                   ? t("agentConfig.apiKeyEditHint")
@@ -345,12 +316,12 @@ export const ModelFormModal = ({
               <label className="es-label">
                 {t("agentConfig.modelApiBase")}
               </label>
-              <input
+              <Input
                 type="text"
                 value={formApiBase}
                 onChange={(e) => setFormApiBase(e.target.value)}
                 placeholder={t("agentConfig.modelApiBasePlaceholder")}
-                className="glass-input es-input px-3"
+                className="es-input"
               />
             </div>
             <div className="es-row es-row-3">
@@ -358,7 +329,7 @@ export const ModelFormModal = ({
                 <label className="es-label">
                   {t("agentConfig.temperature")}
                 </label>
-                <input
+                <Input
                   type="number"
                   step="0.1"
                   min="0"
@@ -366,38 +337,37 @@ export const ModelFormModal = ({
                   value={formTemperature}
                   onChange={(e) => setFormTemperature(e.target.value)}
                   placeholder="0.7"
-                  className="glass-input es-input px-3"
+                  className="es-input"
                 />
               </div>
               <div className="es-field">
                 <label className="es-label">{t("agentConfig.maxTokens")}</label>
-                <input
+                <Input
                   type="number"
                   value={formMaxTokens}
                   onChange={(e) => setFormMaxTokens(e.target.value)}
                   placeholder="4096"
-                  className="glass-input es-input px-3"
+                  className="es-input"
                 />
               </div>
               <div className="es-field">
                 <label className="es-label">
                   {t("agentConfig.maxInputTokens")}
                 </label>
-                <input
+                <Input
                   type="number"
                   value={formMaxInputTokens}
                   onChange={(e) => setFormMaxInputTokens(e.target.value)}
                   placeholder="200000"
-                  className="glass-input es-input px-3"
+                  className="es-input"
                 />
               </div>
             </div>
             <div className="es-field">
               <label className="flex items-start gap-2 text-sm text-theme-text cursor-pointer">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={formSupportsVision}
-                  onChange={(e) => setFormSupportsVision(e.target.checked)}
+                  onChange={() => setFormSupportsVision((checked) => !checked)}
                   className="mt-1"
                 />
                 <span>
