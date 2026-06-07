@@ -2,13 +2,28 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Bot, CalendarClock, Clock, History, Loader2, Pause, Play, RotateCcw, Timer } from "lucide-react";
+import {
+  Bot,
+  CalendarClock,
+  Clock,
+  History,
+  Loader2,
+  Pause,
+  Play,
+  RotateCcw,
+  Timer,
+} from "lucide-react";
 import { scheduledTaskApi } from "../../../services/api/scheduledTask";
 import { useAuth } from "../../../hooks/useAuth";
 import { Permission } from "../../../types";
 import type { ScheduledTask } from "../../../types/scheduledTask";
 import { formatDateTimeShort } from "../../../utils/datetime";
-import { closePersistentToolPanel, isPersistentToolPanelOpen, openPersistentToolPanel, updatePersistentToolPanel } from "../../chat/ChatMessage/items/persistentToolPanelState";
+import {
+  closePersistentToolPanel,
+  isPersistentToolPanelOpen,
+  openPersistentToolPanel,
+  updatePersistentToolPanel,
+} from "../../chat/ChatMessage/items/persistentToolPanelState";
 import { RunStatusBadge, StatusBadge } from "./Badges";
 import { formatTaskTrigger } from "./utils";
 
@@ -98,10 +113,7 @@ function SessionScheduledTaskPanelBody({
       ) : (
         <div className="scheduled-task-panel flex-1 space-y-2 overflow-y-auto p-3">
           {tasks.map((task) => (
-            <div
-              key={task.id}
-              className="scheduled-task-mini-card"
-            >
+            <div key={task.id} className="scheduled-task-mini-card">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="scheduled-task-card__title-row">
@@ -148,9 +160,7 @@ function SessionScheduledTaskPanelBody({
                       taskId: task.id,
                       taskName: task.name,
                     });
-                    navigate(
-                      `/scheduled-tasks?${params.toString()}`,
-                    );
+                    navigate(`/scheduled-tasks?${params.toString()}`);
                   }}
                   className="scheduled-task-button scheduled-task-button--secondary min-h-8 px-2 text-xs"
                 >

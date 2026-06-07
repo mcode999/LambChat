@@ -3,10 +3,17 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { CalendarClock, Pencil, Plus, Timer } from "lucide-react";
 import { EditorSidebar } from "../../common/EditorSidebar";
-import type { ScheduledTask, ScheduledTaskCreate, TriggerType } from "../../../types/scheduledTask";
+import type {
+  ScheduledTask,
+  ScheduledTaskCreate,
+  TriggerType,
+} from "../../../types/scheduledTask";
 import type { AgentInfo } from "../../../types/agent";
 import type { AvailableModel } from "../../../contexts/SettingsContext";
-import { buildScheduledTaskInputPayload, getAgentOptionsFromScheduledTaskPayload } from "../scheduledTaskPayload";
+import {
+  buildScheduledTaskInputPayload,
+  getAgentOptionsFromScheduledTaskPayload,
+} from "../scheduledTaskPayload";
 import { toDateTimeLocalValue } from "./utils";
 
 /** Create/Edit form sidebar */
@@ -41,13 +48,17 @@ export function TaskFormModal({
     defaultModelId ||
     "";
   const initialModelValue =
-    (typeof taskAgentOptions.model === "string" ? taskAgentOptions.model : "") ||
+    (typeof taskAgentOptions.model === "string"
+      ? taskAgentOptions.model
+      : "") ||
     defaultModelValue ||
     "";
 
   const [name, setName] = useState(task?.name ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
-  const [agentId, setAgentId] = useState(task?.agent_id ?? defaultAgentId ?? "");
+  const [agentId, setAgentId] = useState(
+    task?.agent_id ?? defaultAgentId ?? "",
+  );
   const [modelId, setModelId] = useState(initialModelId);
   const [modelValue, setModelValue] = useState(initialModelValue);
   const [triggerType, setTriggerType] = useState<TriggerType>(
@@ -60,7 +71,9 @@ export function TaskFormModal({
   );
   const [runDate, setRunDate] = useState(
     task?.trigger_type === "date"
-      ? toDateTimeLocalValue((task?.trigger_config as { run_date?: string })?.run_date)
+      ? toDateTimeLocalValue(
+          (task?.trigger_config as { run_date?: string })?.run_date,
+        )
       : toDateTimeLocalValue(null),
   );
   const [cronHour, setCronHour] = useState(
@@ -100,9 +113,7 @@ export function TaskFormModal({
   );
   const [enabled, setEnabled] = useState(task?.enabled ?? true);
   const [runOnStart, setRunOnStart] = useState(task?.run_on_start ?? false);
-  const [maxRetries, setMaxRetries] = useState(
-    String(task?.max_retries ?? 0),
-  );
+  const [maxRetries, setMaxRetries] = useState(String(task?.max_retries ?? 0));
   const [timeoutSeconds, setTimeoutSeconds] = useState(
     String(task?.timeout_seconds ?? 600),
   );
@@ -132,7 +143,9 @@ export function TaskFormModal({
     // Build trigger config
     let triggerConfig: Record<string, unknown>;
     if (triggerType === "interval") {
-      triggerConfig = { seconds: Math.max(1, parseInt(intervalSeconds) || 300) };
+      triggerConfig = {
+        seconds: Math.max(1, parseInt(intervalSeconds) || 300),
+      };
     } else if (triggerType === "date") {
       if (!runDate) {
         toast.error(t("scheduledTask.runDateRequired"));
@@ -232,251 +245,275 @@ export function TaskFormModal({
     >
       <div className="es-form" style={{ gap: 0 }}>
         <div className="space-y-5">
-        {/* Name */}
-        <div className="scheduled-task-form-field">
-          <label className="scheduled-task-label">
-            {t("scheduledTask.name")} *
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={inputClass}
-            placeholder={t("scheduledTask.namePlaceholder")}
-          />
-        </div>
-
-        {/* Description */}
-        <div className="scheduled-task-form-field">
-          <label className="scheduled-task-label">
-            {t("scheduledTask.description")}
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            className={`${inputClass} resize-y`}
-            placeholder={t("scheduledTask.descriptionPlaceholder")}
-          />
-        </div>
-
-        {/* Agent selector */}
-        <div className="scheduled-task-form-field">
-          <label className="scheduled-task-label">
-            {t("scheduledTask.agent")} *
-          </label>
-          <select
-            value={agentId}
-            onChange={(e) => setAgentId(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">{t("scheduledTask.agentPlaceholder")}</option>
-            {agents.map((agent) => (
-              <option key={agent.id} value={agent.id}>
-                {t(agent.name)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Model selector */}
-        <div className="scheduled-task-form-field">
-          <label className="scheduled-task-label">
-            {t("scheduledTask.model")}
-          </label>
-          <select
-            value={modelId}
-            onChange={(e) => {
-              const nextModel = availableModels?.find(
-                (model) => model.id === e.target.value,
-              );
-              setModelId(e.target.value);
-              setModelValue(nextModel?.value || "");
-            }}
-            className={inputClass}
-            disabled={!availableModels || availableModels.length === 0}
-          >
-            <option value="">{t("scheduledTask.modelPlaceholder")}</option>
-            {(availableModels || []).map((model) => (
-              <option key={model.id} value={model.id}>
-                {model.label || model.value}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Trigger type */}
-        <div className="scheduled-task-form-field">
-          <label className="scheduled-task-label">
-            {t("scheduledTask.triggerType")}
-          </label>
-          <div className="scheduled-task-segmented">
-            {(["date", "interval", "cron"] as const).map((tt) => (
-              <button
-                key={tt}
-                type="button"
-                onClick={() => setTriggerType(tt)}
-                className={`scheduled-task-segment ${
-                  triggerType === tt
-                    ? "scheduled-task-segment--active"
-                    : ""
-                }`}
-              >
-                {tt === "interval" ? (
-                  <Timer size={16} />
-                ) : (
-                  <CalendarClock size={16} />
-                )}
-                {t(`scheduledTask.${tt}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Trigger config */}
-        {triggerType === "interval" ? (
+          {/* Name */}
           <div className="scheduled-task-form-field">
             <label className="scheduled-task-label">
-              {t("scheduledTask.intervalSeconds")} *
+              {t("scheduledTask.name")} *
             </label>
             <input
-              type="number"
-              min={1}
-              value={intervalSeconds}
-              onChange={(e) => setIntervalSeconds(e.target.value)}
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className={inputClass}
+              placeholder={t("scheduledTask.namePlaceholder")}
             />
           </div>
-        ) : triggerType === "date" ? (
+
+          {/* Description */}
           <div className="scheduled-task-form-field">
             <label className="scheduled-task-label">
-              {t("scheduledTask.runDate")} *
+              {t("scheduledTask.description")}
             </label>
-            <input
-              type="datetime-local"
-              value={runDate}
-              onChange={(e) => setRunDate(e.target.value)}
-              className={inputClass}
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className={`${inputClass} resize-y`}
+              placeholder={t("scheduledTask.descriptionPlaceholder")}
             />
           </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {(
-              [
-                { key: "cronHour", label: t("scheduledTask.cronHour"), value: cronHour, set: setCronHour },
-                { key: "cronMinute", label: t("scheduledTask.cronMinute"), value: cronMinute, set: setCronMinute },
-                { key: "cronSecond", label: t("scheduledTask.cronSecond"), value: cronSecond, set: setCronSecond },
-                { key: "cronDay", label: t("scheduledTask.cronDay"), value: cronDay, set: setCronDay },
-                { key: "cronMonth", label: t("scheduledTask.cronMonth"), value: cronMonth, set: setCronMonth },
-                { key: "cronDayOfWeek", label: t("scheduledTask.cronDayOfWeek"), value: cronDayOfWeek, set: setCronDayOfWeek },
-              ] as const
-            ).map(({ key, label, value, set }) => (
-              <div key={key} className="scheduled-task-form-field">
-                <label className="scheduled-task-label text-xs">
-                  {label}
-                </label>
-                <input
-                  type="text"
-                  value={value}
-                  onChange={(e) => set(e.target.value)}
-                  className={inputClass}
-                  placeholder="*"
-                />
-              </div>
-            ))}
-          </div>
-        )}
 
-        {/* Input payload */}
-        <div className="scheduled-task-form-field">
-          <label className="scheduled-task-label">
-            {t("scheduledTask.inputPayload")}
-          </label>
-          <textarea
-            value={inputPayload}
-            onChange={(e) => {
-              setInputPayload(e.target.value);
-              setJsonError(null);
-            }}
-            rows={4}
-            className={`${inputClass} resize-y font-mono text-xs`}
-            placeholder="{}"
-          />
-          {jsonError && (
-            <p className="mt-1 text-xs text-red-500">{jsonError}</p>
-          )}
-        </div>
-
-        {/* Toggles */}
-        <div className="space-y-3">
-          {/* Enabled toggle */}
-          <div className="scheduled-task-toggle-row">
-            <p className="text-sm font-medium text-theme-text-secondary">
-              {t("scheduledTask.enabled")}
-            </p>
-            <button
-              type="button"
-              onClick={() => setEnabled(!enabled)}
-              className={`scheduled-task-toggle ${
-                enabled ? "scheduled-task-toggle--active" : ""
-              }`}
+          {/* Agent selector */}
+          <div className="scheduled-task-form-field">
+            <label className="scheduled-task-label">
+              {t("scheduledTask.agent")} *
+            </label>
+            <select
+              value={agentId}
+              onChange={(e) => setAgentId(e.target.value)}
+              className={inputClass}
             >
-              <span
-                className="scheduled-task-toggle__thumb"
-              />
-            </button>
+              <option value="">{t("scheduledTask.agentPlaceholder")}</option>
+              {agents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {t(agent.name)}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {triggerType !== "date" && (
+          {/* Model selector */}
+          <div className="scheduled-task-form-field">
+            <label className="scheduled-task-label">
+              {t("scheduledTask.model")}
+            </label>
+            <select
+              value={modelId}
+              onChange={(e) => {
+                const nextModel = availableModels?.find(
+                  (model) => model.id === e.target.value,
+                );
+                setModelId(e.target.value);
+                setModelValue(nextModel?.value || "");
+              }}
+              className={inputClass}
+              disabled={!availableModels || availableModels.length === 0}
+            >
+              <option value="">{t("scheduledTask.modelPlaceholder")}</option>
+              {(availableModels || []).map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.label || model.value}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Trigger type */}
+          <div className="scheduled-task-form-field">
+            <label className="scheduled-task-label">
+              {t("scheduledTask.triggerType")}
+            </label>
+            <div className="scheduled-task-segmented">
+              {(["date", "interval", "cron"] as const).map((tt) => (
+                <button
+                  key={tt}
+                  type="button"
+                  onClick={() => setTriggerType(tt)}
+                  className={`scheduled-task-segment ${
+                    triggerType === tt ? "scheduled-task-segment--active" : ""
+                  }`}
+                >
+                  {tt === "interval" ? (
+                    <Timer size={16} />
+                  ) : (
+                    <CalendarClock size={16} />
+                  )}
+                  {t(`scheduledTask.${tt}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Trigger config */}
+          {triggerType === "interval" ? (
+            <div className="scheduled-task-form-field">
+              <label className="scheduled-task-label">
+                {t("scheduledTask.intervalSeconds")} *
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={intervalSeconds}
+                onChange={(e) => setIntervalSeconds(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+          ) : triggerType === "date" ? (
+            <div className="scheduled-task-form-field">
+              <label className="scheduled-task-label">
+                {t("scheduledTask.runDate")} *
+              </label>
+              <input
+                type="datetime-local"
+                value={runDate}
+                onChange={(e) => setRunDate(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {(
+                [
+                  {
+                    key: "cronHour",
+                    label: t("scheduledTask.cronHour"),
+                    value: cronHour,
+                    set: setCronHour,
+                  },
+                  {
+                    key: "cronMinute",
+                    label: t("scheduledTask.cronMinute"),
+                    value: cronMinute,
+                    set: setCronMinute,
+                  },
+                  {
+                    key: "cronSecond",
+                    label: t("scheduledTask.cronSecond"),
+                    value: cronSecond,
+                    set: setCronSecond,
+                  },
+                  {
+                    key: "cronDay",
+                    label: t("scheduledTask.cronDay"),
+                    value: cronDay,
+                    set: setCronDay,
+                  },
+                  {
+                    key: "cronMonth",
+                    label: t("scheduledTask.cronMonth"),
+                    value: cronMonth,
+                    set: setCronMonth,
+                  },
+                  {
+                    key: "cronDayOfWeek",
+                    label: t("scheduledTask.cronDayOfWeek"),
+                    value: cronDayOfWeek,
+                    set: setCronDayOfWeek,
+                  },
+                ] as const
+              ).map(({ key, label, value, set }) => (
+                <div key={key} className="scheduled-task-form-field">
+                  <label className="scheduled-task-label text-xs">
+                    {label}
+                  </label>
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => set(e.target.value)}
+                    className={inputClass}
+                    placeholder="*"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Input payload */}
+          <div className="scheduled-task-form-field">
+            <label className="scheduled-task-label">
+              {t("scheduledTask.inputPayload")}
+            </label>
+            <textarea
+              value={inputPayload}
+              onChange={(e) => {
+                setInputPayload(e.target.value);
+                setJsonError(null);
+              }}
+              rows={4}
+              className={`${inputClass} resize-y font-mono text-xs`}
+              placeholder="{}"
+            />
+            {jsonError && (
+              <p className="mt-1 text-xs text-red-500">{jsonError}</p>
+            )}
+          </div>
+
+          {/* Toggles */}
+          <div className="space-y-3">
+            {/* Enabled toggle */}
             <div className="scheduled-task-toggle-row">
               <p className="text-sm font-medium text-theme-text-secondary">
-                {t("scheduledTask.runOnStart")}
+                {t("scheduledTask.enabled")}
               </p>
               <button
                 type="button"
-                onClick={() => setRunOnStart(!runOnStart)}
+                onClick={() => setEnabled(!enabled)}
                 className={`scheduled-task-toggle ${
-                  runOnStart ? "scheduled-task-toggle--active" : ""
+                  enabled ? "scheduled-task-toggle--active" : ""
                 }`}
               >
-                <span
-                  className="scheduled-task-toggle__thumb"
-                />
+                <span className="scheduled-task-toggle__thumb" />
               </button>
             </div>
-          )}
-        </div>
 
-        {/* Number inputs */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="scheduled-task-form-field">
-            <label className="scheduled-task-label">
-              {t("scheduledTask.maxRetries")}
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={10}
-              value={maxRetries}
-              onChange={(e) => setMaxRetries(e.target.value)}
-              className={inputClass}
-            />
+            {triggerType !== "date" && (
+              <div className="scheduled-task-toggle-row">
+                <p className="text-sm font-medium text-theme-text-secondary">
+                  {t("scheduledTask.runOnStart")}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setRunOnStart(!runOnStart)}
+                  className={`scheduled-task-toggle ${
+                    runOnStart ? "scheduled-task-toggle--active" : ""
+                  }`}
+                >
+                  <span className="scheduled-task-toggle__thumb" />
+                </button>
+              </div>
+            )}
           </div>
-          <div className="scheduled-task-form-field">
-            <label className="scheduled-task-label">
-              {t("scheduledTask.timeoutSeconds")}
-            </label>
-            <input
-              type="number"
-              min={10}
-              max={3600}
-              value={timeoutSeconds}
-              onChange={(e) => setTimeoutSeconds(e.target.value)}
-              className={inputClass}
-            />
+
+          {/* Number inputs */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="scheduled-task-form-field">
+              <label className="scheduled-task-label">
+                {t("scheduledTask.maxRetries")}
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={10}
+                value={maxRetries}
+                onChange={(e) => setMaxRetries(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="scheduled-task-form-field">
+              <label className="scheduled-task-label">
+                {t("scheduledTask.timeoutSeconds")}
+              </label>
+              <input
+                type="number"
+                min={10}
+                max={3600}
+                value={timeoutSeconds}
+                onChange={(e) => setTimeoutSeconds(e.target.value)}
+                className={inputClass}
+              />
+            </div>
           </div>
         </div>
-      </div>
       </div>
     </EditorSidebar>
   );

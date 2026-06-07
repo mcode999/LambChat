@@ -84,7 +84,10 @@ export function ScheduledTaskPanel({
   const effectiveDefaultModelId =
     currentModelId || defaults.modelId || fallbackDefaultModel?.id || "";
   const effectiveDefaultModelValue =
-    currentModelValue || defaults.modelValue || fallbackDefaultModel?.value || "";
+    currentModelValue ||
+    defaults.modelValue ||
+    fallbackDefaultModel?.value ||
+    "";
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTaskName, setSelectedTaskName] = useState<string>("");
   const taskIdFromQuery = searchParams.get("taskId");
@@ -109,11 +112,7 @@ export function ScheduledTaskPanel({
   const fetchTasks = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await scheduledTaskApi.list(
-        skip,
-        limit,
-        statusFilter,
-      );
+      const response = await scheduledTaskApi.list(skip, limit, statusFilter);
       setTasks(response.items);
       setTotal(response.total);
     } catch (error) {
@@ -173,16 +172,24 @@ export function ScheduledTaskPanel({
     try {
       const updateData: ScheduledTaskUpdate = {};
       if (data.name !== editingTask.name) updateData.name = data.name;
-      if (data.agent_id !== editingTask.agent_id) updateData.agent_id = data.agent_id;
+      if (data.agent_id !== editingTask.agent_id)
+        updateData.agent_id = data.agent_id;
       if (data.trigger_type !== editingTask.trigger_type)
         updateData.trigger_type = data.trigger_type;
-      if (JSON.stringify(data.trigger_config) !== JSON.stringify(editingTask.trigger_config))
+      if (
+        JSON.stringify(data.trigger_config) !==
+        JSON.stringify(editingTask.trigger_config)
+      )
         updateData.trigger_config = data.trigger_config;
-      if (JSON.stringify(data.input_payload) !== JSON.stringify(editingTask.input_payload))
+      if (
+        JSON.stringify(data.input_payload) !==
+        JSON.stringify(editingTask.input_payload)
+      )
         updateData.input_payload = data.input_payload;
       if (data.description !== editingTask.description)
         updateData.description = data.description;
-      if (data.enabled !== editingTask.enabled) updateData.enabled = data.enabled;
+      if (data.enabled !== editingTask.enabled)
+        updateData.enabled = data.enabled;
       if (data.run_on_start !== editingTask.run_on_start)
         updateData.run_on_start = data.run_on_start;
       if (data.max_retries !== editingTask.max_retries)
@@ -304,7 +311,8 @@ export function ScheduledTaskPanel({
 
   const formatTaskModel = (task: ScheduledTask): string | null => {
     const options = getAgentOptionsFromScheduledTaskPayload(task.input_payload);
-    const modelId = typeof options.model_id === "string" ? options.model_id : "";
+    const modelId =
+      typeof options.model_id === "string" ? options.model_id : "";
     const modelValue = typeof options.model === "string" ? options.model : "";
     if (!modelId && !modelValue) return null;
     const model = effectiveAvailableModels?.find(
@@ -339,10 +347,7 @@ export function ScheduledTaskPanel({
             }
             actions={
               <div className="flex items-center gap-2">
-                <StatusFilter
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                />
+                <StatusFilter value={statusFilter} onChange={setStatusFilter} />
                 {canWrite && (
                   <button
                     type="button"
@@ -357,207 +362,205 @@ export function ScheduledTaskPanel({
             }
           />
 
-      {/* Task List */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 sm:p-6">
-        {tasks.length === 0 ? (
-          <div className="scheduled-task-empty-state">
-            <div className="scheduled-task-empty-state__icon">
-              <Clock size={32} />
-            </div>
-            <p className="scheduled-task-empty-state__title">
-              {t("scheduledTask.noTasks")}
-            </p>
-            <p className="scheduled-task-empty-state__body">
-              {t("scheduledTask.noTasksDesc")}
-            </p>
-          </div>
-        ) : (
-          <div className="grid auto-grid-cols gap-3">
-            {tasks.map((task) => {
-              const agentName =
-                agents.find((a) => a.id === task.agent_id)?.name ??
-                task.agent_id;
-              const modelName = formatTaskModel(task);
+          {/* Task List */}
+          <div className="flex-1 overflow-y-auto px-4 py-3 sm:p-6">
+            {tasks.length === 0 ? (
+              <div className="scheduled-task-empty-state">
+                <div className="scheduled-task-empty-state__icon">
+                  <Clock size={32} />
+                </div>
+                <p className="scheduled-task-empty-state__title">
+                  {t("scheduledTask.noTasks")}
+                </p>
+                <p className="scheduled-task-empty-state__body">
+                  {t("scheduledTask.noTasksDesc")}
+                </p>
+              </div>
+            ) : (
+              <div className="grid auto-grid-cols gap-3">
+                {tasks.map((task) => {
+                  const agentName =
+                    agents.find((a) => a.id === task.agent_id)?.name ??
+                    task.agent_id;
+                  const modelName = formatTaskModel(task);
 
-              return (
-                <div
-                  key={task.id}
-                  className="glass-card scheduled-task-card"
-                  onClick={() => {
-                    setSelectedTaskId(task.id);
-                    setSelectedTaskName(task.name);
-                  }}
-                >
-                  <div className="scheduled-task-card__content">
-                    <div className="scheduled-task-card__title-row">
-                      <p className="scheduled-task-card__title">
-                        {task.name}
-                      </p>
-                      <StatusBadge status={task.status} />
-                    </div>
+                  return (
+                    <div
+                      key={task.id}
+                      className="glass-card scheduled-task-card"
+                      onClick={() => {
+                        setSelectedTaskId(task.id);
+                        setSelectedTaskName(task.name);
+                      }}
+                    >
+                      <div className="scheduled-task-card__content">
+                        <div className="scheduled-task-card__title-row">
+                          <p className="scheduled-task-card__title">
+                            {task.name}
+                          </p>
+                          <StatusBadge status={task.status} />
+                        </div>
 
-                    {task.description && (
-                      <p className="scheduled-task-card__description">
-                        {task.description}
-                      </p>
-                    )}
+                        {task.description && (
+                          <p className="scheduled-task-card__description">
+                            {task.description}
+                          </p>
+                        )}
 
-                    <div className="scheduled-task-meta">
-                      <span className="scheduled-task-meta__item">
-                        <Timer size={12} />
-                        <span className="scheduled-task-meta__text">
-                          {formatTriggerInfo(task)}
-                        </span>
-                      </span>
-                      <span className="scheduled-task-meta__item">
-                        <Bot size={12} />
-                        <span className="scheduled-task-meta__text">
-                          {t(agentName)}
-                        </span>
-                      </span>
-                      {modelName && (
-                        <span className="scheduled-task-meta__item">
-                          <Cpu size={12} />
-                          <span className="scheduled-task-meta__text">
-                            {modelName}
+                        <div className="scheduled-task-meta">
+                          <span className="scheduled-task-meta__item">
+                            <Timer size={12} />
+                            <span className="scheduled-task-meta__text">
+                              {formatTriggerInfo(task)}
+                            </span>
                           </span>
-                        </span>
-                      )}
-                      {task.total_runs > 0 && (
-                        <span className="scheduled-task-meta__item">
-                          <History size={12} />
-                          <span className="scheduled-task-meta__text">
-                            {t("scheduledTask.totalRuns")}: {task.total_runs}
+                          <span className="scheduled-task-meta__item">
+                            <Bot size={12} />
+                            <span className="scheduled-task-meta__text">
+                              {t(agentName)}
+                            </span>
                           </span>
-                        </span>
-                      )}
-                    </div>
+                          {modelName && (
+                            <span className="scheduled-task-meta__item">
+                              <Cpu size={12} />
+                              <span className="scheduled-task-meta__text">
+                                {modelName}
+                              </span>
+                            </span>
+                          )}
+                          {task.total_runs > 0 && (
+                            <span className="scheduled-task-meta__item">
+                              <History size={12} />
+                              <span className="scheduled-task-meta__text">
+                                {t("scheduledTask.totalRuns")}:{" "}
+                                {task.total_runs}
+                              </span>
+                            </span>
+                          )}
+                        </div>
 
-                    {task.last_run_at && (
-                      <div className="scheduled-task-card__subtle flex flex-wrap items-center gap-2">
-                        <span>{t("scheduledTask.lastRun")}:</span>
-                        <span>
-                          {formatDateTimeShort(task.last_run_at)}
-                        </span>
-                        {task.last_run_status && (
-                          <RunStatusBadge status={task.last_run_status} />
+                        {task.last_run_at && (
+                          <div className="scheduled-task-card__subtle flex flex-wrap items-center gap-2">
+                            <span>{t("scheduledTask.lastRun")}:</span>
+                            <span>{formatDateTimeShort(task.last_run_at)}</span>
+                            {task.last_run_status && (
+                              <RunStatusBadge status={task.last_run_status} />
+                            )}
+                          </div>
+                        )}
+
+                        {!task.last_run_at && (
+                          <p className="scheduled-task-card__subtle">
+                            {t("scheduledTask.neverRun")}
+                          </p>
                         )}
                       </div>
-                    )}
 
-                    {!task.last_run_at && (
-                      <p className="scheduled-task-card__subtle">
-                        {t("scheduledTask.neverRun")}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div
-                    className="scheduled-task-card__actions"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {canWrite && task.status === "active" && (
-                      <button
-                        onClick={() => handlePause(task)}
-                        className="scheduled-task-icon-button"
-                        title={t("scheduledTask.pause")}
+                      {/* Actions */}
+                      <div
+                        className="scheduled-task-card__actions"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Pause size={16} />
-                      </button>
-                    )}
-                    {canWrite && task.status === "paused" && (
-                      <button
-                        onClick={() => handleResume(task)}
-                        className="scheduled-task-icon-button scheduled-task-icon-button--success"
-                        title={t("scheduledTask.resume")}
-                      >
-                        <Play size={16} />
-                      </button>
-                    )}
-                    {canWrite && (
-                      <button
-                        onClick={() => handleRunNow(task)}
-                        className="scheduled-task-icon-button scheduled-task-icon-button--info"
-                        title={t("scheduledTask.runNow")}
-                      >
-                        <RotateCcw size={16} />
-                      </button>
-                    )}
-                    {canWrite && (
-                      <button
-                        onClick={() => setEditingTask(task)}
-                        className="scheduled-task-icon-button"
-                        title={t("scheduledTask.edit")}
-                      >
-                        <Pencil size={16} />
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        onClick={() => setDeleteTarget(task)}
-                        className="scheduled-task-icon-button scheduled-task-icon-button--danger"
-                        title={t("scheduledTask.delete")}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                        {canWrite && task.status === "active" && (
+                          <button
+                            onClick={() => handlePause(task)}
+                            className="scheduled-task-icon-button"
+                            title={t("scheduledTask.pause")}
+                          >
+                            <Pause size={16} />
+                          </button>
+                        )}
+                        {canWrite && task.status === "paused" && (
+                          <button
+                            onClick={() => handleResume(task)}
+                            className="scheduled-task-icon-button scheduled-task-icon-button--success"
+                            title={t("scheduledTask.resume")}
+                          >
+                            <Play size={16} />
+                          </button>
+                        )}
+                        {canWrite && (
+                          <button
+                            onClick={() => handleRunNow(task)}
+                            className="scheduled-task-icon-button scheduled-task-icon-button--info"
+                            title={t("scheduledTask.runNow")}
+                          >
+                            <RotateCcw size={16} />
+                          </button>
+                        )}
+                        {canWrite && (
+                          <button
+                            onClick={() => setEditingTask(task)}
+                            className="scheduled-task-icon-button"
+                            title={t("scheduledTask.edit")}
+                          >
+                            <Pencil size={16} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => setDeleteTarget(task)}
+                            className="scheduled-task-icon-button scheduled-task-icon-button--danger"
+                            title={t("scheduledTask.delete")}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Pagination */}
-      {total > limit && (
-        <div className="glass-divider bg-transparent px-4 py-4 sm:px-6">
-          <Pagination
-            page={Math.floor(skip / limit) + 1}
-            pageSize={limit}
-            total={total}
-            onChange={(page) => setSkip((page - 1) * limit)}
-          />
-        </div>
-      )}
+          {/* Pagination */}
+          {total > limit && (
+            <div className="glass-divider bg-transparent px-4 py-4 sm:px-6">
+              <Pagination
+                page={Math.floor(skip / limit) + 1}
+                pageSize={limit}
+                total={total}
+                onChange={(page) => setSkip((page - 1) * limit)}
+              />
+            </div>
+          )}
 
-      {/* Create Modal */}
-      {isCreating && canWrite && (
-        <TaskFormModal
-          task={null}
-          agents={agents}
-          availableModels={effectiveAvailableModels}
-          defaultAgentId={effectiveDefaultAgentId}
-          defaultModelId={effectiveDefaultModelId}
-          defaultModelValue={effectiveDefaultModelValue}
-          onSave={handleCreate}
-          onClose={() => setIsCreating(false)}
-        />
-      )}
+          {/* Create Modal */}
+          {isCreating && canWrite && (
+            <TaskFormModal
+              task={null}
+              agents={agents}
+              availableModels={effectiveAvailableModels}
+              defaultAgentId={effectiveDefaultAgentId}
+              defaultModelId={effectiveDefaultModelId}
+              defaultModelValue={effectiveDefaultModelValue}
+              onSave={handleCreate}
+              onClose={() => setIsCreating(false)}
+            />
+          )}
 
-      {/* Edit Modal */}
-      {editingTask && canWrite && (
-        <TaskFormModal
-          task={editingTask}
-          agents={agents}
-          availableModels={effectiveAvailableModels}
-          defaultAgentId={effectiveDefaultAgentId}
-          defaultModelId={effectiveDefaultModelId}
-          defaultModelValue={effectiveDefaultModelValue}
-          onSave={handleUpdate}
-          onClose={() => setEditingTask(null)}
-        />
-      )}
+          {/* Edit Modal */}
+          {editingTask && canWrite && (
+            <TaskFormModal
+              task={editingTask}
+              agents={agents}
+              availableModels={effectiveAvailableModels}
+              defaultAgentId={effectiveDefaultAgentId}
+              defaultModelId={effectiveDefaultModelId}
+              defaultModelValue={effectiveDefaultModelValue}
+              onSave={handleUpdate}
+              onClose={() => setEditingTask(null)}
+            />
+          )}
 
-      {/* Delete Confirmation Modal */}
-      {deleteTarget && canDelete && (
-        <DeleteConfirmModal
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
-
+          {/* Delete Confirmation Modal */}
+          {deleteTarget && canDelete && (
+            <DeleteConfirmModal
+              onConfirm={handleDelete}
+              onCancel={() => setDeleteTarget(null)}
+            />
+          )}
         </>
       )}
     </div>

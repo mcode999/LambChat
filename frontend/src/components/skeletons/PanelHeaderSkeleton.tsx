@@ -24,7 +24,8 @@ export function PanelHeaderSkeleton({
           <div
             className="flex size-10 flex-shrink-0 items-center justify-center rounded-lg ring-1 lg:size-11"
             style={{
-              backgroundColor: "var(--theme-bg-subtle, color-mix(in srgb, var(--theme-bg) 80%, white))",
+              backgroundColor:
+                "var(--theme-bg-subtle, color-mix(in srgb, var(--theme-bg) 80%, white))",
               borderColor: "var(--theme-border)",
             }}
           >

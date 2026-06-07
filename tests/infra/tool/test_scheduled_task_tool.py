@@ -557,9 +557,7 @@ async def test_list_tasks_with_status_filter(monkeypatch: pytest.MonkeyPatch) ->
     )
 
     assert result["success"] is True
-    list_mock.assert_called_once_with(
-        owner_id="user-1", status=ScheduledTaskStatus.ACTIVE
-    )
+    list_mock.assert_called_once_with(owner_id="user-1", status=ScheduledTaskStatus.ACTIVE)
 
 
 # ── scheduled_task_get ──────────────────────────────────────────

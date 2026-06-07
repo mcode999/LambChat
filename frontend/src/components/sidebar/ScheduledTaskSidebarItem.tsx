@@ -125,8 +125,7 @@ export const ScheduledTaskSidebarItem = forwardRef<
           PAGE_SIZE,
         );
         const fetchedSessions = response.items.map(toBackendSession);
-        const nextHasMore =
-          targetSkip + response.items.length < response.total;
+        const nextHasMore = targetSkip + response.items.length < response.total;
 
         if (reset) {
           setSessions(dedupSessions(fetchedSessions));
@@ -246,7 +245,10 @@ export const ScheduledTaskSidebarItem = forwardRef<
         }`}
         title={task.name}
       >
-        <span className="shrink-0 inline-flex items-center justify-center overflow-hidden text-[20px]" style={{ width: 20, height: 20, fontSize: 20, lineHeight: 1 }}>
+        <span
+          className="shrink-0 inline-flex items-center justify-center overflow-hidden text-[20px]"
+          style={{ width: 20, height: 20, fontSize: 20, lineHeight: 1 }}
+        >
           {task.status === "active" ? "⏰" : "🕐"}
         </span>
         <div className="min-w-0 flex-1">
@@ -282,7 +284,9 @@ export const ScheduledTaskSidebarItem = forwardRef<
                   }
                   currentProjectId={null}
                   onShare={
-                    onShareSession ? () => onShareSession(session.id) : undefined
+                    onShareSession
+                      ? () => onShareSession(session.id)
+                      : undefined
                   }
                   onToggleFavorite={
                     onToggleFavorite

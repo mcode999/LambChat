@@ -58,7 +58,9 @@ def test_start_registers_interval_job_with_apscheduler(monkeypatch: pytest.Monke
         return None
 
     runtime_scheduler.register_interval_job(
-        ScheduledJob.from_interval(id="memory.compaction", interval_seconds=lambda: 30, handler=handler)
+        ScheduledJob.from_interval(
+            id="memory.compaction", interval_seconds=lambda: 30, handler=handler
+        )
     )
 
     runtime_scheduler.start()

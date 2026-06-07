@@ -580,10 +580,7 @@ export function ScheduledTaskPanelSkeleton() {
               {/* Action buttons — matches .scheduled-task-card__actions (border-top, justify-end) */}
               <div className="scheduled-task-card__actions">
                 {[0, 1, 2, 3].map((j) => (
-                  <div
-                    key={j}
-                    className="skeleton-line size-9 rounded-lg"
-                  />
+                  <div key={j} className="skeleton-line size-9 rounded-lg" />
                 ))}
               </div>
             </div>
@@ -611,7 +608,10 @@ export function TaskSessionListSkeleton() {
       <div className="flex-1 overflow-y-auto px-4 py-3 sm:p-6">
         <div className="scheduled-task-list">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="glass-card scheduled-task-session-card w-full text-left">
+            <div
+              key={i}
+              className="glass-card scheduled-task-session-card w-full text-left"
+            >
               {/* Left indicator — matches .scheduled-task-session-card__indicator (2.5rem × 2.5rem) */}
               <div className="scheduled-task-session-card__indicator">
                 <div className="skeleton-line size-4 rounded" />
@@ -627,10 +627,7 @@ export function TaskSessionListSkeleton() {
                     width="w-16 sm:w-20"
                     className="!h-2.5 !opacity-50"
                   />
-                  <SkeletonLine
-                    width="w-3"
-                    className="!h-2.5 !opacity-30"
-                  />
+                  <SkeletonLine width="w-3" className="!h-2.5 !opacity-30" />
                   <SkeletonLine
                     width="w-20 sm:w-28"
                     className="!h-2.5 !opacity-50"

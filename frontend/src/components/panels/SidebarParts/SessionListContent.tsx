@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronsUpDown,
@@ -44,9 +39,7 @@ import { isSessionFavorite } from "../../sidebar/sessionFavorites";
 import type { Project } from "../../../types";
 import type { ScheduledTask } from "../../../types/scheduledTask";
 import { isSidebarProject } from "./projectFilters";
-import {
-  subscribeScheduledTaskMutation,
-} from "../../../stores/scheduledTaskMutationStore";
+import { subscribeScheduledTaskMutation } from "../../../stores/scheduledTaskMutationStore";
 
 export interface SessionActions {
   onDeleteSession: (id: string) => void;
@@ -367,8 +360,9 @@ export function SessionListContent({
             </span>
             <ChevronDown
               size={14}
-              className={`text-stone-300 dark:text-stone-600 transition-transform duration-200 ${isProjectsCollapsed ? "-rotate-90" : ""
-                }`}
+              className={`text-stone-300 dark:text-stone-600 transition-transform duration-200 ${
+                isProjectsCollapsed ? "-rotate-90" : ""
+              }`}
             />
           </div>
 
@@ -464,8 +458,9 @@ export function SessionListContent({
                 </div>
                 <ChevronDown
                   size={14}
-                  className={`text-stone-300 dark:text-stone-600 transition-transform duration-200 ${isScheduledTasksCollapsed ? "-rotate-90" : ""
-                    }`}
+                  className={`text-stone-300 dark:text-stone-600 transition-transform duration-200 ${
+                    isScheduledTasksCollapsed ? "-rotate-90" : ""
+                  }`}
                 />
               </div>
 
@@ -486,7 +481,10 @@ export function SessionListContent({
                       <ScheduledTaskSidebarItem
                         key={task.id}
                         ref={(el) =>
-                          scheduledTaskActions.onSetScheduledTaskRef(task.id, el)
+                          scheduledTaskActions.onSetScheduledTaskRef(
+                            task.id,
+                            el,
+                          )
                         }
                         task={task}
                         currentSessionId={currentSessionId}
@@ -540,8 +538,9 @@ export function SessionListContent({
                 </div>
                 <ChevronDown
                   size={14}
-                  className={`text-stone-300 dark:text-stone-600 transition-transform duration-200 ${isChatsCollapsed ? "-rotate-90" : ""
-                    }`}
+                  className={`text-stone-300 dark:text-stone-600 transition-transform duration-200 ${
+                    isChatsCollapsed ? "-rotate-90" : ""
+                  }`}
                 />
               </div>
 

@@ -88,9 +88,7 @@ export function StatusFilter({
                 <span className="min-w-0 flex-1 text-left">
                   {t(option.labelKey)}
                 </span>
-                {isActive && (
-                  <Check size={14} />
-                )}
+                {isActive && <Check size={14} />}
               </button>
             );
           })}

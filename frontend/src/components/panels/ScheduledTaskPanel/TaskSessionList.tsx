@@ -2,12 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import {
-  ArrowLeft,
-  Bot,
-  ChevronRight,
-  MessageSquare,
-} from "lucide-react";
+import { ArrowLeft, Bot, ChevronRight, MessageSquare } from "lucide-react";
 import { PanelHeader } from "../../common/PanelHeader";
 import { Pagination } from "../../common/Pagination";
 import { TaskSessionListSkeleton } from "../../skeletons";
@@ -137,8 +132,7 @@ export function TaskSessionList({
                   {/* Body */}
                   <div className="scheduled-task-session-card__body">
                     <p className="scheduled-task-session-card__title">
-                      {session.name ||
-                        t("scheduledTask.untitledSession")}
+                      {session.name || t("scheduledTask.untitledSession")}
                     </p>
                     <div className="scheduled-task-session-card__meta">
                       {agentName && (

@@ -2381,7 +2381,11 @@
 }
 
 .scheduled-task-session-card__indicator--active {
-  background: color-mix(in srgb, var(--theme-primary) 12%, var(--glass-bg-subtle, var(--theme-bg-subtle)));
+  background: color-mix(
+    in srgb,
+    var(--theme-primary) 12%,
+    var(--glass-bg-subtle, var(--theme-bg-subtle))
+  );
   color: var(--theme-primary);
 }
 

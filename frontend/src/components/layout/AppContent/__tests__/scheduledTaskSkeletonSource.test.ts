@@ -21,5 +21,8 @@ test("scheduled task route uses a matching panel skeleton while lazy loading", (
     tabContent,
     /"scheduled-tasks":\s*<ScheduledTaskPanelSkeleton \/>/,
   );
-  assert.match(tabContent, /fallback=\{skeletonMap\[activeTab\] \?\? <PanelLoadingState \/>/);
+  assert.match(
+    tabContent,
+    /fallback=\{skeletonMap\[activeTab\] \?\? <PanelLoadingState \/>/,
+  );
 });

@@ -137,10 +137,7 @@ test("uncategorized unread count excludes scheduled task sessions", () => {
         isFavorite: false,
       },
     ],
-    [
-      "plain-external",
-      { count: 3, projectId: null, isFavorite: false },
-    ],
+    ["plain-external", { count: 3, projectId: null, isFavorite: false }],
   ]);
 
   assert.equal(

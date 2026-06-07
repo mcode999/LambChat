@@ -162,9 +162,7 @@ async def test_pause_task_unregisters(
     mock_storage.get_task = AsyncMock(return_value=task)
     mock_storage.update_task = AsyncMock(return_value=True)
     paused_task = _make_task(status=ScheduledTaskStatus.PAUSED, enabled=False)
-    mock_storage.get_task = AsyncMock(
-        side_effect=[task, paused_task]
-    )
+    mock_storage.get_task = AsyncMock(side_effect=[task, paused_task])
 
     result = await service.pause_task("task_1")
 
@@ -218,10 +216,7 @@ async def test_load_persisted_tasks(
     mock_storage: AsyncMock,
     mock_scheduler: MagicMock,
 ) -> None:
-    tasks = [
-        _make_task(_id=f"task_{i}", name=f"Task {i}")
-        for i in range(3)
-    ]
+    tasks = [_make_task(_id=f"task_{i}", name=f"Task {i}") for i in range(3)]
     mock_storage.list_active_tasks = AsyncMock(return_value=tasks)
 
     count = await service.load_persisted_tasks()
@@ -415,18 +410,14 @@ async def test_get_task_response_returns_unread_count(
 
 
 def test_build_trigger_interval() -> None:
-    trigger = ScheduledTaskService._build_trigger(
-        TriggerType.INTERVAL, {"seconds": 300}
-    )
+    trigger = ScheduledTaskService._build_trigger(TriggerType.INTERVAL, {"seconds": 300})
     from apscheduler.triggers.interval import IntervalTrigger
 
     assert isinstance(trigger, IntervalTrigger)
 
 
 def test_build_trigger_cron() -> None:
-    trigger = ScheduledTaskService._build_trigger(
-        TriggerType.CRON, {"hour": "9", "minute": "0"}
-    )
+    trigger = ScheduledTaskService._build_trigger(TriggerType.CRON, {"hour": "9", "minute": "0"})
     from apscheduler.triggers.cron import CronTrigger
 
     assert isinstance(trigger, CronTrigger)

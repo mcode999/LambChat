@@ -184,12 +184,20 @@ async def test_start_runtime_services_registers_scheduled_task_reconcile_job(
     monkeypatch.setattr(runtime_services, "start_event_loop_lag_monitor", _noop)
     monkeypatch.setattr(runtime_services, "get_settings_pubsub", lambda: services[0])
     monkeypatch.setattr(runtime_services, "get_model_config_pubsub", lambda: services[1])
-    monkeypatch.setattr(runtime_services, "get_channel_config_pubsub", lambda: services[2], raising=False)
-    monkeypatch.setattr(runtime_services, "get_tool_cache_pubsub", lambda: services[3], raising=False)
-    monkeypatch.setattr(runtime_services, "get_mcp_cache_pubsub", lambda: services[4], raising=False)
+    monkeypatch.setattr(
+        runtime_services, "get_channel_config_pubsub", lambda: services[2], raising=False
+    )
+    monkeypatch.setattr(
+        runtime_services, "get_tool_cache_pubsub", lambda: services[3], raising=False
+    )
+    monkeypatch.setattr(
+        runtime_services, "get_mcp_cache_pubsub", lambda: services[4], raising=False
+    )
     monkeypatch.setattr(runtime_services, "get_connection_manager", lambda: websocket_manager)
     monkeypatch.setattr(runtime_services, "get_runtime_scheduler", lambda: scheduler)
-    monkeypatch.setattr(runtime_services, "get_scheduled_task_storage", lambda: scheduled_task_storage)
+    monkeypatch.setattr(
+        runtime_services, "get_scheduled_task_storage", lambda: scheduled_task_storage
+    )
     monkeypatch.setattr(runtime_services, "ScheduledTaskService", lambda: scheduled_task_service)
 
     await runtime_services.start_runtime_services()
