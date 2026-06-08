@@ -154,6 +154,7 @@ class _FakeTaskManager:
             enabled_skills=["planning"],
             persona_system_prompt="Persona prompt",
             disabled_mcp_tools=["mcp.tool"],
+            recommendation_input="hello",
             team_id="team-1",
             active_goal={"objective": "ship it"},
         ):
@@ -406,6 +407,7 @@ async def test_feishu_executor_accepts_task_runtime_skill_kwargs(
     assert captured["enabled_skills"] == ["planning"]
     assert captured["persona_system_prompt"] == "Persona prompt"
     assert captured["disabled_mcp_tools"] == ["mcp.tool"]
+    assert captured["recommendation_input"] == "hello"
 
 
 @pytest.mark.asyncio

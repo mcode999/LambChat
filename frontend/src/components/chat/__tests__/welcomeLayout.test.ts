@@ -124,7 +124,7 @@ test("shows all welcome persona cards with pinned and favorite cards first", () 
 });
 
 test("shows welcome choice skeletons only while the first page is loading", () => {
-  assert.equal(getWelcomePersonaSkeletonCount(true, 0), 4);
+  assert.equal(getWelcomePersonaSkeletonCount(true, 0), 12);
   assert.equal(getWelcomePersonaSkeletonCount(true, 2), 0);
   assert.equal(getWelcomePersonaSkeletonCount(false, 0), 0);
 });

@@ -15,7 +15,18 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { PanelHeader } from "../common/PanelHeader";
+import { ConfirmDialog } from "../common/ConfirmDialog";
+import { PanelLoadingState } from "../common/PanelLoadingState";
 import { Pagination } from "../common/Pagination";
+import { StatusBadge } from "../common/StatusBadge";
+import type { StatusColor } from "../common/StatusBadge";
+import {
+  Button,
+  IconButton,
+  Input,
+  PanelFooterActions,
+  Textarea,
+} from "../common";
 import { notificationApi } from "../../services/api/notification";
 import { useAuth } from "../../hooks/useAuth";
 import { Permission } from "../../types";
@@ -73,102 +84,12 @@ function getNotificationStatus(
   return "active";
 }
 
-/** Status badge component */
-function StatusBadge({ status }: { status: string }) {
-  const { t } = useTranslation();
-
-  const styles: Record<string, string> = {
-    active:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-    inactive:
-      "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400",
-    scheduled:
-      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    expired: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  };
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-        styles[status] || styles.inactive
-      }`}
-    >
-      <span
-        className={`inline-block h-1.5 w-1.5 rounded-full ${
-          status === "active"
-            ? "bg-emerald-500"
-            : status === "scheduled"
-              ? "bg-blue-500"
-              : status === "expired"
-                ? "bg-red-500"
-                : "bg-stone-400"
-        }`}
-      />
-      {t(`notification.${status}`)}
-    </span>
-  );
-}
-
-/** Delete confirmation modal */
-function DeleteConfirmModal({
-  onConfirm,
-  onCancel,
-}: {
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-50 bg-black/50 transition-opacity"
-        onClick={onCancel}
-      />
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div
-          className="w-full max-w-md transform overflow-hidden rounded-2xl bg-[var(--theme-bg-card)] p-6 text-left align-middle shadow-xl transition-all"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Icon */}
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-            <AlertCircle className="text-red-600 dark:text-red-400" size={24} />
-          </div>
-
-          {/* Title */}
-          <h3 className="text-xl font-semibold text-stone-900 dark:text-stone-100 font-serif">
-            {t("notification.deleteConfirm")}
-          </h3>
-
-          {/* Description */}
-          <div className="mt-2">
-            <p className="text-sm text-stone-500 dark:text-stone-400">
-              {t("common.confirmAction") || "This action cannot be undone."}
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-6 flex gap-3">
-            <button
-              onClick={onCancel}
-              className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--theme-bg-card)] px-4 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-700"
-            >
-              {t("notification.cancel")}
-            </button>
-            <button
-              onClick={onConfirm}
-              className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700"
-            >
-              {t("notification.delete")}
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
+const NOTIFICATION_STATUS_COLOR: Record<string, StatusColor> = {
+  active: "emerald",
+  inactive: "stone",
+  scheduled: "blue",
+  expired: "red",
+};
 
 /** Create/Edit modal */
 function NotificationFormModal({
@@ -226,7 +147,7 @@ function NotificationFormModal({
         onClick={onClose}
       />
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="safe-area-viewport-padding fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
           className="w-full max-w-2xl max-h-[90dvh] transform overflow-hidden rounded-2xl bg-[var(--theme-bg-card)] text-left align-middle shadow-xl transition-all flex flex-col"
           onClick={(e) => e.stopPropagation()}
@@ -236,12 +157,13 @@ function NotificationFormModal({
             <h3 className="text-xl font-semibold text-stone-900 dark:text-stone-100 font-serif">
               {isEdit ? t("notification.edit") : t("notification.create")}
             </h3>
-            <button
+            <IconButton
+              aria-label={t("common.close")}
+              icon={<X size={20} />}
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800 dark:hover:text-stone-300"
-            >
-              <X size={20} />
-            </button>
+              size="sm"
+              className="h-8 w-8 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800 dark:hover:text-stone-300"
+            />
           </div>
 
           {/* Body */}
@@ -257,7 +179,7 @@ function NotificationFormModal({
                     <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">
                       {label}
                     </label>
-                    <input
+                    <Input
                       type="text"
                       value={titleI18n[key]}
                       onChange={(e) =>
@@ -266,7 +188,7 @@ function NotificationFormModal({
                           [key]: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 transition-all focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-500/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+                      aria-label={`${t("notification.titleLabel")} - ${label}`}
                       placeholder={`${label} title`}
                     />
                   </div>
@@ -285,7 +207,7 @@ function NotificationFormModal({
                     <label className="block text-xs text-stone-500 dark:text-stone-400 mb-1">
                       {label}
                     </label>
-                    <textarea
+                    <Textarea
                       value={contentI18n[key]}
                       onChange={(e) =>
                         setContentI18n((prev) => ({
@@ -294,7 +216,9 @@ function NotificationFormModal({
                         }))
                       }
                       rows={3}
-                      className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 transition-all focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-500/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 resize-y"
+                      aria-label={`${t(
+                        "notification.contentLabel",
+                      )} - ${label}`}
                       placeholder={`${label} content`}
                     />
                   </div>
@@ -343,22 +267,20 @@ function NotificationFormModal({
                 <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
                   {t("notification.startTime")}
                 </label>
-                <input
+                <Input
                   type="datetime-local"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 transition-all focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-500/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
                   {t("notification.endTime")}
                 </label>
-                <input
+                <Input
                   type="datetime-local"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-900 transition-all focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-500/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
                 />
               </div>
             </div>
@@ -387,46 +309,21 @@ function NotificationFormModal({
           </div>
 
           {/* Footer */}
-          <div className="flex gap-3 border-t border-[var(--glass-border)] p-6 pt-4">
-            <button
-              onClick={onClose}
-              className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--theme-bg-card)] px-4 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50 dark:text-stone-300 dark:hover:bg-stone-700"
-            >
+          <PanelFooterActions className="border-t border-[var(--glass-border)] p-6 pt-4">
+            <Button onClick={onClose} className="flex-1">
               {t("notification.cancel")}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleSave}
-              disabled={isSaving}
-              className="flex-1 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+              loading={isSaving}
+              className="flex-1"
             >
-              {isSaving ? (
-                <span className="inline-flex items-center gap-2">
-                  <svg
-                    className="h-4 w-4 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                  {t("common.saving") || "Saving..."}
-                </span>
-              ) : (
-                t("notification.save")
-              )}
-            </button>
-          </div>
+              {isSaving
+                ? t("common.saving") || "Saving..."
+                : t("notification.save")}
+            </Button>
+          </PanelFooterActions>
         </div>
       </div>
     </>
@@ -582,25 +479,20 @@ export function NotificationPanel() {
         title={t("notification.title")}
         icon={<Bell size={20} className="text-stone-600 dark:text-stone-400" />}
         actions={
-          <button
+          <Button
+            variant="primary"
             onClick={() => setIsCreating(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+            leftIcon={<Plus size={16} />}
           >
-            <Plus size={16} />
-            {t("notification.create")}
-          </button>
+            <span>{t("notification.create")}</span>
+          </Button>
         }
       />
 
       {/* Notification List */}
-      <div className="flex-1 overflow-y-auto py-2 sm:py-4 px-4 sm:p-6">
+      <div className="flex-1 overflow-y-auto px-4 py-2 sm:p-6 lg:px-8">
         {isLoading && notifications.length === 0 ? (
-          <div className="flex h-40 items-center justify-center">
-            <div className="relative h-8 w-8">
-              <div className="absolute inset-0 rounded-full border-2 border-stone-200 dark:border-stone-700" />
-              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-stone-600 dark:border-t-stone-300 animate-spin will-change-transform" />
-            </div>
-          </div>
+          <PanelLoadingState />
         ) : !isLoading && notifications.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-stone-100 dark:bg-stone-800">
@@ -651,7 +543,10 @@ export function NotificationPanel() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 mb-2">
-                        <StatusBadge status={status} />
+                        <StatusBadge
+                          color={NOTIFICATION_STATUS_COLOR[status] ?? "stone"}
+                          label={t(`notification.${status}`)}
+                        />
                       </div>
                       {schedule && (
                         <p className="text-xs text-stone-500 dark:text-stone-400 mb-2">
@@ -683,11 +578,24 @@ export function NotificationPanel() {
                     {/* Actions */}
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {hasContent && (
-                        <button
+                        <IconButton
+                          aria-label={
+                            isExpanded
+                              ? t("notification.collapse")
+                              : t("notification.expand")
+                          }
+                          icon={
+                            <ChevronDown
+                              size={16}
+                              className={`transition-transform duration-200 ${
+                                isExpanded ? "rotate-180" : ""
+                              }`}
+                            />
+                          }
                           onClick={() =>
                             setExpandedId(isExpanded ? null : notification.id)
                           }
-                          className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all ${
+                          className={`h-9 w-9 rounded-lg ${
                             isExpanded
                               ? "text-stone-600 bg-stone-100 dark:text-stone-300 dark:bg-stone-800"
                               : "text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800 dark:hover:text-stone-300"
@@ -697,29 +605,22 @@ export function NotificationPanel() {
                               ? t("notification.collapse")
                               : t("notification.expand")
                           }
-                        >
-                          <ChevronDown
-                            size={16}
-                            className={`transition-transform duration-200 ${
-                              isExpanded ? "rotate-180" : ""
-                            }`}
-                          />
-                        </button>
+                        />
                       )}
-                      <button
+                      <IconButton
+                        aria-label={t("notification.edit")}
+                        icon={<Pencil size={16} />}
                         onClick={() => setEditingNotification(notification)}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg text-stone-400 transition-all hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800 dark:hover:text-stone-300"
+                        className="h-9 w-9 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800 dark:hover:text-stone-300"
                         title={t("notification.edit")}
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
+                      />
+                      <IconButton
+                        aria-label={t("notification.delete")}
+                        icon={<Trash2 size={16} />}
                         onClick={() => setDeleteTarget(notification)}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg text-stone-400 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                        className="h-9 w-9 rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/30 dark:hover:text-red-400"
                         title={t("notification.delete")}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      />
                     </div>
                   </div>
                 </div>
@@ -731,7 +632,7 @@ export function NotificationPanel() {
 
       {/* Pagination */}
       {total > limit && (
-        <div className="glass-divider bg-transparent px-4 py-4 sm:px-6">
+        <div className="glass-divider bg-transparent px-4 py-4 sm:px-6 lg:px-8">
           <Pagination
             page={Math.floor(skip / limit) + 1}
             pageSize={limit}
@@ -760,12 +661,16 @@ export function NotificationPanel() {
       )}
 
       {/* Delete Confirmation Modal */}
-      {deleteTarget && (
-        <DeleteConfirmModal
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title={t("notification.deleteConfirm")}
+        message={t("common.confirmAction")}
+        confirmText={t("notification.delete")}
+        cancelText={t("notification.cancel")}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        variant="danger"
+      />
     </div>
   );
 }

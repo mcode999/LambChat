@@ -426,7 +426,7 @@ export function ExcalidrawFullscreenViewer({
       onClick={handleBackgroundClick}
     >
       {/* Top bar — matches ImageViewer pattern */}
-      <div className="flex items-center justify-between px-3 sm:px-6 py-3 bg-black">
+      <div className="safe-area-top flex items-center justify-between px-3 sm:px-6 py-3 bg-black">
         <button
           type="button"
           onClick={onClose}
@@ -504,6 +504,7 @@ export function ExcalidrawFullscreenViewer({
           scale={scale}
           minScale={MIN_SCALE}
           maxScale={MAX_SCALE}
+          className="safe-area-bottom"
           onZoomIn={() =>
             setScale((prev) => Math.min(MAX_SCALE, prev + SCALE_STEP))
           }

@@ -72,6 +72,16 @@ test("team builder list adopts shared panel and role-library presentation", () =
   assert.match(wrapperSource, /getTeamFallbackAvatar/);
 });
 
+test("team builder relies on shared panel header mobile density", () => {
+  assert.match(wrapperSource, /<PanelHeader/);
+  assert.match(wrapperSource, /className="skill-panel-header"/);
+  assert.doesNotMatch(wrapperSource, /isHeaderCompact/);
+  assert.doesNotMatch(wrapperSource, /TEAM_HEADER_COMPACT_SCROLL_TOP/);
+  assert.doesNotMatch(wrapperSource, /handleContentScroll/);
+  assert.doesNotMatch(wrapperSource, /team-panel-header--compact/);
+  assert.doesNotMatch(wrapperSource, /onScroll=\{handleContentScroll\}/);
+});
+
 test("team editor uses one sidebar form matching role editor patterns", () => {
   assert.match(builderSource, /className="es-form team-editor-form"/);
   assert.match(builderSource, /es-section team-form-identity/);

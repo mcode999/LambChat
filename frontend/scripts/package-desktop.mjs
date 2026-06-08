@@ -49,6 +49,11 @@ if (iconResult.status !== 0) {
 
 const args = ["dlx", tauriCliPackage, "build", "--ci", "--no-sign"];
 
+const target = process.env.TAURI_TARGET || process.env.DESKTOP_TARGET || "";
+if (target) {
+  args.push("--target", target);
+}
+
 const bundles = process.env.TAURI_BUNDLES || process.env.DESKTOP_BUNDLES || "";
 if (bundles) {
   args.push("--bundles", bundles);

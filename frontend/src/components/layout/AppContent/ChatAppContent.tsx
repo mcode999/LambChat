@@ -42,6 +42,8 @@ import { AppShell } from "./AppShell";
 import { ChatView } from "./ChatView";
 import { shouldShowMessageOutline } from "./messageOutline";
 
+const SCHEDULED_TASK_DEFAULTS_KEY = "lambchat_scheduled_task_defaults";
+
 export interface ChatAppContentProps {
   showProfileModal: boolean;
   onCloseProfileModal: () => void;
@@ -378,6 +380,18 @@ export function ChatAppContent({
     setSessionAgentOption,
   ]);
 
+  useEffect(() => {
+    if (!currentAgent && !currentModelId && !currentModelValue) return;
+    localStorage.setItem(
+      SCHEDULED_TASK_DEFAULTS_KEY,
+      JSON.stringify({
+        agentId: currentAgent,
+        modelId: currentModelId,
+        modelValue: currentModelValue,
+      }),
+    );
+  }, [currentAgent, currentModelId, currentModelValue]);
+
   const handleSelectModel = useCallback(
     (modelId: string, modelValue: string) => {
       setCurrentModelId(modelId);
@@ -580,12 +594,13 @@ export function ChatAppContent({
   useWebSocketNotifications({
     sessionId,
     enabled: isAuthenticated,
-    onSessionUnread: (sid, count, projectId, isFavorite) => {
+    onSessionUnread: (sid, count, projectId, isFavorite, scheduledTaskId) => {
       sidebarRef.current?.updateSessionUnread(
         sid,
         count,
         projectId,
         isFavorite,
+        scheduledTaskId,
       );
     },
   });
@@ -793,7 +808,7 @@ export function ChatAppContent({
     >
       <>
         {isPageDragging && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-stone-500/5 transition-colors dark:bg-stone-500/10">
+          <div className="safe-area-viewport-padding fixed inset-0 z-[9999] flex items-center justify-center bg-stone-500/5 transition-colors dark:bg-stone-500/10">
             <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-stone-400 bg-white/95 px-16 py-12 shadow-xl transition-colors dark:border-stone-500 dark:bg-stone-800/95">
               <svg
                 xmlns="http://www.w3.org/2000/svg"

@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { useEffect, type CSSProperties } from "react";
 import { Users, Sparkles, User, Pin, Star } from "lucide-react";
 import type { ScopeFilter } from "./usePersonaPlaza";
 
@@ -17,6 +18,30 @@ const ICON_MAP = {
   Star,
 } as const;
 
+const DROPDOWN_GUTTER = 12;
+const SCOPE_DROPDOWN_WIDTH = 192;
+
+function getDropdownPosition(
+  trigger: HTMLButtonElement,
+  width: number,
+): CSSProperties {
+  const rect = trigger.getBoundingClientRect();
+  const availableWidth = window.innerWidth - DROPDOWN_GUTTER * 2;
+  const renderedWidth = Math.min(width, availableWidth);
+  const left = Math.min(
+    Math.max(DROPDOWN_GUTTER, rect.right - renderedWidth),
+    window.innerWidth - renderedWidth - DROPDOWN_GUTTER,
+  );
+  const top = rect.bottom + 8;
+
+  return {
+    top,
+    left,
+    width: renderedWidth,
+    maxHeight: `calc(100dvh - ${top + DROPDOWN_GUTTER}px)`,
+  };
+}
+
 interface PersonaScopeDropdownProps {
   isOpen: boolean;
   scopeFilter: ScopeFilter;
@@ -34,17 +59,35 @@ export function PersonaScopeDropdown({
   onSelect,
   onClose,
 }: PersonaScopeDropdownProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !scopeBtnRef.current) return null;
 
+  const dropdownStyle = getDropdownPosition(
+    scopeBtnRef.current,
+    SCOPE_DROPDOWN_WIDTH,
+  );
+
   return createPortal(
-    <div className="fixed inset-0 z-[999]" onMouseDown={onClose}>
+    <div
+      className="fixed inset-0 z-[999]"
+      data-panel-header-dropdown
+      onPointerDown={onClose}
+    >
       <div
-        className="absolute w-44 rounded-xl border bg-[var(--theme-bg-card,#1c1917)] p-1 shadow-lg"
-        style={{
-          top: scopeBtnRef.current.getBoundingClientRect().bottom + 8,
-          left: scopeBtnRef.current.getBoundingClientRect().right - 176,
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
+        className="panel-header-dropdown fixed overflow-y-auto rounded-xl border bg-[var(--theme-bg-card,#1c1917)] p-1 shadow-lg"
+        role="menu"
+        style={dropdownStyle}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         {scopeTabs.map(({ key, label, icon, count }) => {
           const Icon = ICON_MAP[icon];
@@ -56,6 +99,8 @@ export function PersonaScopeDropdown({
                 onSelect(key);
                 onClose();
               }}
+              role="menuitemradio"
+              aria-checked={scopeFilter === key}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
               style={{
                 background:

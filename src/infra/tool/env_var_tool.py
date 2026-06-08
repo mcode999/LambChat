@@ -169,4 +169,4 @@ async def env_var_delete_all(
 
 def get_env_var_tools() -> list[BaseTool]:
     """Return safe environment variable CRUD tools for the current user."""
-    return [env_var_list, env_var_set, env_var_delete, env_var_delete_all]
+    return [env_var_list, env_var_set, env_var_delete]

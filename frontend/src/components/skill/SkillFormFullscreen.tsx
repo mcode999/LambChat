@@ -16,7 +16,10 @@ export function SkillFormFullscreen(a: SkillFormActions) {
       <button
         type="button"
         onClick={() => a.toggleFullscreen(false)}
-        className="fixed top-4 right-4 z-[410] flex items-center justify-center w-11 h-11 rounded-xl bg-black/80 hover:bg-black text-white shadow-xl transition-all duration-200 hover:scale-105 active:scale-95"
+        className="fixed right-4 z-[410] flex items-center justify-center w-11 h-11 rounded-xl bg-black/80 hover:bg-black text-white shadow-xl transition-all duration-200 hover:scale-105 active:scale-95"
+        style={{
+          top: "calc(1rem + var(--app-safe-area-top-active, var(--app-safe-area-top, 0px)))",
+        }}
         title={t("skills.form.exitFullscreen")}
       >
         <Shrink size={18} />

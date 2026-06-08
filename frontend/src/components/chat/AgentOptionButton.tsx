@@ -70,7 +70,7 @@ export const AgentOptionButton = memo(function AgentOptionButton({
                 onClick={() => setShowDropdown(false)}
               />
               <div
-                className="fixed z-[301] sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4 inset-x-0 bottom-0 animate-slide-up sm:animate-scale-in"
+                className="safe-area-viewport-padding fixed z-[301] sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4 inset-x-0 bottom-0 animate-slide-up sm:animate-scale-in"
                 onClick={() => setShowDropdown(false)}
               >
                 <div
@@ -217,7 +217,7 @@ export const AgentOptionButton = memo(function AgentOptionButton({
               {/* Mobile: bottom sheet modal */}
               <div
                 ref={mobileSheetRef}
-                className="sm:hidden fixed inset-0 z-[9999] flex flex-col justify-end"
+                className="safe-area-viewport-padding sm:hidden fixed inset-0 z-[9999] flex flex-col justify-end"
                 onClick={() => setShowDropdown(false)}
               >
                 <div className="absolute inset-0 bg-black/40" />

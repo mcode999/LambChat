@@ -13,7 +13,8 @@ import {
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { LoadingSpinner } from "../../../common/LoadingSpinner";
-import { ConfirmDialog } from "../../../common";
+import { Button, ConfirmDialog } from "../../../common";
+import { EmptyState } from "../../../common/EmptyState";
 import { ToggleSwitch } from "../../AgentPanel/shared";
 import { ModelIconImg } from "../../../agent/modelIcon.tsx";
 import { modelApi } from "../../../../services/api";
@@ -560,35 +561,35 @@ export function ModelConfigTab({ models, onReload }: ModelConfigTabProps) {
                 {t("agentConfig.batchCreate")}
               </span>
             </button>
-            <button
+            <Button
+              variant="primary"
               onClick={() => setIsCreating(true)}
-              className="btn-primary flex items-center gap-1.5 px-3 py-2 sm:px-4 text-sm hover:shadow-lg hover:shadow-stone-500/10 transition-shadow duration-200"
+              leftIcon={<Plus size={16} />}
+              className="px-3 py-2 text-sm hover:shadow-lg hover:shadow-stone-500/10 sm:px-4"
             >
-              <Plus size={16} />
               <span className="hidden sm:inline">
                 {t("agentConfig.addModel")}
               </span>
-            </button>
+            </Button>
           </div>
         </div>
 
         {models.length === 0 ? (
-          <div className="skill-empty-state flex-1 animate-glass-enter">
-            <Cpu size={28} className="skill-empty-state__icon" />
-            <p className="skill-empty-state__title">
-              {t("agentConfig.noModelsConfigured")}
-            </p>
-            <p className="skill-empty-state__description">
-              {t("agentConfig.noModelsConfiguredHint")}
-            </p>
-            <button
-              onClick={() => setIsCreating(true)}
-              className="skill-empty-state__action"
-            >
-              <Plus size={14} />
-              {t("agentConfig.addFirstModel")}
-            </button>
-          </div>
+          <EmptyState
+            className="flex-1 animate-glass-enter"
+            icon={<Cpu size={28} />}
+            title={t("agentConfig.noModelsConfigured")}
+            description={t("agentConfig.noModelsConfiguredHint")}
+            action={
+              <button
+                onClick={() => setIsCreating(true)}
+                className="skill-empty-state__action"
+              >
+                <Plus size={14} />
+                {t("agentConfig.addFirstModel")}
+              </button>
+            }
+          />
         ) : (
           <div className="space-y-3">
             {models.map((model, index) => (

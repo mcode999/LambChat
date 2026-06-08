@@ -92,7 +92,7 @@ function SelectRow<T extends string>({
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-[300] flex items-center justify-center animate-fade-in"
+            className="safe-area-viewport-padding fixed inset-0 z-[300] flex items-center justify-center animate-fade-in"
             onClick={onToggle}
           >
             <div className="absolute inset-0 bg-black/40" />

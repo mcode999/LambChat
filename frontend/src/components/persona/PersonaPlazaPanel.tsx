@@ -16,6 +16,7 @@ import { PanelHeader } from "../common/PanelHeader";
 import { PanelLoadingState } from "../common/PanelLoadingState";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { Pagination } from "../common/Pagination";
+import { EmptyState } from "../common/EmptyState";
 import { usePersonaPlaza, type PersonaRouteState } from "./usePersonaPlaza";
 import { PersonaPresetCard } from "./PersonaPresetCard";
 import { PersonaEditorModal } from "./PersonaEditorModal";
@@ -110,6 +111,8 @@ export function PersonaPlazaPanel() {
               <button
                 ref={scopeBtnRef}
                 type="button"
+                aria-haspopup="menu"
+                aria-expanded={isScopeOpen}
                 onClick={() => {
                   setIsScopeOpen((prev) => !prev);
                   setIsFilterOpen(false);
@@ -143,6 +146,8 @@ export function PersonaPlazaPanel() {
                 <button
                   ref={tagBtnRef}
                   type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={isFilterOpen}
                   onClick={() => {
                     setIsFilterOpen((prev) => !prev);
                     setIsScopeOpen(false);
@@ -229,26 +234,26 @@ export function PersonaPlazaPanel() {
 
       <div className="skill-content-area flex-1 overflow-y-auto py-2 sm:py-4 px-4 sm:p-6 lg:px-8 lg:py-8">
         {filtered.length === 0 ? (
-          <div className="skill-empty-state">
-            <div className="skill-empty-state__icon">
-              <UserRound size={28} />
-            </div>
-            <p className="skill-empty-state__title">
-              {query || activeTag
+          <EmptyState
+            icon={<UserRound size={28} />}
+            title={
+              query || activeTag
                 ? t("personaPresets.noMatch", "没有匹配的角色")
-                : t("personaPresets.empty", "暂无角色预设")}
-            </p>
-            <p className="skill-empty-state__description">
-              {query || activeTag
+                : t("personaPresets.empty", "暂无角色预设")
+            }
+            description={
+              query || activeTag
                 ? t("personaPresets.tryOtherFilters", "试试其他搜索条件")
-                : t("personaPresets.emptyHint", "管理员可以创建官方角色预设")}
-            </p>
-            {hasActiveFilters && (
-              <button onClick={clearFilters} className="btn-secondary mt-4">
-                {t("personaPresets.clearFilters", "清除筛选")}
-              </button>
-            )}
-          </div>
+                : t("personaPresets.emptyHint", "管理员可以创建官方角色预设")
+            }
+            action={
+              hasActiveFilters ? (
+                <button onClick={clearFilters} className="btn-secondary">
+                  {t("personaPresets.clearFilters", "清除筛选")}
+                </button>
+              ) : undefined
+            }
+          />
         ) : (
           <div className="grid auto-grid-cols gap-4 sm:gap-5">
             {paged.map((preset, index) => (

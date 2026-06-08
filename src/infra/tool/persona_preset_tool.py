@@ -75,6 +75,189 @@ def _is_admin(user: TokenPayload) -> bool:
 
 
 @tool
+async def save_persona_preset(
+    name: Annotated[
+        str | None,
+        "Persona name. Required when creating; optional new name when updating.",
+    ] = None,
+    system_prompt: Annotated[
+        str | None,
+        "Full system prompt. Required when creating; optional full replacement when updating.",
+    ] = None,
+    preset_id: Annotated[str | None, "Optional persona id to update when known."] = None,
+    current_name: Annotated[
+        str | None, "Existing persona name to update when id is unknown."
+    ] = None,
+    description: Annotated[str | None, "Short one-line description"] = None,
+    avatar: Annotated[
+        str | None,
+        "emoji or avatar image URL for this persona.",
+    ] = None,
+    tags: Annotated[list[str] | None, "Tags for categorization"] = None,
+    starter_prompts: Annotated[
+        list[PersonaStarterPrompt] | None,
+        "Starter prompt suggestions for this persona.",
+    ] = None,
+    skill_names: Annotated[list[str] | None, "Skill/tool names to enable"] = None,
+    scope: Annotated[
+        str | None,
+        "Updated scope: 'user' or 'global'. Global requires admin permission.",
+    ] = None,
+    visibility: Annotated[
+        str | None,
+        "Visibility: 'private' (only you) or 'public' (all users)",
+    ] = None,
+    status: Annotated[
+        str | None,
+        "Status: 'draft' (work in progress) or 'published' (ready to use)",
+    ] = None,
+    runtime: Annotated[ToolRuntime, InjectedToolArg] = None,  # type: ignore[assignment]
+) -> str:
+    """Create or update a persona preset for the current user.
+
+    Omit preset_id/current_name to create; pass preset_id or current_name to update.
+    When a team role needs a new persona, create it here and pass preset.id into
+    create_agent_team.
+    """
+    user_id = _get_user_id(runtime)
+    if not user_id:
+        return await _json_dumps_result({"error": "No user context available"})
+
+    user = await _resolve_user(user_id)
+    if not user or "persona_preset:write" not in set(user.permissions):
+        return await _json_dumps_result(
+            {"error": "Permission denied: persona_preset:write required"}
+        )
+
+    manager = PersonaPresetManager()
+    is_update = bool(preset_id or (current_name and current_name.strip()))
+
+    if not is_update:
+        if not name or not system_prompt:
+            return await _json_dumps_result(
+                {"error": "name and system_prompt are required when creating a persona preset"}
+            )
+        try:
+            vis = PersonaPresetVisibility(visibility or "private")
+            st = PersonaPresetStatus(status or "draft")
+        except ValueError:
+            return await _json_dumps_result({"error": "Invalid visibility or status value"})
+        try:
+            preset = await manager.create_preset(
+                PersonaPresetCreate(
+                    name=name,
+                    description=description or "",
+                    avatar=avatar,
+                    tags=tags or [],
+                    system_prompt=system_prompt,
+                    starter_prompts=starter_prompts or [],
+                    skill_names=skill_names or [],
+                    visibility=vis,
+                    status=st,
+                ),
+                user_id=user_id,
+                is_admin=_is_admin(user),
+            )
+        except Exception as e:
+            return await _json_dumps_result({"error": f"Failed to create preset: {e}"})
+        return await _json_dumps_result(
+            {
+                "success": True,
+                "action": "created",
+                "preset": preset.model_dump(mode="json"),
+                "message": f"Persona preset '{preset.name}' created.",
+            }
+        )
+
+    if scope is not None:
+        try:
+            PersonaPresetScope(scope)
+        except ValueError:
+            return await _json_dumps_result(
+                {"error": "Invalid scope value. Must be 'user' or 'global'"}
+            )
+    if visibility is not None:
+        try:
+            PersonaPresetVisibility(visibility)
+        except ValueError:
+            return await _json_dumps_result({"error": "Invalid visibility value"})
+    if status is not None:
+        try:
+            PersonaPresetStatus(status)
+        except ValueError:
+            return await _json_dumps_result({"error": "Invalid status value"})
+
+    resolved_preset_id = preset_id
+    if not resolved_preset_id:
+        presets = await manager.list_presets(
+            user_id=user_id,
+            is_admin=_is_admin(user),
+            scope="user",
+            q=str(current_name).strip(),
+            limit=20,
+        )
+        exact_matches = [p for p in presets if p.name == str(current_name).strip()]
+        if len(exact_matches) == 1:
+            resolved_preset_id = exact_matches[0].id
+        elif len(exact_matches) > 1:
+            return await _json_dumps_result(
+                {"error": f"Multiple persona presets named '{current_name}' were found"}
+            )
+        else:
+            return await _json_dumps_result({"error": f"Persona preset '{current_name}' not found"})
+
+    fields: dict[str, Any] = {}
+    if name is not None:
+        fields["name"] = name
+    if description is not None:
+        fields["description"] = description
+    if avatar is not None:
+        fields["avatar"] = avatar
+    if tags is not None:
+        fields["tags"] = tags
+    if system_prompt is not None:
+        fields["system_prompt"] = system_prompt
+    if starter_prompts is not None:
+        fields["starter_prompts"] = starter_prompts
+    if skill_names is not None:
+        fields["skill_names"] = skill_names
+    if scope is not None:
+        fields["scope"] = PersonaPresetScope(scope)
+        if scope == PersonaPresetScope.GLOBAL.value:
+            if visibility is None:
+                fields["visibility"] = PersonaPresetVisibility.PUBLIC
+            if status is None:
+                fields["status"] = PersonaPresetStatus.PUBLISHED
+    if visibility is not None and "visibility" not in fields:
+        fields["visibility"] = PersonaPresetVisibility(visibility)
+    if status is not None:
+        fields["status"] = PersonaPresetStatus(status)
+    if not fields:
+        return await _json_dumps_result({"error": "At least one field to update is required"})
+
+    try:
+        preset = await manager.update_preset(
+            str(resolved_preset_id),
+            PersonaPresetUpdate(**fields),
+            user_id=user_id,
+            is_admin=_is_admin(user),
+        )
+    except (NotFoundError, AuthorizationError) as e:
+        return await _json_dumps_result({"error": str(e)})
+    except Exception as e:
+        return await _json_dumps_result({"error": f"Failed to update preset: {e}"})
+
+    return await _json_dumps_result(
+        {
+            "success": True,
+            "action": "updated",
+            "preset": preset.model_dump(mode="json"),
+            "message": f"Persona preset '{preset.name}' updated.",
+        }
+    )
+
+
+@tool
 async def create_persona_preset(
     name: Annotated[str, "Persona preset name, e.g. 'Code Reviewer', 'Translator'"],
     system_prompt: Annotated[
@@ -112,10 +295,7 @@ async def create_persona_preset(
     runtime: Annotated[ToolRuntime, InjectedToolArg] = None,  # type: ignore[assignment]
 ) -> str:
     """Create a new persona preset (AI character/role) for the current user.
-    The persona is defined by its system_prompt which controls how the AI behaves.
-    Write a detailed, specific system_prompt for best results.
-    When assembling a Team and no existing persona fits a needed role, create that
-    role here first, then pass the returned preset.id into create_agent_team."""
+    Prefer save_persona_preset for new tool exposure."""
     user_id = _get_user_id(runtime)
     if not user_id:
         return await _json_dumps_result({"error": "No user context available"})
@@ -299,4 +479,4 @@ async def update_persona_preset(
 
 def get_persona_preset_tools() -> list[BaseTool]:
     """Return persona preset CRUD tools for the current user."""
-    return [create_persona_preset, update_persona_preset]
+    return [save_persona_preset]

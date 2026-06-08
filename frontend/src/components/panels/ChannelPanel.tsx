@@ -22,10 +22,9 @@ import { useAuth } from "../../hooks/useAuth";
 import { Permission } from "../../types";
 import { PanelHeader } from "../common/PanelHeader";
 import { ConfirmDialog } from "../common/ConfirmDialog";
-import { LoadingSpinner } from "../common/LoadingSpinner";
 import { PanelLoadingState } from "../common/PanelLoadingState";
-import { GlassSelect } from "../common/GlassSelect";
 import { EditorSidebar } from "../common/EditorSidebar";
+import { Button, Input, PanelFooterActions, Select } from "../common";
 import { ChannelAgentSelect } from "./channel/ChannelAgentSelect";
 import { channelApi } from "../../services/api/channel";
 import type {
@@ -317,7 +316,7 @@ export function ChannelPanel({
             <label className="mb-1 block text-sm font-medium text-stone-700 dark:text-stone-200">
               {field.title}
             </label>
-            <GlassSelect
+            <Select
               value={String(value)}
               onChange={(v) => updateFormField(field.name, v)}
               options={(field.options ?? []).map((opt) => ({
@@ -342,7 +341,7 @@ export function ChannelPanel({
                 </span>
               )}
             </label>
-            <input
+            <Input
               type="password"
               value={String(value)}
               onChange={(e) => updateFormField(field.name, e.target.value)}
@@ -350,7 +349,7 @@ export function ChannelPanel({
                 field.placeholder ||
                 (hasExistingConfig ? t("common.masked") : "")
               }
-              className="w-full rounded-lg glass-input px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:border-stone-500 focus:outline-none dark:text-stone-100 dark:placeholder-stone-500"
+              className="px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:border-stone-500 dark:text-stone-100 dark:placeholder-stone-500"
             />
           </div>
         );
@@ -364,12 +363,12 @@ export function ChannelPanel({
                 <span className="text-red-500"> *</span>
               )}
             </label>
-            <input
+            <Input
               type="text"
               value={String(value)}
               onChange={(e) => updateFormField(field.name, e.target.value)}
               placeholder={field.placeholder || ""}
-              className="w-full rounded-lg glass-input px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:border-stone-500 focus:outline-none dark:text-stone-100 dark:placeholder-stone-500"
+              className="px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:border-stone-500 dark:text-stone-100 dark:placeholder-stone-500"
             />
           </div>
         );
@@ -434,18 +433,15 @@ export function ChannelPanel({
                 </span>
               </div>
             </div>
-            <button
+            <Button
               onClick={handleTest}
               disabled={isTesting || !enabled}
-              className="btn-secondary btn-sm"
+              loading={isTesting}
+              leftIcon={<RefreshCw size={14} />}
+              size="sm"
             >
-              {isTesting ? (
-                <span className="animate-spin">⟳</span>
-              ) : (
-                <RefreshCw size={14} />
-              )}
               {t("channel.testConnection", "Test")}
-            </button>
+            </Button>
           </div>
           {status.error_message && (
             <div className="mt-3 flex items-start gap-2 rounded-lg bg-red-50 p-3 dark:bg-red-900/20">
@@ -475,7 +471,7 @@ export function ChannelPanel({
                 {t("channel.instanceName", "Instance Name")}{" "}
                 <span className="text-red-500">*</span>
               </label>
-              <input
+              <Input
                 type="text"
                 value={instanceName}
                 onChange={(e) => setInstanceName(e.target.value)}
@@ -483,7 +479,7 @@ export function ChannelPanel({
                   "channel.instanceNamePlaceholder",
                   "e.g., My Work Bot",
                 )}
-                className="w-full rounded-lg glass-input px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:border-stone-500 focus:outline-none dark:text-stone-100 dark:placeholder-stone-500"
+                className="px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:border-stone-500 dark:text-stone-100 dark:placeholder-stone-500"
               />
             </div>
           )}
@@ -558,34 +554,28 @@ export function ChannelPanel({
 
   // Action buttons
   const actionButtons = (
-    <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between">
+    <PanelFooterActions align={canDelete ? "between" : "end"} className="pt-2">
       {canDelete && (
-        <button
+        <Button
+          variant="danger"
           onClick={handleDeleteClick}
           disabled={!hasExistingConfig}
-          className="btn-danger"
+          leftIcon={<Trash2 size={16} />}
         >
-          <Trash2 size={16} />
           {t("common.delete")}
-        </button>
+        </Button>
       )}
       {canWrite && (
-        <button
+        <Button
+          variant="primary"
           onClick={handleSave}
-          disabled={isSaving}
-          className="btn-primary"
+          loading={isSaving}
+          leftIcon={<Save size={16} />}
         >
-          <span className="inline-flex h-4 w-4 items-center justify-center">
-            {isSaving ? (
-              <LoadingSpinner size="sm" color="text-white" />
-            ) : (
-              <Save size={16} />
-            )}
-          </span>
-          <span>{t("common.save")}</span>
-        </button>
+          {t("common.save")}
+        </Button>
       )}
-    </div>
+    </PanelFooterActions>
   );
 
   const deleteDialog = (
@@ -640,13 +630,12 @@ export function ChannelPanel({
           subtitle={t("channel.description")}
           icon={getChannelIcon()}
           actions={
-            <button
+            <Button
               onClick={() => navigate("/channels")}
-              className="btn-secondary"
+              leftIcon={<BackIcon size={16} />}
             >
-              <BackIcon size={16} />
               <span className="hidden sm:inline">{t("common.back")}</span>
-            </button>
+            </Button>
           }
         />
         <div className="flex-1 overflow-y-auto py-2 sm:py-4 px-4">

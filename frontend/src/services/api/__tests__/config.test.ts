@@ -73,13 +73,27 @@ test("buildUploadProxyUrl leaves non-upload URLs unchanged", () => {
   );
 });
 
-test("buildUploadProxyUrlFromKey constructs a native app upload proxy URL", () => {
+test("buildUploadProxyUrlFromKey keeps native app image URLs web-compatible by default", () => {
   assert.equal(
     buildUploadProxyUrlFromKey(
       "revealed files/report 1.pdf",
       "https://chat.example.com",
       {
         locationLike: { protocol: "capacitor:" },
+      },
+    ),
+    "https://chat.example.com/api/upload/file/revealed%20files/report%201.pdf",
+  );
+});
+
+test("buildUploadProxyUrlFromKey can force proxy mode for native content fetches", () => {
+  assert.equal(
+    buildUploadProxyUrlFromKey(
+      "revealed files/report 1.pdf",
+      "https://chat.example.com",
+      {
+        force: true,
+        locationLike: { protocol: "https:" },
       },
     ),
     "https://chat.example.com/api/upload/file/revealed%20files/report%201.pdf?proxy=true",

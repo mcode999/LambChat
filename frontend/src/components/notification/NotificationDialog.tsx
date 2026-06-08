@@ -99,7 +99,7 @@ export function NotificationDialog({
   return createPortal(
     <div
       data-yields-sidebar
-      className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4"
+      className="safe-area-viewport-padding fixed inset-0 z-[300] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4"
       onClick={onClose}
     >
       <div
@@ -151,7 +151,7 @@ export function NotificationDialog({
         {/* List */}
         <div className="flex-1 overflow-y-auto py-2 sm:py-4 px-4 sm:p-5 space-y-2.5">
           {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="flex h-full flex-col items-center justify-center gap-3">
               <div
                 className="flex h-12 w-12 items-center justify-center rounded-full"
                 style={{

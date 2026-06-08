@@ -58,7 +58,7 @@ export function VideoViewer({ src, isOpen, onClose, title }: VideoViewerProps) {
       className="fixed inset-0 z-[300] flex flex-col bg-black"
       onClick={handleBackgroundClick}
     >
-      <div className="flex items-center justify-between px-3 sm:px-6 py-3 bg-black/80 shrink-0">
+      <div className="safe-area-top flex items-center justify-between px-3 sm:px-6 py-3 bg-black/80 shrink-0">
         <button
           type="button"
           onClick={onClose}
@@ -88,7 +88,7 @@ export function VideoViewer({ src, isOpen, onClose, title }: VideoViewerProps) {
         </button>
       </div>
 
-      <div className="flex-1 overflow-hidden flex items-center justify-center">
+      <div className="safe-area-bottom flex-1 overflow-hidden flex items-center justify-center">
         <video
           ref={videoRef}
           controls

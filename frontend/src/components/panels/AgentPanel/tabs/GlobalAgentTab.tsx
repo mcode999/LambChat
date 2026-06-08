@@ -5,7 +5,7 @@ import i18n from "../../../../i18n";
 import { AgentIcon } from "../../../agent/AgentIcon";
 import { AgentIconSelect } from "../../../agent/AgentIconSelect";
 import { EditorSidebar } from "../../../common/EditorSidebar";
-import { LoadingSpinner } from "../../../common/LoadingSpinner";
+import { Button, Input, PanelFooterActions, Textarea } from "../../../common";
 import { AgentPanelSkeleton } from "../../../skeletons";
 import {
   AGENT_CATALOG_LOCALES,
@@ -157,16 +157,15 @@ export function GlobalAgentTab({
               count: localAgents.filter((a) => a.enabled).length,
             })}
           </span>
-          <button
+          <Button
+            variant="primary"
             onClick={handleSave}
-            disabled={isSaving}
-            className="btn-primary flex items-center gap-2 px-5 py-2.5 text-sm"
+            loading={isSaving}
+            leftIcon={<Save size={16} />}
+            className="px-5 py-2.5 text-sm"
           >
-            <span className="inline-flex h-4 w-4 items-center justify-center">
-              {isSaving ? <LoadingSpinner size="sm" /> : <Save size={16} />}
-            </span>
-            <span>{t("common.save")}</span>
-          </button>
+            {t("common.save")}
+          </Button>
         </div>
       )}
 
@@ -179,28 +178,20 @@ export function GlobalAgentTab({
           icon={<AgentIcon icon={editingAgent.icon || "Bot"} size={18} />}
           footer={
             hasChanges ? (
-              <div className="flex items-center justify-end gap-3">
-                <button
-                  onClick={() => setEditingAgentId(null)}
-                  className="btn-secondary px-4 py-2 text-sm"
-                >
+              <PanelFooterActions>
+                <Button onClick={() => setEditingAgentId(null)}>
                   {t("common.cancel")}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
                   onClick={handleSave}
-                  disabled={isSaving}
-                  className="btn-primary flex items-center gap-2 px-5 py-2.5 text-sm"
+                  loading={isSaving}
+                  leftIcon={<Save size={16} />}
+                  className="px-5 py-2.5 text-sm"
                 >
-                  <span className="inline-flex h-4 w-4 items-center justify-center">
-                    {isSaving ? (
-                      <LoadingSpinner size="sm" />
-                    ) : (
-                      <Save size={16} />
-                    )}
-                  </span>
-                  <span>{t("common.save")}</span>
-                </button>
-              </div>
+                  {t("common.save")}
+                </Button>
+              </PanelFooterActions>
             ) : undefined
           }
         >
@@ -227,7 +218,7 @@ export function GlobalAgentTab({
                   <label className="es-label">
                     {t("agentConfig.sortOrder", "排序")}
                   </label>
-                  <input
+                  <Input
                     type="number"
                     value={editingAgent.sort_order ?? 100}
                     onChange={(event) =>
@@ -235,7 +226,7 @@ export function GlobalAgentTab({
                         sort_order: Number(event.target.value),
                       })
                     }
-                    className="glass-input es-input tabular-nums"
+                    className="es-input tabular-nums"
                   />
                 </div>
               </div>
@@ -271,7 +262,7 @@ export function GlobalAgentTab({
                 )}
               </p>
 
-              <input
+              <Input
                 type="text"
                 value={editingAgent.labels?.[activeLocale]?.name || ""}
                 onChange={(event) =>
@@ -286,10 +277,10 @@ export function GlobalAgentTab({
                   defaultValue:
                     activeLocale === "zh" ? "显示名称" : "Display Name",
                 })}
-                className="glass-input es-input"
+                className="es-input"
               />
 
-              <textarea
+              <Textarea
                 value={editingAgent.labels?.[activeLocale]?.description || ""}
                 onChange={(event) =>
                   updateEditingAgentLabel(
@@ -303,7 +294,7 @@ export function GlobalAgentTab({
                   defaultValue: activeLocale === "zh" ? "描述" : "Description",
                 })}
                 rows={2}
-                className="glass-input es-textarea resize-y"
+                className="es-textarea resize-y"
               />
             </div>
           </div>

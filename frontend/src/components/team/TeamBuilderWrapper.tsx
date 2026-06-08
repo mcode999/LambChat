@@ -36,6 +36,7 @@ import { EditorSidebar } from "../common/EditorSidebar";
 import { PanelHeader } from "../common/PanelHeader";
 import { nameToGradient } from "../common/cardUtils";
 import { ConfirmDialog } from "../common/ConfirmDialog";
+import { EmptyState } from "../common/EmptyState";
 import { PersonaScopeDropdown } from "../persona/PersonaScopeDropdown";
 import { PersonaTagFilterDropdown } from "../persona/PersonaTagFilterDropdown";
 import type { ScopeFilter } from "../persona/usePersonaPlaza";
@@ -470,6 +471,8 @@ export function TeamBuilderWrapper() {
               <button
                 ref={scopeBtnRef}
                 type="button"
+                aria-haspopup="menu"
+                aria-expanded={isScopeOpen}
                 onClick={() => {
                   setIsScopeOpen((prev) => !prev);
                   setIsFilterOpen(false);
@@ -497,6 +500,8 @@ export function TeamBuilderWrapper() {
                 <button
                   ref={tagBtnRef}
                   type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={isFilterOpen}
                   onClick={() => {
                     setIsFilterOpen((prev) => !prev);
                     setIsScopeOpen(false);
@@ -566,39 +571,36 @@ export function TeamBuilderWrapper() {
         className="skill-content-area flex-1 overflow-y-auto px-4 py-4 sm:p-6 lg:px-8 lg:py-8"
       >
         {loading ? (
-          <div className="skill-empty-state">
-            <Users size={28} className="skill-empty-state__icon" />
-            <p className="skill-empty-state__title">{t("team.loading")}</p>
-          </div>
+          <EmptyState icon={<Users size={28} />} title={t("team.loading")} />
         ) : teams.length === 0 ? (
-          <div className="skill-empty-state">
-            <div className="skill-empty-state__icon">
-              <Users size={28} />
-            </div>
-            <p className="skill-empty-state__title">
-              {hasActiveFilters
+          <EmptyState
+            icon={<Users size={28} />}
+            title={
+              hasActiveFilters
                 ? t("team.noMatchingTeams")
-                : t("team.noTeamsYet")}
-            </p>
-            <p className="skill-empty-state__description">
-              {hasActiveFilters
+                : t("team.noTeamsYet")
+            }
+            description={
+              hasActiveFilters
                 ? t("personaPresets.tryOtherFilters", "试试其他搜索条件")
-                : t("team.noTeamsDesc")}
-            </p>
-            {hasActiveFilters ? (
-              <button onClick={clearFilters} className="btn-secondary mt-4">
-                {t("personaPresets.clearFilters", "清除筛选")}
-              </button>
-            ) : (
-              <button
-                onClick={handleCreateNew}
-                className="btn-primary mt-4 h-9 text-sm"
-              >
-                <Plus size={15} />
-                {t("team.createFirst")}
-              </button>
-            )}
-          </div>
+                : t("team.noTeamsDesc")
+            }
+            action={
+              hasActiveFilters ? (
+                <button onClick={clearFilters} className="btn-secondary">
+                  {t("personaPresets.clearFilters", "清除筛选")}
+                </button>
+              ) : (
+                <button
+                  onClick={handleCreateNew}
+                  className="btn-primary h-9 text-sm"
+                >
+                  <Plus size={15} />
+                  {t("team.createFirst")}
+                </button>
+              )
+            }
+          />
         ) : (
           <div className="grid auto-grid-cols gap-3">
             {teams.map((team) => {

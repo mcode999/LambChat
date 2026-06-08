@@ -106,7 +106,7 @@ export const ExcalidrawThumbnail = memo(function ExcalidrawThumbnail({
 
   if (hasError) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-stone-100 dark:bg-stone-800 rounded">
+      <div className="safe-area-viewport-padding absolute inset-0 flex items-center justify-center bg-stone-100 dark:bg-stone-800 rounded">
         <span className="text-xs text-stone-400 truncate px-1">
           {alt || "…"}
         </span>
@@ -116,7 +116,7 @@ export const ExcalidrawThumbnail = memo(function ExcalidrawThumbnail({
 
   if (!svgBlobUrl) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center skeleton-line" />
+      <div className="safe-area-viewport-padding absolute inset-0 flex items-center justify-center skeleton-line" />
     );
   }
 
@@ -124,7 +124,9 @@ export const ExcalidrawThumbnail = memo(function ExcalidrawThumbnail({
     <img
       src={svgBlobUrl}
       alt={alt}
-      className={className}
+      className={["safe-area-viewport-padding", className]
+        .filter(Boolean)
+        .join(" ")}
       draggable={false}
       style={{
         width: "100%",

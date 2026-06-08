@@ -13,14 +13,14 @@ const componentsCss = readFileSync(
   "utf8",
 );
 
-test("user form icon inputs reserve stable leading space", () => {
-  const iconInputClassMatches = usersPanelSource.match(
-    /className="glass-input es-input es-input--with-leading-icon"/g,
-  );
+test("user form icon inputs use shared Input leading icon spacing", () => {
+  const leadingIconMatches = usersPanelSource.match(/leadingIcon=\{/g);
 
-  assert.equal(iconInputClassMatches?.length, 3);
+  assert.equal(leadingIconMatches?.length, 3);
+  assert.match(usersPanelSource, /import \{[\s\S]*Input[\s\S]*\}/);
+  assert.doesNotMatch(usersPanelSource, /className="glass-input/);
   assert.match(
     componentsCss,
-    /\.glass-input\.es-input\.es-input--with-leading-icon\s*\{[\s\S]*padding-left:\s*2\.5rem;/,
+    /\.ui-input--with-leading-icon[\s\S]*?\.glass-input\.es-input\.es-input--with-leading-icon\s*\{[\s\S]*padding-left:\s*2\.5rem;/,
   );
 });

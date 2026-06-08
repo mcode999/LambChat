@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { ProfileModal } from "../../profile/ProfileModal";
 import { Header } from "./Header";
+import { NotificationBanner } from "../../notification/NotificationBanner";
 import {
   getAppViewportState,
   isKeyboardViewport,
@@ -98,9 +99,9 @@ export function AppShell({
   onToggleOutline,
 }: AppShellProps) {
   const appSafeAreaTop =
-    "max(var(--app-safe-area-top, 0px), var(--app-fullscreen-safe-area-top, 0px))";
+    "var(--app-safe-area-top-active, max(var(--app-safe-area-top, 0px), var(--app-fullscreen-safe-area-top, 0px)))";
   const appSafeAreaBottom =
-    "max(var(--app-safe-area-bottom, 0px), var(--app-fullscreen-safe-area-bottom, 0px))";
+    "var(--app-safe-area-bottom-active, max(var(--app-safe-area-bottom, 0px), var(--app-fullscreen-safe-area-bottom, 0px)))";
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -314,6 +315,10 @@ export function AppShell({
             showOutlineButton={showOutlineButton}
             onToggleOutline={onToggleOutline}
           />
+
+          <div className="px-3 sm:px-5">
+            <NotificationBanner />
+          </div>
 
           {children}
         </div>

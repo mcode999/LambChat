@@ -153,9 +153,9 @@ export function buildUploadProxyUrlFromKey(
   options: Parameters<typeof buildUploadProxyUrl>[2] = {},
 ): string | undefined {
   if (!key) return undefined;
-  return buildUploadProxyUrl(
+  const url = buildApiUrl(
     `/api/upload/file/${encodeUploadObjectKey(key)}`,
     apiBase,
-    options,
   );
+  return options.force ? buildUploadProxyUrl(url, apiBase, options) : url;
 }

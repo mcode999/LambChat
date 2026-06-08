@@ -19,6 +19,10 @@ interface RecentChatsDialogProps {
   currentSessionId?: string | null;
   anchorEl: HTMLElement | null;
   unreadCount?: number;
+  onMarkAllRead?: (opts?: {
+    projectId?: string;
+    scheduledTaskId?: string;
+  }) => void;
 }
 
 const PAGE_SIZE = 20;
@@ -36,6 +40,7 @@ export function RecentChatsDialog({
   currentSessionId,
   anchorEl,
   unreadCount = 0,
+  onMarkAllRead,
 }: RecentChatsDialogProps) {
   const { t } = useTranslation();
   const [sessions, setSessions] = useState<BackendSession[]>([]);
@@ -222,7 +227,19 @@ export function RecentChatsDialog({
           </span>
         </div>
         {unreadCount > 0 && (
-          <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium leading-none text-white">
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={() => onMarkAllRead?.()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onMarkAllRead?.();
+              }
+            }}
+            title={t("sidebar.markAllRead")}
+            className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium leading-none text-white cursor-pointer hover:opacity-70 transition-opacity"
+          >
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -233,7 +250,7 @@ export function RecentChatsDialog({
         {isLoading ? (
           renderLoadingRows(6)
         ) : sessions.length === 0 ? (
-          <div className="text-center py-10 text-xs text-stone-400 dark:text-stone-500">
+          <div className="flex h-full flex-col items-center justify-center text-center text-xs text-stone-400 dark:text-stone-500">
             {t("sidebar.noSessions") || "No recent chats"}
           </div>
         ) : (

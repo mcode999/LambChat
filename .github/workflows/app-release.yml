@@ -28,23 +28,30 @@ jobs:
   desktop:
     name: Desktop (${{ matrix.label }})
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 45
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         include:
-          - label: Linux
+          - label: Linux x86_64
             runner: ubuntu-latest
-            bundles: deb
-            artifact_slug: linux
+            bundles: appimage,deb,rpm
+            artifact_slug: linux-x86_64
+            arch: x86_64
+          - label: Linux ARM64
+            runner: ubuntu-24.04-arm
+            bundles: appimage,deb,rpm
+            artifact_slug: linux-arm64
+            arch: arm64
           - label: Windows
             runner: windows-2022
             bundles: msi
             artifact_slug: windows
           - label: macOS
-            runner: macos-latest
+            runner: macos-14
             bundles: dmg
             artifact_slug: macos
+            target: universal-apple-darwin
 
     steps:
       - name: Checkout repository
@@ -64,11 +71,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            build-essential \
+            file \
             libwebkit2gtk-4.1-dev \
             libgtk-3-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
-            patchelf
+            patchelf \
+            rpm
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -84,6 +94,11 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Add macOS universal Rust targets
+        if: runner.os == 'macOS'
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
@@ -106,26 +121,106 @@ jobs:
       - name: Build desktop package with Tauri
         env:
           TAURI_BUNDLES: ${{ matrix.bundles }}
+          TAURI_TARGET: ${{ matrix.target || '' }}
           CARGO_BUILD_JOBS: 1
         run: pnpm package:desktop
         working-directory: frontend
 
-      - name: Collect desktop artifacts
+      - name: Collect Linux desktop artifacts
+        if: runner.os == 'Linux'
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p release-assets
-          find frontend/src-tauri/target/release/bundle -type f \
-            \( -name '*.dmg' -o -name '*.msi' -o -name '*.deb' -o -name '*.AppImage' -o -name '*.rpm' \) \
-            -print > release-assets/files.txt
-          if [ ! -s release-assets/files.txt ]; then
-            echo "No desktop artifacts found"
+          arch="${{ matrix.arch }}"
+          bundle_dir="frontend/src-tauri/target/release/bundle"
+          appimage="$(find "$bundle_dir" -name '*.AppImage' -type f | head -1 || true)"
+          deb="$(find "$bundle_dir" -name '*.deb' -type f | head -1 || true)"
+          rpm="$(find "$bundle_dir" -name '*.rpm' -type f | head -1 || true)"
+          found=false
+          if [ -n "$appimage" ]; then
+            cp "$appimage" "release-assets/LambChat-${RELEASE_TAG}-Linux-${arch}.AppImage"
+            found=true
+          fi
+          if [ -n "$deb" ]; then
+            cp "$deb" "release-assets/LambChat-${RELEASE_TAG}-Linux-${arch}.deb"
+            found=true
+          fi
+          if [ -n "$rpm" ]; then
+            cp "$rpm" "release-assets/LambChat-${RELEASE_TAG}-Linux-${arch}.rpm"
+            found=true
+          fi
+          if [ "$found" != true ]; then
+            echo "No Linux desktop artifacts found"
             exit 1
           fi
-          while IFS= read -r file; do
-            base="$(basename "$file")"
-            cp "$file" "release-assets/LambChat-${{ matrix.artifact_slug }}-${RELEASE_TAG}-${base}"
-          done < release-assets/files.txt
-          rm release-assets/files.txt
+
+      - name: Collect Windows desktop artifacts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          $msi = Get-ChildItem -Path 'frontend/src-tauri/target/release/bundle' -Recurse -Include *.msi -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($null -eq $msi) {
+            throw 'No Windows MSI installer found'
+          }
+          Copy-Item $msi.FullName "release-assets/LambChat-$env:RELEASE_TAG-Windows.msi"
+
+          $exeCandidates = @(
+            'frontend/src-tauri/target/release/lambchat.exe',
+            'frontend/src-tauri/target/x86_64-pc-windows-msvc/release/lambchat.exe'
+          )
+          $exePath = $exeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if ($null -eq $exePath) {
+            throw 'No Windows portable exe found'
+          }
+          $portableDir = 'release-assets/LambChat-Portable'
+          New-Item -ItemType Directory -Force -Path $portableDir | Out-Null
+          Copy-Item $exePath $portableDir
+          Set-Content -Path (Join-Path $portableDir 'portable.ini') -Value @(
+            '# LambChat portable build marker',
+            'portable=true'
+          ) -Encoding UTF8
+          Compress-Archive -Path "$portableDir/*" -DestinationPath "release-assets/LambChat-$env:RELEASE_TAG-Windows-Portable.zip" -Force
+          Remove-Item -Recurse -Force $portableDir
+
+      - name: Collect macOS desktop artifacts
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          app_path=""
+          dmg_path=""
+          for path in \
+            "frontend/src-tauri/target/universal-apple-darwin/release/bundle/macos" \
+            "frontend/src-tauri/target/aarch64-apple-darwin/release/bundle/macos" \
+            "frontend/src-tauri/target/x86_64-apple-darwin/release/bundle/macos" \
+            "frontend/src-tauri/target/release/bundle/macos"; do
+            if [ -d "$path" ]; then
+              [ -z "$app_path" ] && app_path="$(find "$path" -maxdepth 1 -name '*.app' -type d | head -1 || true)"
+            fi
+          done
+          for path in \
+            "frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg" \
+            "frontend/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg" \
+            "frontend/src-tauri/target/x86_64-apple-darwin/release/bundle/dmg" \
+            "frontend/src-tauri/target/release/bundle/dmg"; do
+            if [ -d "$path" ]; then
+              [ -z "$dmg_path" ] && dmg_path="$(find "$path" -maxdepth 1 -name '*.dmg' -type f | head -1 || true)"
+            fi
+          done
+          if [ -z "$app_path" ]; then
+            echo "No macOS .app bundle found"
+            exit 1
+          fi
+          if [ -z "$dmg_path" ]; then
+            echo "No macOS .dmg found"
+            exit 1
+          fi
+          ditto -c -k --sequesterRsrc --keepParent "$app_path" "release-assets/LambChat-${RELEASE_TAG}-macOS.zip"
+          cp "$dmg_path" "release-assets/LambChat-${RELEASE_TAG}-macOS.dmg"
 
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
@@ -228,7 +323,7 @@ jobs:
           if-no-files-found: error
 
   ios:
-    name: iOS project check
+    name: iOS
     runs-on: macos-latest
 
     steps:
@@ -261,23 +356,45 @@ jobs:
         working-directory: frontend
 
       - name: Build and sync mobile web assets
-        run: pnpm mobile:sync
+        run: pnpm mobile:sync:ios
         working-directory: frontend
+
+      - name: Install iOS pods
+        run: pod install
+        working-directory: frontend/ios/App
 
       - name: Verify LambChat native brand assets
         run: pnpm brand:assets:check
         working-directory: frontend
 
-      - name: Build iOS project without signing
+      - name: Build iOS archive without signing
         run: |
           xcodebuild \
             -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
+            -destination generic/platform=iOS \
+            -archivePath "$RUNNER_TEMP/LambChat-ios.xcarchive" \
             -derivedDataPath "$RUNNER_TEMP/LambChatDerivedData" \
-            build \
-            CODE_SIGNING_ALLOWED=NO
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
         working-directory: frontend/ios/App
+
+      - name: Prepare iOS archive artifact
+        run: |
+          mkdir -p release-assets
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$RUNNER_TEMP/LambChat-ios.xcarchive" \
+            "release-assets/LambChat-ios-${RELEASE_TAG}-unsigned-xcarchive.zip"
+
+      - name: Upload iOS archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LambChat-ios-${{ env.RELEASE_TAG }}
+          path: release-assets/*
+          if-no-files-found: error
 
   release:
     name: Publish GitHub Release

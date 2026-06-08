@@ -60,6 +60,14 @@
   --app-safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --app-fullscreen-safe-area-top: 0px;
   --app-fullscreen-safe-area-bottom: 0px;
+  --app-safe-area-top-active: max(
+    var(--app-safe-area-top, 0px),
+    var(--app-fullscreen-safe-area-top, 0px)
+  );
+  --app-safe-area-bottom-active: max(
+    var(--app-safe-area-bottom, 0px),
+    var(--app-fullscreen-safe-area-bottom, 0px)
+  );
   --app-viewport-offset-top: 0px;
   --app-keyboard-inset: 0px;
 }

@@ -102,7 +102,6 @@ def test_get_env_var_tools_returns_safe_crud_tools() -> None:
         "env_var_list",
         "env_var_set",
         "env_var_delete",
-        "env_var_delete_all",
     ]
     assert tools[0].args == {}
     assert "runtime" not in tools[1].args
@@ -315,7 +314,8 @@ async def test_search_agent_context_includes_env_var_tools(monkeypatch: pytest.M
     await ctx.setup()
 
     names = {tool.name for tool in ctx.tools}
-    assert {"env_var_list", "env_var_set", "env_var_delete", "env_var_delete_all"} <= names
+    assert {"env_var_list", "env_var_set", "env_var_delete"} <= names
+    assert "env_var_delete_all" not in names
 
 
 @pytest.mark.asyncio
@@ -334,4 +334,5 @@ async def test_fast_agent_context_includes_env_var_tools(monkeypatch: pytest.Mon
     await ctx.setup()
 
     names = {tool.name for tool in ctx.tools}
-    assert {"env_var_list", "env_var_set", "env_var_delete", "env_var_delete_all"} <= names
+    assert {"env_var_list", "env_var_set", "env_var_delete"} <= names
+    assert "env_var_delete_all" not in names

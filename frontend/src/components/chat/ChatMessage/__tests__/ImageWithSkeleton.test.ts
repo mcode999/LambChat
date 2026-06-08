@@ -20,7 +20,17 @@ test("block image skeleton overlays the image while loading to avoid extra blank
   );
   assert.match(
     source,
-    /className=\{`.*\$\{!isLoaded \? "absolute inset-0 pointer-events-none" : ""\}/s,
+    /className=\{`\s*\$\{\s*!isLoaded \? "absolute inset-0 pointer-events-none" : ""\s*\}/s,
     "The block image should be removed from document flow while the skeleton is visible.",
   );
+});
+
+test("image rendering keeps upload URLs web-compatible instead of forcing native proxy mode", () => {
+  const source = readFileSync(
+    new URL("../ImageWithSkeleton.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /getFullUrl/);
+  assert.doesNotMatch(source, /buildUploadProxyUrl/);
 });

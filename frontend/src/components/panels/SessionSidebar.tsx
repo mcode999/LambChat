@@ -27,6 +27,7 @@ import { useSwipeToClose } from "../../hooks/useSwipeToClose";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { DeleteProjectDialog } from "../common/DeleteProjectDialog";
 import type { ProjectItemHandle } from "../sidebar/ProjectItem";
+import type { ScheduledTaskItemHandle } from "../sidebar/ScheduledTaskSidebarItem";
 import { RecentChatsDialog } from "../sidebar/RecentChatsDialog";
 import {
   mergeUnreadUpdate,
@@ -43,7 +44,11 @@ import {
   MobileMoreMenuSheet,
   DesktopMoreMenu,
 } from "./SidebarParts";
-import type { SessionActions, ProjectActions } from "./SidebarParts";
+import type {
+  SessionActions,
+  ProjectActions,
+  ScheduledTaskActions,
+} from "./SidebarParts";
 
 interface SessionSidebarProps {
   currentSessionId: string | null;
@@ -68,6 +73,7 @@ export interface SessionSidebarHandle {
     unreadCount: number,
     projectId?: string | null,
     isFavorite?: boolean,
+    scheduledTaskId?: string | null,
   ) => void;
 }
 
@@ -98,6 +104,9 @@ export const SessionSidebar = forwardRef<
   const [imgError, setImgError] = useState(false);
   const [internalCollapsed, setInternalCollapsed] = useState(true);
   const [isProjectsCollapsed, setIsProjectsCollapsed] = useState(false);
+  const [isScheduledTasksCollapsed, setIsScheduledTasksCollapsed] =
+    useState(false);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const [isChatsCollapsed, setIsChatsCollapsed] = useState(false);
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
   const [unreadBySession, setUnreadBySession] = useState<UnreadBySession>(
@@ -242,12 +251,14 @@ export const SessionSidebar = forwardRef<
       count: number,
       projectId?: string | null,
       isFavorite?: boolean,
+      scheduledTaskId?: string | null,
     ) => {
       setUnreadBySession((prev) =>
         mergeUnreadUpdate(prev, {
           sessionId: sid,
           unreadCount: count,
           projectId,
+          scheduledTaskId,
           isFavorite,
         }),
       );
@@ -256,6 +267,12 @@ export const SessionSidebar = forwardRef<
         uncategorizedList.updateSession({ ...session, unread_count: count });
       }
       for (const [, handle] of projectRefs.current) {
+        const s = handle.sessions.find((s) => s.id === sid);
+        if (s) {
+          handle.updateSession({ ...s, unread_count: count });
+        }
+      }
+      for (const [, handle] of scheduledTaskRefs.current) {
         const s = handle.sessions.find((s) => s.id === sid);
         if (s) {
           handle.updateSession({ ...s, unread_count: count });
@@ -272,6 +289,9 @@ export const SessionSidebar = forwardRef<
   );
 
   const projectRefs = useRef<Map<string, ProjectItemHandle>>(new Map());
+  const scheduledTaskRefs = useRef<Map<string, ScheduledTaskItemHandle>>(
+    new Map(),
+  );
 
   const totalUnreadCount = useMemo(() => {
     const realtimeIds = new Set(unreadBySession.keys());
@@ -288,6 +308,9 @@ export const SessionSidebar = forwardRef<
     };
     addSessions(uncategorizedList.sessions);
     for (const [, handle] of projectRefs.current) {
+      addSessions(handle.sessions);
+    }
+    for (const [, handle] of scheduledTaskRefs.current) {
       addSessions(handle.sessions);
     }
     return total;
@@ -314,6 +337,17 @@ export const SessionSidebar = forwardRef<
     [],
   );
 
+  const setScheduledTaskRef = useCallback(
+    (taskId: string, handle: ScheduledTaskItemHandle | null) => {
+      if (handle) {
+        scheduledTaskRefs.current.set(taskId, handle);
+      } else {
+        scheduledTaskRefs.current.delete(taskId);
+      }
+    },
+    [],
+  );
+
   const projectManager = useProjectManager();
   const { projects } = projectManager;
   const projectCount = projects.length;
@@ -325,6 +359,9 @@ export const SessionSidebar = forwardRef<
         if (response.session) {
           const favorite = isSessionFavorite(response.session);
           for (const [, handle] of projectRefs.current) {
+            handle.removeSession(sessionId);
+          }
+          for (const [, handle] of scheduledTaskRefs.current) {
             handle.removeSession(sessionId);
           }
           uncategorizedList.removeSession(sessionId);
@@ -343,6 +380,11 @@ export const SessionSidebar = forwardRef<
               unreadCount: response.session.unread_count ?? 0,
               projectId:
                 (response.session.metadata?.project_id as
+                  | string
+                  | null
+                  | undefined) ?? null,
+              scheduledTaskId:
+                (response.session.metadata?.scheduled_task_id as
                   | string
                   | null
                   | undefined) ?? null,
@@ -369,6 +411,15 @@ export const SessionSidebar = forwardRef<
         if (s) {
           title = getSessionTitle(s, t);
           break;
+        }
+      }
+      if (!title) {
+        for (const [, handle] of scheduledTaskRefs.current) {
+          const s = handle.sessions.find((s) => s.id === sessionId);
+          if (s) {
+            title = getSessionTitle(s, t);
+            break;
+          }
         }
       }
       if (!title) {
@@ -424,6 +475,11 @@ export const SessionSidebar = forwardRef<
                 | string
                 | null
                 | undefined) ?? null,
+            scheduledTaskId:
+              (updatedSession.metadata?.scheduled_task_id as
+                | string
+                | null
+                | undefined) ?? null,
             isFavorite: response.is_favorite,
           }),
         );
@@ -433,6 +489,82 @@ export const SessionSidebar = forwardRef<
       }
     },
     [getProjectRef, projects, t, uncategorizedList],
+  );
+
+  // ─── Mark all read ────────────────────────────────────────────────
+
+  const handleMarkAllRead = useCallback(
+    async (opts?: { projectId?: string; scheduledTaskId?: string }) => {
+      // Optimistic update: clear matching unread entries
+      const clearSessionList = (
+        sessionList: typeof uncategorizedList,
+        filterFn?: (s: BackendSession) => boolean,
+      ) => {
+        sessionList.sessions.forEach((s) => {
+          if (filterFn && !filterFn(s)) return;
+          if ((s.unread_count ?? 0) > 0) {
+            sessionList.updateSession({ ...s, unread_count: 0 });
+          }
+        });
+      };
+
+      const isUncategorized = !opts?.projectId && !opts?.scheduledTaskId;
+
+      if (isUncategorized) {
+        setUnreadBySession(() => new Map());
+        clearSessionList(uncategorizedList);
+      } else if (opts!.projectId) {
+        setUnreadBySession((prev) => {
+          const next = new Map(prev);
+          for (const [sid, entry] of next) {
+            if (entry.projectId === opts!.projectId) {
+              next.delete(sid);
+            }
+          }
+          return next;
+        });
+        clearSessionList(
+          uncategorizedList,
+          (s) => s.metadata?.project_id === opts!.projectId,
+        );
+        const handle = getProjectRef(opts!.projectId);
+        if (handle) {
+          handle.sessions.forEach((s) => {
+            if ((s.unread_count ?? 0) > 0) {
+              handle.updateSession({ ...s, unread_count: 0 });
+            }
+          });
+        }
+      } else if (opts!.scheduledTaskId) {
+        setUnreadBySession((prev) => {
+          const next = new Map(prev);
+          for (const [sid, entry] of next) {
+            if (entry.scheduledTaskId === opts!.scheduledTaskId) {
+              next.delete(sid);
+            }
+          }
+          return next;
+        });
+        for (const [, handle] of scheduledTaskRefs.current) {
+          handle.sessions.forEach((s) => {
+            if (
+              (s.unread_count ?? 0) > 0 &&
+              s.metadata?.scheduled_task_id === opts!.scheduledTaskId
+            ) {
+              handle.updateSession({ ...s, unread_count: 0 });
+            }
+          });
+        }
+      }
+
+      try {
+        await sessionApi.markAllRead(opts);
+      } catch (err) {
+        console.error("Failed to mark all as read:", err);
+        toast.error(t("sidebar.markAllReadFailed"));
+      }
+    },
+    [getProjectRef, t, uncategorizedList],
   );
 
   // ─── Delete confirmation ────────────────────────────────────────
@@ -466,6 +598,9 @@ export const SessionSidebar = forwardRef<
       for (const [, handle] of projectRefs.current) {
         handle.removeSession(sessionId);
       }
+      for (const [, handle] of scheduledTaskRefs.current) {
+        handle.removeSession(sessionId);
+      }
       uncategorizedList.removeSession(sessionId);
       if (currentSessionId === sessionId) onNewSession();
       toast.success(t("sidebar.sessionDeleted"));
@@ -492,6 +627,7 @@ export const SessionSidebar = forwardRef<
     if (!currentSessionId) return;
     uncategorizedList.softRefresh();
     projectRefs.current.forEach((ref) => ref?.softRefresh());
+    scheduledTaskRefs.current.forEach((ref) => ref?.softRefresh());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSessionId]);
 
@@ -503,8 +639,15 @@ export const SessionSidebar = forwardRef<
         newSession.name ?? "",
       ].join(":");
       if (lastAppliedNewSessionKeyRef.current === sessionKey) return;
+      const scheduledTaskId = newSession.metadata?.scheduled_task_id as
+        | string
+        | undefined;
       const projectId = newSession.metadata?.project_id as string | undefined;
-      const list = projectId ? getProjectRef(projectId) : uncategorizedList;
+      const list = scheduledTaskId
+        ? scheduledTaskRefs.current.get(scheduledTaskId)
+        : projectId
+          ? getProjectRef(projectId)
+          : uncategorizedList;
       if (list) {
         list.prependSession(newSession);
         list.updateSession(newSession);
@@ -553,6 +696,9 @@ export const SessionSidebar = forwardRef<
       );
       const existingSession =
         uncategorizedSession ??
+        Array.from(scheduledTaskRefs.current.values())
+          .flatMap((handle) => handle.sessions)
+          .find((session) => session.id === sessionId) ??
         Array.from(projectRefs.current.values())
           .flatMap((handle) => handle.sessions)
           .find((session) => session.id === sessionId);
@@ -562,6 +708,10 @@ export const SessionSidebar = forwardRef<
         (existingSession?.metadata?.project_id as string | null | undefined) ??
           null,
         existingSession ? isSessionFavorite(existingSession) : undefined,
+        (existingSession?.metadata?.scheduled_task_id as
+          | string
+          | null
+          | undefined) ?? null,
       );
       onSelectSession(sessionId);
       onMobileClose?.();
@@ -611,6 +761,13 @@ export const SessionSidebar = forwardRef<
     [projectManager, projects, handleNewSessionInProject, setProjectRef],
   );
 
+  const scheduledTaskActions: ScheduledTaskActions = useMemo(
+    () => ({
+      onSetScheduledTaskRef: setScheduledTaskRef,
+    }),
+    [setScheduledTaskRef],
+  );
+
   const favoritesProject = useMemo(
     () => projects.find((p) => p.type === "favorites"),
     [projects],
@@ -625,9 +782,9 @@ export const SessionSidebar = forwardRef<
           mobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         style={{
-          top: "env(safe-area-inset-top)",
+          top: "var(--app-safe-area-top-active, var(--app-safe-area-top, 0px))",
           height:
-            "calc(var(--app-viewport-height, 100dvh) - env(safe-area-inset-top))",
+            "calc(var(--app-viewport-height, 100dvh) - var(--app-safe-area-top-active, var(--app-safe-area-top, 0px)) - var(--app-safe-area-bottom-active, var(--app-safe-area-bottom, 0px)))",
         }}
         onClick={onMobileClose}
       />
@@ -637,10 +794,11 @@ export const SessionSidebar = forwardRef<
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         style={{
-          top: "env(safe-area-inset-top)",
+          top: "var(--app-safe-area-top-active, var(--app-safe-area-top, 0px))",
           height:
-            "calc(var(--app-viewport-height, 100dvh) - env(safe-area-inset-top))",
-          paddingBottom: "env(safe-area-inset-bottom)",
+            "calc(var(--app-viewport-height, 100dvh) - var(--app-safe-area-top-active, var(--app-safe-area-top, 0px)) - var(--app-safe-area-bottom-active, var(--app-safe-area-bottom, 0px)))",
+          paddingBottom:
+            "var(--app-safe-area-bottom-active, var(--app-safe-area-bottom, 0px))",
         }}
       >
         {isMobile ? (
@@ -673,12 +831,20 @@ export const SessionSidebar = forwardRef<
             unreadBySession={unreadBySession}
             sessionActions={sessionActions}
             projectActions={projectActions}
+            scheduledTaskActions={scheduledTaskActions}
             isProjectsCollapsed={isProjectsCollapsed}
             onToggleProjectsCollapsed={() => setIsProjectsCollapsed((v) => !v)}
+            isScheduledTasksCollapsed={isScheduledTasksCollapsed}
+            onToggleScheduledTasksCollapsed={() =>
+              setIsScheduledTasksCollapsed((v) => !v)
+            }
             isChatsCollapsed={isChatsCollapsed}
             onToggleChatsCollapsed={() => setIsChatsCollapsed((v) => !v)}
+            isNavCollapsed={isNavCollapsed}
+            onToggleNavCollapsed={() => setIsNavCollapsed((v) => !v)}
             autoExpandProjectId={autoExpandProjectId ?? null}
             onConsumeAutoExpandProjectId={onConsumeAutoExpandProjectId!}
+            onMarkAllRead={handleMarkAllRead}
           />
         ) : (
           <div className="flex-1" />
@@ -735,14 +901,22 @@ export const SessionSidebar = forwardRef<
               unreadBySession={unreadBySession}
               sessionActions={sessionActions}
               projectActions={projectActions}
+              scheduledTaskActions={scheduledTaskActions}
               isProjectsCollapsed={isProjectsCollapsed}
               onToggleProjectsCollapsed={() =>
                 setIsProjectsCollapsed((v) => !v)
               }
+              isScheduledTasksCollapsed={isScheduledTasksCollapsed}
+              onToggleScheduledTasksCollapsed={() =>
+                setIsScheduledTasksCollapsed((v) => !v)
+              }
               isChatsCollapsed={isChatsCollapsed}
               onToggleChatsCollapsed={() => setIsChatsCollapsed((v) => !v)}
+              isNavCollapsed={isNavCollapsed}
+              onToggleNavCollapsed={() => setIsNavCollapsed((v) => !v)}
               autoExpandProjectId={autoExpandProjectId ?? null}
               onConsumeAutoExpandProjectId={onConsumeAutoExpandProjectId!}
+              onMarkAllRead={handleMarkAllRead}
             />
           ) : (
             <div className="flex-1" />
@@ -771,6 +945,7 @@ export const SessionSidebar = forwardRef<
             }}
             onOpenRecentChats={() => setIsRecentChatsOpen(true)}
             onOpenFileLibrary={() => navigate("/files")}
+            onOpenScheduledTasks={() => navigate("/scheduled-tasks")}
             onOpenPersonaPlaza={() => navigate("/persona")}
             onOpenTeamBuilder={() => navigate("/team")}
             onOpenSkills={() => navigate("/skills")}
@@ -863,6 +1038,7 @@ export const SessionSidebar = forwardRef<
         currentSessionId={currentSessionId}
         anchorEl={recentChatsBtnRef.current}
         unreadCount={totalUnreadCount}
+        onMarkAllRead={handleMarkAllRead}
       />
 
       {!isMobile && (

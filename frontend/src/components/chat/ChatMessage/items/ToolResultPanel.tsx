@@ -542,7 +542,7 @@ export function ToolResultPanel({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[200] flex flex-col ${
+      className={`safe-area-viewport-padding fixed inset-0 z-[200] flex flex-col ${
         overlayClass
           ? overlayClass
           : isFullscreen

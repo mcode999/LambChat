@@ -177,7 +177,7 @@ async def create_agent_team(
         list[dict[str, Any]],
         "Members chosen by the LLM after calling search_persona_presets. Each item is an "
         "object with: persona_preset_id (required, must be an id returned by "
-        "search_persona_presets or the preset.id returned by create_persona_preset), "
+        "search_persona_presets or the preset.id returned by save_persona_preset), "
         "role_name (required, concise display name for this team such as 'Market Research "
         "Lead'), role_avatar (required when creating a role for a team; use an emoji or "
         "avatar image URL such as '🔎' or 'https://example.com/researcher.png'), "
@@ -186,7 +186,7 @@ async def create_agent_team(
         "order), enabled (optional, default true). Create 2-5 members for complex work, "
         "or 1 member for narrow tasks. Do not invent persona_preset_id values. Never use "
         "placeholder ids such as 'general-purpose'; if no existing persona fits the role, "
-        "call create_persona_preset first and use the returned preset.id.",
+        "call save_persona_preset first and use the returned preset.id.",
     ],
     team_id: Annotated[
         str | None,
@@ -240,7 +240,7 @@ async def create_agent_team(
 
     Call `search_persona_presets` first, inspect the returned personas, then call this
     tool with a complete team design. If the search results do not include a suitable
-    persona for a role, call `create_persona_preset` first to create that role, then use
+    persona for a role, call `save_persona_preset` first to create that role, then use
     the returned `preset.id` in `members`. Leave `team_id` empty to create a new team;
     Pass `team_id` to update an existing team. This tool is equivalent to the user
     manually creating or editing a Team in the UI: it persists the Team for the current
@@ -264,7 +264,7 @@ async def create_agent_team(
                 {
                     "error": (
                         f"Invalid persona_preset_id '{invalid_id}'. Search for an existing "
-                        "persona or call create_persona_preset first, then use the returned "
+                        "persona or call save_persona_preset first, then use the returned "
                         "preset.id."
                     )
                 }

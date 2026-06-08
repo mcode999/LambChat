@@ -12,10 +12,9 @@ import {
 } from "lucide-react";
 import { AboutDialog } from "../common/AboutDialog";
 import { ConfirmDialog } from "../common/ConfirmDialog";
-import { GlassSelect } from "../common/GlassSelect";
-import { LoadingSpinner } from "../common/LoadingSpinner";
 import { PanelSearchInput } from "../common/PanelSearchInput";
 import { PanelLoadingState } from "../common/PanelLoadingState";
+import { Button, Input, Select, Textarea } from "../common";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useSettingsContext } from "../../contexts/SettingsContext";
@@ -561,13 +560,14 @@ export function SettingsPanel() {
 
           {/* Bottom actions */}
           <div className="flex gap-1.5 border-t border-[var(--glass-border)] px-3 py-2.5">
-            <button
+            <Button
               onClick={() => setShowAbout(true)}
-              className="btn-secondary flex flex-1 items-center justify-center gap-1 py-1.5 text-xs"
+              size="sm"
+              leftIcon={<Info size={12} />}
+              className="flex-1 py-1.5 text-xs"
             >
-              <Info size={12} />
               {t("common.about", "About")}
-            </button>
+            </Button>
             {canManage && (
               <button
                 onClick={handleResetAll}
@@ -587,7 +587,7 @@ export function SettingsPanel() {
           <div className="flex-shrink-0 border-b border-[var(--glass-border)] p-3 sm:p-4">
             {/* Mobile Category Selector */}
             <div className="mb-2 sm:hidden">
-              <GlassSelect
+              <Select
                 value={activeCategory}
                 onChange={(v) => setActiveCategory(v as SettingCategory)}
                 options={CATEGORY_ORDER.map((category) => ({
@@ -616,37 +616,29 @@ export function SettingsPanel() {
               </div>
               {canManage && (
                 <>
-                  <button
+                  <Button
                     onClick={handleExport}
                     disabled={!settings}
-                    className="btn-secondary flex items-center gap-1.5 px-3 h-10"
+                    leftIcon={<Download size={16} />}
+                    className="h-10 px-3"
                     title={t("settings.exportSettings")}
                   >
-                    <Download size={16} />
                     <span className="hidden sm:inline text-sm">
                       {t("common.export")}
                     </span>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleImportClick}
                     disabled={!settings || isImporting}
-                    className="btn-secondary flex items-center gap-1.5 px-3 h-10"
+                    loading={isImporting}
+                    leftIcon={<Upload size={16} />}
+                    className="h-10 px-3"
                     title={t("settings.importSettings")}
                   >
-                    <span className="inline-flex h-4 w-4 items-center justify-center">
-                      {isImporting ? (
-                        <LoadingSpinner
-                          size="sm"
-                          color="text-[var(--theme-primary)]"
-                        />
-                      ) : (
-                        <Upload size={16} />
-                      )}
-                    </span>
                     <span className="hidden sm:inline text-sm">
                       {t("common.import")}
                     </span>
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -754,7 +746,7 @@ export function SettingsPanel() {
                           {/* Edit Input */}
                           <div className="mt-3">
                             {isSelect && (
-                              <GlassSelect
+                              <Select
                                 value={getDisplayValue(setting)}
                                 onChange={(v) =>
                                   handleValueChange(
@@ -849,7 +841,7 @@ export function SettingsPanel() {
                               />
                             )}
                             {setting.type === "text" && (
-                              <textarea
+                              <Textarea
                                 value={getDisplayValue(setting)}
                                 onChange={(e) =>
                                   handleValueChange(
@@ -860,7 +852,7 @@ export function SettingsPanel() {
                                 }
                                 disabled={!canManage}
                                 rows={8}
-                                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--theme-bg-card)] px-3 py-2 text-sm text-stone-900 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-stone-100"
+                                className="bg-[var(--theme-bg-card)] px-3 py-2 text-sm text-stone-900 disabled:cursor-not-allowed disabled:opacity-60 dark:text-stone-100"
                               />
                             )}
                             {isJson && setting.json_schema && (
@@ -885,7 +877,7 @@ export function SettingsPanel() {
                             )}
                             {isJson && !setting.json_schema && (
                               <>
-                                <textarea
+                                <Textarea
                                   value={getDisplayValue(setting)}
                                   onChange={(e) =>
                                     handleValueChange(
@@ -896,7 +888,7 @@ export function SettingsPanel() {
                                   }
                                   disabled={!canManage}
                                   rows={20}
-                                  className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--theme-bg-card)] px-3 py-2 font-mono text-xs text-stone-900 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm dark:text-stone-100"
+                                  className="bg-[var(--theme-bg-card)] px-3 py-2 font-mono text-xs text-stone-900 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm dark:text-stone-100"
                                 />
                                 {setting.key ===
                                   "IMAGE_GENERATION_CAPABILITIES_JSON" && (
@@ -920,7 +912,7 @@ export function SettingsPanel() {
                             {!isSelect &&
                               setting.type !== "text" &&
                               !isJson && (
-                                <input
+                                <Input
                                   type={
                                     setting.type === "number"
                                       ? "number"
@@ -935,7 +927,7 @@ export function SettingsPanel() {
                                     )
                                   }
                                   disabled={!canManage}
-                                  className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--theme-bg-card)] px-3 py-2 text-sm text-stone-900 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-stone-100"
+                                  className="bg-[var(--theme-bg-card)] px-3 py-2 text-sm text-stone-900 disabled:cursor-not-allowed disabled:opacity-60 dark:text-stone-100"
                                 />
                               )}
                           </div>
@@ -944,31 +936,34 @@ export function SettingsPanel() {
                           <div className="mt-3 flex flex-wrap-nowrap items-center justify-between gap-2">
                             {canManage && (
                               <div className="flex shrink-0 items-center gap-1.5">
-                                <button
+                                <Button
+                                  variant="primary"
+                                  size="sm"
                                   onClick={() => handleSave(setting)}
                                   disabled={!modified || isSaving}
-                                  className="btn-primary flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                  {justSaved ? (
-                                    <>
+                                  loading={isSaving}
+                                  leftIcon={
+                                    justSaved ? (
                                       <Check size={14} />
-                                      {t("common.saved")}
-                                    </>
-                                  ) : (
-                                    <>
+                                    ) : (
                                       <Save size={14} />
-                                      {t("common.save")}
-                                    </>
-                                  )}
-                                </button>
-                                <button
+                                    )
+                                  }
+                                  className="px-3 py-1.5 text-xs sm:text-sm disabled:cursor-not-allowed"
+                                >
+                                  {justSaved
+                                    ? t("common.saved")
+                                    : t("common.save")}
+                                </Button>
+                                <Button
+                                  size="sm"
                                   onClick={() => handleReset(setting.key)}
                                   disabled={isSaving}
-                                  className="btn-secondary flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm disabled:opacity-50"
+                                  leftIcon={<RotateCcw size={14} />}
+                                  className="px-3 py-1.5 text-xs sm:text-sm"
                                 >
-                                  <RotateCcw size={14} />
                                   {t("common.reset")}
-                                </button>
+                                </Button>
                               </div>
                             )}
 

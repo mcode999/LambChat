@@ -222,6 +222,15 @@ class SessionManager:
         """将会话标记为已读"""
         return await self.storage.mark_read(session_id)
 
+    async def mark_all_read(
+        self,
+        user_id: str,
+        project_id: str | None = None,
+        scheduled_task_id: str | None = None,
+    ) -> int:
+        """批量将会话标记为已读，支持按项目或定时任务过滤。"""
+        return await self.storage.mark_all_read(user_id, project_id, scheduled_task_id)
+
     async def deactivate_session(self, session_id: str) -> Optional[Session]:
         """停用会话"""
         return await self.storage.update(

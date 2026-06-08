@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { useEffect, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
 interface PersonaTagFilterDropdownProps {
@@ -10,6 +11,30 @@ interface PersonaTagFilterDropdownProps {
   onToggleTag: (tag: string) => void;
   onClearFilters: () => void;
   onClose: () => void;
+}
+
+const DROPDOWN_GUTTER = 12;
+const TAG_DROPDOWN_WIDTH = 288;
+
+function getDropdownPosition(
+  trigger: HTMLButtonElement,
+  width: number,
+): CSSProperties {
+  const rect = trigger.getBoundingClientRect();
+  const availableWidth = window.innerWidth - DROPDOWN_GUTTER * 2;
+  const renderedWidth = Math.min(width, availableWidth);
+  const left = Math.min(
+    Math.max(DROPDOWN_GUTTER, rect.right - renderedWidth),
+    window.innerWidth - renderedWidth - DROPDOWN_GUTTER,
+  );
+  const top = rect.bottom + 8;
+
+  return {
+    top,
+    left,
+    width: renderedWidth,
+    maxHeight: `calc(100dvh - ${top + DROPDOWN_GUTTER}px)`,
+  };
 }
 
 export function PersonaTagFilterDropdown({
@@ -24,18 +49,35 @@ export function PersonaTagFilterDropdown({
 }: PersonaTagFilterDropdownProps) {
   const { t } = useTranslation();
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !tagBtnRef.current) return null;
 
+  const dropdownStyle = getDropdownPosition(
+    tagBtnRef.current,
+    TAG_DROPDOWN_WIDTH,
+  );
+
   return createPortal(
-    <div className="fixed inset-0 z-[999]" onMouseDown={onClose}>
+    <div
+      className="fixed inset-0 z-[999]"
+      data-panel-header-dropdown
+      onPointerDown={onClose}
+    >
       <div
-        className="skill-filter-dropdown absolute w-72 rounded-2xl border bg-[var(--skill-surface)] p-3 shadow-lg"
-        style={{
-          top: tagBtnRef.current.getBoundingClientRect().bottom + 8,
-          right:
-            window.innerWidth - tagBtnRef.current.getBoundingClientRect().right,
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
+        className="skill-filter-dropdown panel-header-dropdown fixed overflow-hidden rounded-2xl border bg-[var(--skill-surface)] p-3 shadow-lg"
+        role="menu"
+        style={dropdownStyle}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-text-secondary)]">
@@ -57,6 +99,7 @@ export function PersonaTagFilterDropdown({
               key={tag}
               type="button"
               onClick={() => onToggleTag(tag)}
+              aria-pressed={activeTag === tag}
               className={`skill-tag-chip ${
                 activeTag === tag ? "skill-tag-chip--active" : ""
               }`}

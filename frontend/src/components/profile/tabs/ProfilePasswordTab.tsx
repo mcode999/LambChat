@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Eye, EyeOff, Check, AlertCircle } from "lucide-react";
 import { authApi } from "../../../services/api";
-import { LoadingSpinner } from "../../common/LoadingSpinner";
+import { Button, IconButton, Input } from "../../common";
 
 export function ProfilePasswordTab() {
   const { t } = useTranslation();
@@ -56,6 +56,17 @@ export function ProfilePasswordTab() {
     }
   };
 
+  const passwordType = showPassword ? "text" : "password";
+  const visibilityToggle = (
+    <IconButton
+      aria-label={t("profile.togglePasswordVisibility", "Toggle visibility")}
+      icon={showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+      size="sm"
+      onClick={() => setShowPassword(!showPassword)}
+      className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
+    />
+  );
+
   return (
     <div className="space-y-4">
       {passwordSuccess && (
@@ -77,22 +88,13 @@ export function ProfilePasswordTab() {
         <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
           {t("profile.oldPassword")}
         </label>
-        <div className="relative">
-          <input
-            type={showPassword ? "text" : "password"}
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-            className="w-full px-3.5 py-2.5 pr-10 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm"
-            placeholder={t("profile.oldPassword")}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
-          >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        </div>
+        <Input
+          type={passwordType}
+          value={oldPassword}
+          onChange={(e) => setOldPassword(e.target.value)}
+          placeholder={t("profile.oldPassword")}
+          trailingSlot={visibilityToggle}
+        />
       </div>
 
       {/* New Password */}
@@ -100,12 +102,12 @@ export function ProfilePasswordTab() {
         <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
           {t("profile.newPassword")}
         </label>
-        <input
-          type={showPassword ? "text" : "password"}
+        <Input
+          type={passwordType}
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
-          className="w-full px-3.5 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm"
           placeholder={t("profile.newPassword")}
+          trailingSlot={visibilityToggle}
         />
       </div>
 
@@ -114,26 +116,24 @@ export function ProfilePasswordTab() {
         <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
           {t("profile.confirmPassword")}
         </label>
-        <input
-          type={showPassword ? "text" : "password"}
+        <Input
+          type={passwordType}
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          className="w-full px-3.5 py-2.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm"
           placeholder={t("profile.confirmPassword")}
+          trailingSlot={visibilityToggle}
         />
       </div>
 
       {/* Submit Button */}
-      <button
+      <Button
+        variant="primary"
         onClick={handlePasswordChange}
-        disabled={isLoading}
-        className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 dark:disabled:bg-amber-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+        loading={isLoading}
+        className="w-full"
       >
-        <span className="inline-flex h-4 w-4 items-center justify-center">
-          {isLoading ? <LoadingSpinner size="sm" color="text-white" /> : null}
-        </span>
-        <span>{t("profile.changePassword")}</span>
-      </button>
+        {t("profile.changePassword")}
+      </Button>
     </div>
   );
 }

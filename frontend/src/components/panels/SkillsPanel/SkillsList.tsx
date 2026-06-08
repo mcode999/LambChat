@@ -5,7 +5,6 @@ import {
   Package,
   FolderOpen,
   Check,
-  Search,
   Tag,
   ChevronDown,
   Github,
@@ -13,10 +12,11 @@ import {
   X,
 } from "lucide-react";
 import { PanelHeader } from "../../common/PanelHeader";
-import { PanelSearchInput } from "../../common/PanelSearchInput";
-import { PanelLoadingState } from "../../common/PanelLoadingState";
+import { SkillsPanelSkeleton } from "../../skeletons";
 import { Pagination } from "../../common/Pagination";
 import { SkillCard } from "../../skill/SkillCard";
+import { Button, IconButton } from "../../common";
+import { EmptyState } from "../../common/EmptyState";
 import type { SkillResponse } from "../../../types";
 
 interface SkillsListProps {
@@ -112,22 +112,27 @@ export function SkillsList({
     isLoading && filteredSkills.length === 0 && !hasActiveFilters;
 
   if (isInitialLoading) {
-    return <PanelLoadingState text={t("common.loading", "加载中...")} />;
+    return <SkillsPanelSkeleton />;
   }
 
   const filterMenu = availableTags.length > 0 && (
-    <div className="relative shrink-0" ref={filterRef}>
-      <button
+    <div className="relative shrink-0" data-filter-menu ref={filterRef}>
+      <Button
+        variant="secondary"
         type="button"
+        aria-haspopup="menu"
+        aria-expanded={isFilterOpen}
         onClick={() => setIsFilterOpen((prev) => !prev)}
-        className={`btn-secondary h-10 px-3 ${
+        className={`panel-filter-trigger h-10 px-3 ${
           selectedTags.length > 0
             ? "border-[var(--theme-primary)] text-[var(--theme-text)]"
             : ""
         }`}
       >
         <Tag size={16} />
-        <span className="hidden sm:inline">{t("adminMarketplace.tags")}</span>
+        <span className="hidden sm:inline panel-filter-trigger__label">
+          {t("adminMarketplace.tags")}
+        </span>
         {selectedTags.length > 0 && (
           <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--theme-primary-light)] px-1 text-[11px]">
             {selectedTags.length}
@@ -137,9 +142,12 @@ export function SkillsList({
           size={16}
           className={`transition-transform ${isFilterOpen ? "rotate-180" : ""}`}
         />
-      </button>
+      </Button>
       {isFilterOpen && (
-        <div className="skill-filter-dropdown absolute right-0 top-[calc(100%+0.5rem)] z-20 w-72 rounded-2xl border  p-3 shadow-lg">
+        <div
+          className="skill-filter-dropdown panel-filter-menu absolute right-0 top-[calc(100%+0.5rem)] z-20 w-72 rounded-2xl border  p-3 shadow-lg"
+          role="menu"
+        >
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-text-secondary)]">
               {t("adminMarketplace.tags")}
@@ -159,6 +167,7 @@ export function SkillsList({
               <button
                 key={tag}
                 type="button"
+                aria-pressed={selectedTags.includes(tag)}
                 onClick={() => toggleTag(tag)}
                 className={`skill-tag-chip ${
                   selectedTags.includes(tag) ? "skill-tag-chip--active" : ""
@@ -176,7 +185,7 @@ export function SkillsList({
   const headerActions = (
     <div className="flex items-center gap-2">
       {filteredSkills.length > 0 && (
-        <button onClick={onSelectAll} className="btn-secondary h-10">
+        <Button variant="secondary" onClick={onSelectAll} className="h-10">
           <Check size={16} />
           <span className="hidden sm:inline">
             {selectedNames.size === filteredSkills.length &&
@@ -184,47 +193,36 @@ export function SkillsList({
               ? t("common.deselectAll")
               : t("common.selectAll")}
           </span>
-        </button>
+        </Button>
       )}
-      <button onClick={onGithubClick} className="btn-secondary h-10">
+      <Button variant="secondary" onClick={onGithubClick} className="h-10">
         <Github size={16} />
         <span className="hidden sm:inline">GitHub</span>
-      </button>
-      <button onClick={onZipClick} className="btn-secondary h-10">
+      </Button>
+      <Button variant="secondary" onClick={onZipClick} className="h-10">
         <Archive size={16} />
         <span className="hidden sm:inline">ZIP</span>
-      </button>
-      <button onClick={onCreate} className="btn-primary h-10">
+      </Button>
+      <Button variant="primary" onClick={onCreate} className="h-10">
         <Plus size={16} />
         <span className="hidden sm:inline">{t("skills.newSkill")}</span>
-      </button>
+      </Button>
     </div>
   );
 
   return (
     <>
       {embedded && (
-        <div className="skill-panel-header">
-          <div className="mt-2 flex items-center gap-2 sm:mt-3 sm:gap-2">
-            <div className="relative min-w-0 flex-1">
-              <Search
-                size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500"
-              />
-              <PanelSearchInput
-                type="text"
-                value={searchQuery}
-                onValueChange={setSearchQuery}
-                className="panel-search h-10"
-                placeholder={t("skills.searchPlaceholder")}
-              />
-            </div>
-            {filterMenu}
-            <div className="flex flex-nowrap shrink-0 items-center gap-1.5 sm:gap-2">
-              {headerActions}
-            </div>
-          </div>
-        </div>
+        <PanelHeader
+          className="skill-panel-header"
+          title={t("skills.title")}
+          searchOnly
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={t("skills.searchPlaceholder")}
+          searchAccessory={filterMenu}
+          searchActions={headerActions}
+        />
       )}
       {!embedded && (
         <PanelHeader
@@ -245,48 +243,45 @@ export function SkillsList({
       {error && (
         <div className="mx-4 mt-4 flex items-center justify-between rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
           <span>{error}</span>
-          <button
+          <IconButton
+            aria-label={t("common.close")}
+            icon={<X size={18} />}
             onClick={clearError}
-            className="btn-icon hover:text-red-900 dark:hover:text-red-300"
-          >
-            <X size={18} />
-          </button>
+            className="hover:text-red-900 dark:hover:text-red-300"
+          />
         </div>
       )}
 
       {/* Skills List */}
       <div className="skill-content-area flex-1 overflow-y-auto py-2 sm:py-4 px-4 lg:px-8 lg:py-8">
         {filteredSkills.length === 0 ? (
-          <div className="skill-empty-state">
-            <div className="skill-empty-state__icon">
-              <FolderOpen size={28} />
-            </div>
-            <p className="skill-empty-state__title">
-              {hasActiveFilters
+          <EmptyState
+            icon={<FolderOpen size={28} />}
+            title={
+              hasActiveFilters
                 ? t("skills.noMatchingSkills")
-                : t("skills.noSkills")}
-            </p>
-            <p className="skill-empty-state__description">
-              {hasActiveFilters
-                ? t("skills.subtitle")
-                : t("skills.createFirst")}
-            </p>
-            {!hasActiveFilters && canWrite && (
-              <button onClick={onCreate} className="btn-primary mt-4">
-                <Plus size={16} />
-                <span>{t("skills.newSkill")}</span>
-              </button>
-            )}
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="btn-secondary mt-4"
-              >
-                {t("marketplace.clearFilters")}
-              </button>
-            )}
-          </div>
+                : t("skills.noSkills")
+            }
+            description={
+              hasActiveFilters ? t("skills.subtitle") : t("skills.createFirst")
+            }
+            action={
+              !hasActiveFilters && canWrite ? (
+                <Button variant="primary" onClick={onCreate}>
+                  <Plus size={16} />
+                  <span>{t("skills.newSkill")}</span>
+                </Button>
+              ) : hasActiveFilters ? (
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={clearFilters}
+                >
+                  {t("marketplace.clearFilters")}
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
           <div className="skill-grid grid auto-grid-cols gap-4">
             {paginatedSkills.map((skill) => (

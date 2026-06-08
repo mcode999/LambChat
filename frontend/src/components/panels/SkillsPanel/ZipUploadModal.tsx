@@ -3,6 +3,7 @@ import { Archive, UploadCloud, FileArchive, Upload } from "lucide-react";
 import { LoadingSpinner } from "../../common/LoadingSpinner";
 import { EditorSidebar } from "../../common/EditorSidebar";
 import { Checkbox } from "../../common/Checkbox";
+import { Button } from "../../common";
 import type { ZipSkillPreview } from "./useSkillsActions";
 
 interface ZipUploadModalProps {
@@ -56,18 +57,18 @@ export function ZipUploadModal({
       width="wide"
       footer={
         <div className="flex justify-end gap-2">
-          <button
+          <Button
+            variant="secondary"
             onClick={() => setShowZipModal(false)}
             disabled={zipUploading || zipPreviewing}
-            className="btn-secondary disabled:opacity-50"
           >
             {t("common.cancel")}
-          </button>
+          </Button>
           {zipSkills.length > 0 && (
-            <button
+            <Button
+              variant="primary"
               onClick={onZipUpload}
               disabled={zipUploading || selectedZipSkills.length === 0}
-              className="btn-primary disabled:opacity-50"
             >
               {zipUploading ? (
                 <LoadingSpinner size="sm" color="text-white" />
@@ -77,7 +78,7 @@ export function ZipUploadModal({
               <span className="hidden sm:inline">
                 {t("skills.install")} ({selectedZipSkills.length})
               </span>
-            </button>
+            </Button>
           )}
         </div>
       }

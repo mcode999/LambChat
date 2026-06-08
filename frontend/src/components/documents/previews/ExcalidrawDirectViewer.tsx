@@ -64,7 +64,7 @@ export function ExcalidrawDirectViewer({
 
   if (error) {
     return (
-      <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90">
+      <div className="safe-area-viewport-padding fixed inset-0 z-[300] flex items-center justify-center bg-black/90">
         <div className="flex flex-col items-center gap-3">
           <p className="text-sm text-white/70">
             {t("documents.excalidrawRenderFailed", "Failed to render diagram")}
@@ -83,7 +83,7 @@ export function ExcalidrawDirectViewer({
 
   if (!svgContent) {
     return (
-      <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90">
+      <div className="safe-area-viewport-padding fixed inset-0 z-[300] flex items-center justify-center bg-black/90">
         <LoadingSpinner size="lg" />
       </div>
     );

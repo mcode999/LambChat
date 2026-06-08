@@ -481,7 +481,7 @@ export function SkillSelector({
       )}
 
       {/* Footer */}
-      <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-t border-stone-200 dark:border-stone-700 bg-stone-50/80 dark:bg-stone-800/50 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="safe-area-bottom [--safe-area-bottom-extra:0.75rem] px-4 sm:px-5 py-3 sm:py-3.5 border-t border-stone-200 dark:border-stone-700 bg-stone-50/80 dark:bg-stone-800/50">
         <button
           onClick={() => setIsOpen(false)}
           className="w-full py-2.5 px-4 bg-stone-900 dark:bg-stone-600 text-white dark:text-stone-100 rounded-xl font-medium text-sm hover:bg-stone-800 dark:hover:bg-stone-500 active:bg-stone-700 dark:active:bg-stone-600 transition-colors"
@@ -503,7 +503,7 @@ export function SkillSelector({
               onClick={() => setIsOpen(false)}
             />
             <div
-              className="fixed z-[301] sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4 inset-x-0 bottom-0 animate-slide-up sm:animate-scale-in"
+              className="safe-area-viewport-padding fixed z-[301] sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4 inset-x-0 bottom-0 animate-slide-up sm:animate-scale-in"
               onClick={() => setIsOpen(false)}
             >
               <ModalContent />
@@ -557,7 +557,7 @@ export function SkillSelector({
 
             {/* Modal Content - Desktop: centered, Mobile: bottom sheet */}
             <div
-              className="fixed z-[301] sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4 inset-x-0 bottom-0 animate-slide-up sm:animate-scale-in"
+              className="safe-area-viewport-padding fixed z-[301] sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4 inset-x-0 bottom-0 animate-slide-up sm:animate-scale-in"
               onClick={() => setIsOpen(false)}
             >
               <ModalContent />

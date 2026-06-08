@@ -58,6 +58,7 @@ interface ProjectItemProps {
   onConsumeAutoExpand?: (projectId: string) => void;
   unreadBySession?: UnreadBySession;
   favoritesOnly?: boolean;
+  onMarkAllRead?: (opts?: { projectId?: string }) => void;
 }
 
 export const ProjectItem = forwardRef<ProjectItemHandle, ProjectItemProps>(
@@ -81,6 +82,7 @@ export const ProjectItem = forwardRef<ProjectItemHandle, ProjectItemProps>(
       onUpdateIcon,
       scrollRoot,
       favoritesOnly = false,
+      onMarkAllRead,
     },
     ref,
   ) {
@@ -366,7 +368,23 @@ export const ProjectItem = forwardRef<ProjectItemHandle, ProjectItemProps>(
           </div>
 
           {!isEditing && unreadCount > 0 && (
-            <span className="inline-flex h-4 min-w-[16px] flex-shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium leading-none text-white">
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                onMarkAllRead?.({ projectId: project.id });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onMarkAllRead?.({ projectId: project.id });
+                }
+              }}
+              title={t("sidebar.markAllRead")}
+              className="inline-flex h-4 min-w-[16px] flex-shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium leading-none text-white cursor-pointer hover:opacity-70 transition-opacity"
+            >
               {formatUnreadCount(unreadCount)}
             </span>
           )}

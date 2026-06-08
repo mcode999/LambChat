@@ -52,7 +52,7 @@ def test_team_tool_descriptions_guide_llm_team_creation() -> None:
     assert "Use this tool first" in search_description
     assert "create_agent_team" in search_description
     assert "search_persona_presets" in create_description
-    assert "create_persona_preset" in create_description
+    assert "save_persona_preset" in create_description
     normalized_create_description = " ".join(create_description.split())
     assert "creating or editing a Team in the UI" in normalized_create_description
     assert "Leave `team_id` empty to create a new team" in normalized_create_description
@@ -325,7 +325,7 @@ async def test_create_agent_team_rejects_placeholder_persona_ids(
     assert result == {
         "error": (
             "Invalid persona_preset_id 'general-purpose'. Search for an existing persona "
-            "or call create_persona_preset first, then use the returned preset.id."
+            "or call save_persona_preset first, then use the returned preset.id."
         )
     }
     manager.create_team.assert_not_called()

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import type { TFunction } from "i18next";
 import {
   Activity,
-  AlertTriangle,
   RefreshCw,
   ChevronDown,
   ChevronUp,
@@ -13,6 +12,8 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LoadingSpinner } from "../common/LoadingSpinner";
+import { StatusBadge } from "../common/StatusBadge";
+import type { StatusColor } from "../common/StatusBadge";
 import {
   healthApi,
   type MemoryDiagnostics,
@@ -22,30 +23,16 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { Permission } from "../../types";
 
-function StatusBadge({ status }: { status: MemoryOverview["status"] }) {
-  const { t } = useTranslation();
-  if (status === "stable") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-400">
-        <Activity size={12} />
-        {t("systemHealth.stable", "Stable")}
-      </span>
-    );
-  }
-  if (status === "suspected_leak") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-400">
-        <AlertTriangle size={12} />
-        {t("systemHealth.suspectedLeak", "Suspected Leak")}
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-500 dark:bg-stone-800 dark:text-stone-400">
-      {t("systemHealth.unavailable", "Unavailable")}
-    </span>
-  );
-}
+const HEALTH_STATUS_COLOR: Record<string, StatusColor> = {
+  stable: "green",
+  suspected_leak: "red",
+};
+
+const HEALTH_STATUS_LABEL: Record<string, string> = {
+  stable: "systemHealth.stable",
+  suspected_leak: "systemHealth.suspectedLeak",
+  unavailable: "systemHealth.unavailable",
+};
 
 function MetricCard({
   icon: Icon,
@@ -176,7 +163,14 @@ export function SystemHealthSection() {
             </span>
             {overview && (
               <div className="mt-0.5">
-                <StatusBadge status={overview.status} />
+                <StatusBadge
+                  color={HEALTH_STATUS_COLOR[overview.status] ?? "stone"}
+                  label={t(
+                    HEALTH_STATUS_LABEL[overview.status] ??
+                      "systemHealth.unavailable",
+                  )}
+                  size="sm"
+                />
               </div>
             )}
           </div>

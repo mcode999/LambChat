@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MCPServerResponse } from "../../types";
+import { IconButton } from "../common";
 import { nameToGradient } from "../common/cardUtils";
 
 interface MCPServerCardProps {
@@ -127,28 +128,28 @@ export function MCPServerCard({
         <div className="mt-4 flex items-center justify-between gap-2 border-t border-[var(--theme-border)] pt-3">
           <div className="flex items-center gap-0.5">
             {server.can_edit && !server.is_internal && onEdit && (
-              <button
+              <IconButton
+                aria-label={t("mcp.card.edit")}
+                icon={<Edit3 size={14} />}
                 onClick={(e) => {
                   e.stopPropagation();
                   onEdit(server);
                 }}
-                className="btn-icon rounded-lg"
+                className="rounded-lg"
                 title={t("mcp.card.edit")}
-              >
-                <Edit3 size={14} />
-              </button>
+              />
             )}
             {server.can_edit && !server.is_internal && onDelete && (
-              <button
+              <IconButton
+                aria-label={t("mcp.card.delete")}
+                icon={<Trash2 size={14} />}
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(server.name, server.is_system);
                 }}
-                className="btn-icon rounded-lg hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+                className="rounded-lg hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400"
                 title={t("mcp.card.delete")}
-              >
-                <Trash2 size={14} />
-              </button>
+              />
             )}
           </div>
           <button

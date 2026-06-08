@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Eye, Trash2, Pencil, Clock, Tag } from "lucide-react";
 import { EditorSidebar } from "../../common/EditorSidebar";
+import { Button, PanelFooterActions } from "../../common";
 import { memoryApi, type MemoryItem } from "../../../services/api/memory";
 import { TYPE_STYLES, SOURCE_STYLES, SOURCE_DOTS } from "./constants";
 import { formatDateTime } from "../../../utils/datetime";
@@ -54,26 +55,23 @@ export function DetailModal({
       subtitle={t(`memory.type.${memory.memory_type}`)}
       icon={<Eye size={16} />}
       footer={
-        <div className="flex items-center gap-3">
-          <button
+        <PanelFooterActions align="between">
+          <Button
+            variant="danger"
             onClick={() => onDelete(memory.memory_id)}
-            className="btn-danger"
+            leftIcon={<Trash2 size={16} />}
           >
-            <Trash2 size={16} />
             {t("common.delete")}
-          </button>
-          <div className="flex-1" />
-          <button
+          </Button>
+          <span className="panel-footer-actions__spacer" />
+          <Button
             onClick={() => onEdit(memory)}
-            className="btn-secondary inline-flex items-center gap-1.5"
+            leftIcon={<Pencil size={14} />}
           >
-            <Pencil size={14} />
             {t("common.edit")}
-          </button>
-          <button onClick={onClose} className="btn-secondary">
-            {t("common.close")}
-          </button>
-        </div>
+          </Button>
+          <Button onClick={onClose}>{t("common.close")}</Button>
+        </PanelFooterActions>
       }
     >
       <div className="es-form">

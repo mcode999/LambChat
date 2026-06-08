@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Maximize2, X, Plus, Save, Tag, Pencil } from "lucide-react";
 import { Toggle } from "./Toggle";
-import { LoadingSpinner } from "../common/LoadingSpinner";
+import { Button, IconButton, Input, Textarea } from "../common";
 import { FileTabs } from "./FileTabs";
 import { SkillEditor } from "./SkillEditor";
 import { BinaryFilePreview } from "./BinaryFilePreview";
@@ -25,41 +25,42 @@ export function SkillFormNormal(a: SkillFormActions) {
               <label className="block text-xs font-medium text-[var(--theme-text-secondary)]">
                 {t("skills.form.name")}
               </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={a.name}
-                  disabled={a.isEditing}
-                  onChange={(e) => a.setName(e.target.value)}
-                  placeholder={t("skills.form.namePlaceholder")}
-                  className="w-full rounded-xl border border-[var(--theme-border)] px-3 py-2 font-mono text-sm text-[var(--theme-text)] placeholder:text-stone-400 dark:placeholder:text-stone-500 transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 bg-[var(--theme-bg)] hover:border-[var(--skill-border-strong)]"
-                />
-                {a.isEditing && (
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-md bg-[var(--theme-bg-card)]/80 p-1">
-                    <svg
-                      className="h-4 w-4 text-stone-400 dark:text-stone-500"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                    >
-                      <rect
-                        x="2"
-                        y="2"
-                        width="12"
-                        height="12"
-                        rx="3"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                      <path
-                        d="M6 8h4M8 6v4"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </span>
-                )}
-              </div>
+              <Input
+                type="text"
+                value={a.name}
+                disabled={a.isEditing}
+                onChange={(e) => a.setName(e.target.value)}
+                placeholder={t("skills.form.namePlaceholder")}
+                error={!!a.errors.name}
+                className="font-mono"
+                trailingSlot={
+                  a.isEditing ? (
+                    <span className="pointer-events-none rounded-md bg-[var(--theme-bg-card)]/80 p-1">
+                      <svg
+                        className="h-4 w-4 text-stone-400 dark:text-stone-500"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                      >
+                        <rect
+                          x="2"
+                          y="2"
+                          width="12"
+                          height="12"
+                          rx="3"
+                          stroke="currentColor"
+                          strokeWidth="1.2"
+                        />
+                        <path
+                          d="M6 8h4M8 6v4"
+                          stroke="currentColor"
+                          strokeWidth="1.2"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </span>
+                  ) : null
+                }
+              />
               {a.errors.name && (
                 <p className="text-xs text-red-500">{a.errors.name}</p>
               )}
@@ -75,12 +76,13 @@ export function SkillFormNormal(a: SkillFormActions) {
               <label className="block text-xs font-medium text-[var(--theme-text-secondary)]">
                 {t("skills.form.description")}
               </label>
-              <textarea
+              <Textarea
                 value={a.description}
                 onChange={(e) => a.setDescription(e.target.value)}
                 placeholder={t("skills.form.descriptionPlaceholder")}
                 rows={5}
-                className="w-full resize-none rounded-xl border border-[var(--theme-border)] px-3 py-2 text-sm leading-6 text-[var(--theme-text)] placeholder:text-stone-400 dark:placeholder:text-stone-500 transition-all duration-150 bg-[var(--theme-bg)] hover:border-[var(--skill-border-strong)]"
+                error={!!a.errors.description}
+                className="resize-none leading-6"
               />
               {a.errors.description && (
                 <p className="text-xs text-red-500">{a.errors.description}</p>
@@ -100,12 +102,13 @@ export function SkillFormNormal(a: SkillFormActions) {
                 <p className="mt-2 text-xs leading-5 text-[var(--theme-text-secondary)]/80">
                   {t("adminMarketplace.tagsHint")}
                 </p>
-                <input
+                <Input
                   type="text"
                   value={a.tagsInput}
                   onChange={(e) => a.setTagsInput(e.target.value)}
                   placeholder={t("adminMarketplace.tagsPlaceholder")}
-                  className="mt-3 w-full rounded-xl border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text)] placeholder:text-stone-400 dark:placeholder:text-stone-500 transition-all duration-150 bg-[var(--theme-bg-card)] hover:border-[var(--skill-border-strong)]"
+                  error={!!a.errors.tags}
+                  className="mt-3"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
                   {normalizeTags(a.tagsInput).map((tag) => (
@@ -168,22 +171,22 @@ export function SkillFormNormal(a: SkillFormActions) {
                   {t("skills.form.files", "Files")}
                 </p>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
+                  <IconButton
+                    aria-label={t("skills.form.addFile", "Add file")}
                     onClick={a.addFile}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl text-stone-400 transition-colors duration-150 hover:bg-[var(--theme-bg-card)] hover:text-[var(--theme-text)]"
+                    icon={<Plus size={15} />}
+                    size="sm"
+                    className="h-9 w-9 rounded-xl text-stone-400 hover:bg-[var(--theme-bg-card)] hover:text-[var(--theme-text)]"
                     title={t("skills.form.addFile", "Add file")}
-                  >
-                    <Plus size={15} />
-                  </button>
-                  <button
-                    type="button"
+                  />
+                  <IconButton
+                    aria-label={t("skills.form.fullscreenEditor")}
                     onClick={() => a.toggleFullscreen(true)}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl text-stone-400 transition-colors duration-150 hover:bg-[var(--theme-bg-card)] hover:text-[var(--theme-text)]"
+                    icon={<Maximize2 size={15} />}
+                    size="sm"
+                    className="h-9 w-9 rounded-xl text-stone-400 hover:bg-[var(--theme-bg-card)] hover:text-[var(--theme-text)]"
                     title={t("skills.form.fullscreenEditor")}
-                  >
-                    <Maximize2 size={15} />
-                  </button>
+                  />
                 </div>
               </div>
 
@@ -201,14 +204,14 @@ export function SkillFormNormal(a: SkillFormActions) {
                 <label className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-text-secondary)]/80">
                   {t("skills.form.filePath")}
                 </label>
-                <input
+                <Input
                   type="text"
                   value={a.files[a.activeFileIndex]?.path || ""}
                   onChange={(e) =>
                     a.updateFilePath(a.activeFileIndex, e.target.value)
                   }
                   placeholder={t("skills.form.filePathPlaceholder")}
-                  className="w-full bg-transparent font-mono text-xs text-[var(--theme-text)] placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none"
+                  className="bg-transparent font-mono text-xs"
                 />
               </div>
             </div>
@@ -281,14 +284,15 @@ export function SkillFormNormal(a: SkillFormActions) {
                     readOnly
                   />
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[var(--theme-bg)] to-transparent" />
-                  <button
-                    type="button"
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={() => a.toggleFullscreen(true)}
-                    className="absolute right-3 bottom-3 flex items-center gap-1.5 rounded-lg bg-[var(--theme-primary)] px-2.5 py-1.5 text-xs font-medium text-white shadow-md transition-all duration-150 hover:scale-105 active:scale-95"
+                    leftIcon={<Pencil size={12} />}
+                    className="absolute right-3 bottom-3 shadow-md transition-transform duration-150 hover:scale-105 active:scale-95"
                   >
-                    <Pencil size={12} />
                     {t("skills.form.editFullscreen", "Edit")}
-                  </button>
+                  </Button>
                 </div>
               );
             })()}
@@ -303,26 +307,19 @@ export function SkillFormNormal(a: SkillFormActions) {
 
       {/* Bottom action bar */}
       <div className="skill-action-bar shrink-0 flex items-center justify-end gap-2 px-1 pt-3">
-        <button
-          type="button"
-          onClick={a.onCancel}
-          disabled={a.isLoading}
-          className="rounded-xl px-4 py-2 text-sm text-[var(--theme-text)] hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-50 transition-colors duration-150"
-        >
+        <Button variant="ghost" onClick={a.onCancel} disabled={a.isLoading}>
           {t("common.cancel")}
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
-          disabled={a.isLoading}
-          className="rounded-xl bg-[var(--theme-primary)] px-5 py-2 text-sm font-medium text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 transition-colors duration-150 dark:text-stone-950 inline-flex items-center gap-2"
+          variant="primary"
+          loading={a.isLoading}
+          leftIcon={<Save size={16} />}
         >
-          <span className="inline-flex h-4 w-4 items-center justify-center">
-            {a.isLoading ? <LoadingSpinner size="sm" /> : <Save size={16} />}
-          </span>
           <span className={a.isLoading ? "loading-text" : ""}>
             {submitLabel}
           </span>
-        </button>
+        </Button>
       </div>
     </>
   );

@@ -81,3 +81,18 @@ test("uses the failure message for failed notifications", () => {
     isSuccess: false,
   });
 });
+
+test("truncates very long notification summaries to a readable short preview", () => {
+  const notification = buildTaskNotificationCopy({
+    sessionName: "Long Research",
+    status: "completed",
+    successLabel: "Task completed",
+    failureLabel: "Task failed",
+    fallbackMessage:
+      "This is a very long completion summary that should still be concise enough for a system notification instead of taking over the screen.",
+    events: [],
+  });
+
+  assert.equal(notification.body.endsWith("…"), true);
+  assert.equal(notification.body.length <= 96, true);
+});

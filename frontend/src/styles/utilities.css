@@ -10,13 +10,43 @@
 
 .safe-area-top {
   padding-top: calc(
-    var(--app-safe-area-top, 0px) + var(--safe-area-top-extra, 0px)
+    var(--app-safe-area-top-active, var(--app-safe-area-top, 0px)) +
+      var(--safe-area-top-extra, 0px)
   );
 }
 
 .safe-area-bottom {
   padding-bottom: calc(
-    var(--app-safe-area-bottom, 0px) + var(--safe-area-bottom-extra, 0px)
+    var(--app-safe-area-bottom-active, var(--app-safe-area-bottom, 0px)) +
+      var(--safe-area-bottom-extra, 0px)
+  );
+}
+
+.safe-area-y {
+  padding-top: calc(
+    var(--app-safe-area-top-active, var(--app-safe-area-top, 0px)) +
+      var(--safe-area-top-extra, 0px)
+  );
+  padding-bottom: calc(
+    var(--app-safe-area-bottom-active, var(--app-safe-area-bottom, 0px)) +
+      var(--safe-area-bottom-extra, 0px)
+  );
+}
+
+.safe-area-viewport-padding {
+  padding-top: var(--app-safe-area-top-active, var(--app-safe-area-top, 0px));
+  padding-bottom: var(
+    --app-safe-area-bottom-active,
+    var(--app-safe-area-bottom, 0px)
+  );
+  box-sizing: border-box;
+}
+
+.safe-area-viewport-height {
+  height: calc(
+    var(--app-viewport-height, 100dvh) -
+      var(--app-safe-area-top-active, var(--app-safe-area-top, 0px)) -
+      var(--app-safe-area-bottom-active, var(--app-safe-area-bottom, 0px))
   );
 }
 

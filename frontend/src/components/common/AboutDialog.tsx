@@ -41,7 +41,7 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
   return createPortal(
     <div
       data-yields-sidebar
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 p-4"
+      className="safe-area-viewport-padding fixed inset-0 z-[300] flex items-center justify-center bg-black/50 p-4"
     >
       <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-stone-800">
         {/* Header */}

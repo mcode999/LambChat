@@ -2,6 +2,7 @@ import { Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TeamMember } from "../../types/team";
 import { TeamMemberCard } from "./TeamMemberCard";
+import { EmptyState } from "../common/EmptyState";
 
 interface TeamRosterProps {
   members: TeamMember[];
@@ -33,15 +34,12 @@ export function TeamRoster({
             </h2>
           </div>
         </div>
-        <div className="skill-empty-state flex-1">
-          <Users size={28} className="skill-empty-state__icon" />
-          <p className="skill-empty-state__title">
-            {t("team.noRolesSelected")}
-          </p>
-          <p className="skill-empty-state__description">
-            {t("team.noRolesDesc")}
-          </p>
-        </div>
+        <EmptyState
+          className="flex-1"
+          icon={<Users size={28} />}
+          title={t("team.noRolesSelected")}
+          description={t("team.noRolesDesc")}
+        />
       </div>
     );
   }

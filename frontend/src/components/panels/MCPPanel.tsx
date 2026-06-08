@@ -13,9 +13,15 @@ import {
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { PanelHeader } from "../common/PanelHeader";
-import { LoadingSpinner } from "../common/LoadingSpinner";
-import { PanelLoadingState } from "../common/PanelLoadingState";
+import { MCPPanelSkeleton } from "../skeletons";
 import { Pagination } from "../common/Pagination";
+import {
+  Button,
+  Checkbox,
+  IconButton,
+  PanelFooterActions,
+  Textarea,
+} from "../common";
 import { MCPServerCard } from "../mcp/MCPServerCard";
 import { MCPServerToolsSidebar } from "../mcp/MCPServerToolsSidebar";
 import { MCPServerForm } from "../mcp/MCPServerForm";
@@ -385,7 +391,7 @@ export function MCPPanel() {
     isLoading && servers.length === 0 && searchQuery.trim().length === 0;
 
   if (isInitialLoading) {
-    return <PanelLoadingState text={t("common.loading", "加载中...")} />;
+    return <MCPPanelSkeleton />;
   }
 
   return (
@@ -401,26 +407,27 @@ export function MCPPanel() {
         actions={
           canWrite && (
             <>
-              <button
+              <Button
                 onClick={handleImportClick}
-                className="btn-secondary"
+                leftIcon={<Upload size={16} />}
                 title={t("mcp.importFromJSON")}
               >
-                <Upload size={16} />
                 <span className="hidden sm:inline">{t("common.import")}</span>
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleExport}
-                className="btn-secondary"
+                leftIcon={<Download size={16} />}
                 title={t("mcp.exportToJSON")}
               >
-                <Download size={16} />
                 <span className="hidden sm:inline">{t("common.export")}</span>
-              </button>
-              <button onClick={handleCreate} className="btn-primary">
-                <Plus size={16} />
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleCreate}
+                leftIcon={<Plus size={16} />}
+              >
                 <span className="hidden sm:inline">{t("mcp.addServer")}</span>
-              </button>
+              </Button>
             </>
           )
         }
@@ -430,19 +437,19 @@ export function MCPPanel() {
       {error && (
         <div className="mx-4 mt-4 flex items-center justify-between rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
           <span>{error}</span>
-          <button
+          <IconButton
+            aria-label={t("common.close")}
+            icon={<X size={18} />}
             onClick={clearError}
-            className="btn-icon hover:bg-red-100 dark:hover:bg-red-900/50"
-          >
-            <X size={18} />
-          </button>
+            className="hover:bg-red-100 dark:hover:bg-red-900/50"
+          />
         </div>
       )}
 
       {/* Servers Grid */}
       <div className="flex-1 overflow-y-auto py-2 sm:py-4 px-4">
         {filteredServers.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center text-theme-text-secondary py-12">
+          <div className="flex h-full flex-col items-center justify-center text-theme-text-secondary">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-stone-100 dark:bg-stone-800 mb-4">
               <FolderOpen
                 size={28}
@@ -453,12 +460,13 @@ export function MCPPanel() {
               {searchQuery ? t("mcp.noMatchingServers") : t("mcp.noServers")}
             </p>
             {!searchQuery && canWrite && (
-              <button
+              <Button
+                variant="ghost"
                 onClick={handleCreate}
                 className="mt-3 text-sm font-medium text-[var(--theme-text-secondary)] hover:text-[var(--theme-text)] transition-colors"
               >
                 {t("mcp.addFirst")}
-              </button>
+              </Button>
             )}
           </div>
         ) : (
@@ -505,30 +513,11 @@ export function MCPPanel() {
           {/* Admin option for creating system server */}
           {isCreating && canAdmin && (
             <label className="group flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 mb-4 transition-colors hover:bg-[var(--theme-primary-light)]/30">
-              <input
-                type="checkbox"
-                id="createAsSystem"
+              <Checkbox
+                size="sm"
                 checked={createAsSystem}
-                onChange={(e) => setCreateAsSystem(e.target.checked)}
-                className="sr-only peer"
+                onChange={() => setCreateAsSystem(!createAsSystem)}
               />
-              <div className="h-[18px] w-[18px] rounded-md border-2 border-[var(--theme-border)] flex items-center justify-center transition-all peer-checked:bg-amber-500 peer-checked:border-amber-500 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500/30">
-                {createAsSystem && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-              </div>
               <span className="text-sm font-medium text-[var(--theme-text)]">
                 {t("mcp.createAsSystem")}
               </span>
@@ -537,30 +526,11 @@ export function MCPPanel() {
           {/* Admin option for changing server type when editing */}
           {!isCreating && editingServer && canAdmin && (
             <label className="group flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 mb-4 transition-colors hover:bg-[var(--theme-primary-light)]/30">
-              <input
-                type="checkbox"
-                id="changeToSystem"
+              <Checkbox
+                size="sm"
                 checked={changeToSystem}
-                onChange={(e) => setChangeToSystem(e.target.checked)}
-                className="sr-only peer"
+                onChange={() => setChangeToSystem(!changeToSystem)}
               />
-              <div className="h-[18px] w-[18px] rounded-md border-2 border-[var(--theme-border)] flex items-center justify-center transition-all peer-checked:bg-amber-500 peer-checked:border-amber-500 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500/30">
-                {changeToSystem && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-              </div>
               <span className="text-sm font-medium text-[var(--theme-text)]">
                 {changeToSystem
                   ? t("mcp.systemServerVisible")
@@ -588,36 +558,26 @@ export function MCPPanel() {
         icon={<Download size={16} />}
         width="wide"
         footer={
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => setShowImportModal(false)}
-              className="btn-secondary"
-            >
+          <PanelFooterActions>
+            <Button onClick={() => setShowImportModal(false)}>
               {t("common.cancel")}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleImport}
               disabled={isLoading || !importJson.trim()}
-              className="btn-primary disabled:opacity-50"
+              loading={isLoading}
+              leftIcon={<Upload size={18} />}
             >
-              <span className="inline-flex items-center justify-center gap-2">
-                <span className="inline-flex h-4 w-4 items-center justify-center">
-                  {isLoading ? (
-                    <LoadingSpinner size="sm" color="text-white" />
-                  ) : (
-                    <Upload size={18} />
-                  )}
-                </span>
-                <span>{t("common.import")}</span>
-              </span>
-            </button>
-          </div>
+              {t("common.import")}
+            </Button>
+          </PanelFooterActions>
         }
       >
         <div className="es-form">
           <div className="es-field">
             <label className="es-label">{t("mcp.jsonConfig")}</label>
-            <textarea
+            <Textarea
               value={importJson}
               onChange={(e) => setImportJson(e.target.value)}
               rows={8}
@@ -630,36 +590,17 @@ export function MCPPanel() {
     }
   }
 }`}
-              className="glass-input es-textarea font-mono"
+              className="es-textarea font-mono"
             />
           </div>
 
           <div className="es-field">
             <label className="group flex cursor-pointer items-center gap-2.5 es-label rounded-lg px-1 py-1 transition-colors hover:bg-[var(--theme-primary-light)]/30">
-              <input
-                type="checkbox"
-                id="overwrite"
+              <Checkbox
+                size="sm"
                 checked={importOverwrite}
-                onChange={(e) => setImportOverwrite(e.target.checked)}
-                className="sr-only peer"
+                onChange={() => setImportOverwrite(!importOverwrite)}
               />
-              <div className="h-[18px] w-[18px] rounded-md border-2 border-[var(--theme-border)] flex items-center justify-center transition-all peer-checked:bg-amber-500 peer-checked:border-amber-500 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500/30">
-                {importOverwrite && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-              </div>
               {t("mcp.overwriteExisting")}
             </label>
           </div>

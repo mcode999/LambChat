@@ -9,7 +9,7 @@ import type {
   MCPRoleQuota,
   MCPTransport,
 } from "../../types";
-import { GlassSelect } from "../common/GlassSelect";
+import { Button, IconButton, Input, Select } from "../common";
 import { EnvKeysSelector } from "./EnvKeysSelector";
 import { MCPToolPolicyEditor } from "./MCPToolPolicyEditor";
 import { RoleSelector } from "./RoleSelector";
@@ -288,13 +288,14 @@ export function MCPServerForm({
       {/* Name */}
       <div className="es-field">
         <label className="es-label">{t("mcp.form.serverName")}</label>
-        <input
+        <Input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           disabled={isEditing}
           placeholder={t("mcp.form.serverNamePlaceholder")}
-          className={`glass-input es-input transition-colors ${
+          error={Boolean(errors.name)}
+          className={`es-input transition-colors ${
             errors.name ? "!border-red-300 dark:!border-red-700" : ""
           }`}
         />
@@ -311,7 +312,7 @@ export function MCPServerForm({
       {/* Transport Type */}
       <div className="es-field">
         <label className="es-label">{t("mcp.form.transportType")}</label>
-        <GlassSelect
+        <Select
           value={transport}
           onChange={(v) => setTransport(v as MCPTransport)}
           options={availableTransports.map((tr) => ({
@@ -380,7 +381,7 @@ export function MCPServerForm({
                         <label className="es-label">
                           {t("mcp.form.dailyLimit")}
                         </label>
-                        <input
+                        <Input
                           type="number"
                           min="0"
                           value={quota.daily_limit}
@@ -388,14 +389,14 @@ export function MCPServerForm({
                             updateRoleQuota(role, "daily_limit", e.target.value)
                           }
                           placeholder={t("mcp.form.unlimited")}
-                          className="glass-input es-input px-3 tabular-nums"
+                          className="es-input px-3 tabular-nums"
                         />
                       </div>
                       <div className="es-field">
                         <label className="es-label">
                           {t("mcp.form.weeklyLimit")}
                         </label>
-                        <input
+                        <Input
                           type="number"
                           min="0"
                           value={quota.weekly_limit}
@@ -407,7 +408,7 @@ export function MCPServerForm({
                             )
                           }
                           placeholder={t("mcp.form.unlimited")}
-                          className="glass-input es-input px-3 tabular-nums"
+                          className="es-input px-3 tabular-nums"
                         />
                       </div>
                     </div>
@@ -436,12 +437,13 @@ export function MCPServerForm({
           {/* Command */}
           <div className="es-field">
             <label className="es-label">{t("mcp.form.command")}</label>
-            <input
+            <Input
               type="text"
               value={command}
               onChange={(e) => setCommand(e.target.value)}
               placeholder={t("mcp.form.commandPlaceholder")}
-              className={`glass-input es-input font-mono transition-colors ${
+              error={Boolean(errors.command)}
+              className={`es-input font-mono transition-colors ${
                 errors.command ? "!border-red-300 dark:!border-red-700" : ""
               }`}
             />
@@ -467,12 +469,13 @@ export function MCPServerForm({
           {/* URL field */}
           <div className="es-field">
             <label className="es-label">{t("mcp.form.url")}</label>
-            <input
+            <Input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder={t("mcp.form.urlPlaceholder")}
-              className={`glass-input es-input font-mono transition-colors ${
+              error={Boolean(errors.url)}
+              className={`es-input font-mono transition-colors ${
                 errors.url ? "!border-red-300 dark:!border-red-700" : ""
               }`}
             />
@@ -487,43 +490,44 @@ export function MCPServerForm({
           <div className="es-field">
             <div className="flex items-center justify-between">
               <label className="es-label">{t("mcp.form.httpHeaders")}</label>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 type="button"
                 onClick={addHeader}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-stone-500 hover:bg-stone-100 hover:text-stone-700 dark:text-stone-400 dark:hover:bg-stone-700 dark:hover:text-stone-200 transition-colors"
+                className="text-[11px] text-stone-500 hover:bg-stone-100 hover:text-stone-700 dark:text-stone-400 dark:hover:bg-stone-700 dark:hover:text-stone-200"
               >
                 <Plus size={12} />
                 {t("mcp.form.add")}
-              </button>
+              </Button>
             </div>
             <div className="space-y-2 mt-1">
               {headers.map((header) => (
                 <div key={header.id} className="flex gap-1.5">
-                  <input
+                  <Input
                     type="text"
                     value={header.key}
                     onChange={(e) =>
                       updateHeader(header.id, "key", e.target.value)
                     }
                     placeholder={t("mcp.form.headerNamePlaceholder")}
-                    className="glass-input es-input font-mono"
+                    className="es-input font-mono"
                   />
-                  <input
+                  <Input
                     type="text"
                     value={header.value}
                     onChange={(e) =>
                       updateHeader(header.id, "value", e.target.value)
                     }
                     placeholder={t("mcp.form.valuePlaceholder")}
-                    className="glass-input es-input font-mono"
+                    className="es-input font-mono"
                   />
-                  <button
-                    type="button"
+                  <IconButton
+                    aria-label={t("common.delete")}
+                    icon={<Trash2 size={14} />}
                     onClick={() => removeHeader(header.id)}
-                    className="btn-icon rounded-lg flex-shrink-0 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                    className="flex-shrink-0 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+                  />
                 </div>
               ))}
               {headers.length === 0 && (
@@ -537,18 +541,19 @@ export function MCPServerForm({
       {/* Actions */}
       <div className="es-divider" />
       <div className="flex justify-end gap-2">
-        <button
+        <Button
+          variant="secondary"
           type="button"
           onClick={onCancel}
           disabled={isLoading}
-          className="btn-secondary"
         >
           {t("mcp.form.cancel")}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="primary"
           type="submit"
           disabled={isLoading}
-          className="btn-primary disabled:opacity-50 min-w-[80px]"
+          className="min-w-[80px]"
         >
           {isLoading ? (
             <span className="inline-flex items-center gap-1.5">
@@ -560,7 +565,7 @@ export function MCPServerForm({
           ) : (
             t("mcp.form.createServer")
           )}
-        </button>
+        </Button>
       </div>
     </form>
   );

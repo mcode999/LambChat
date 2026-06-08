@@ -14,7 +14,7 @@ import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import type { PendingApproval, FormField } from "../../types";
 import { Checkbox } from "../common/Checkbox";
-import { GlassSelect } from "../common/GlassSelect";
+import { Input, Select, Textarea } from "../common";
 import { authFetch } from "../../services/api/fetch";
 import { buildApiUrl } from "../../services/api/config";
 import { parseDate } from "../../utils/datetime";
@@ -59,7 +59,7 @@ function FormFieldRenderer({
   switch (field.type) {
     case "text":
       return (
-        <input
+        <Input
           type="text"
           value={(value as string) ?? ""}
           onChange={(e) => {
@@ -74,7 +74,7 @@ function FormFieldRenderer({
       );
     case "textarea":
       return (
-        <textarea
+        <Textarea
           value={(value as string) ?? ""}
           onChange={(e) => {
             interact();
@@ -89,7 +89,7 @@ function FormFieldRenderer({
       );
     case "number":
       return (
-        <input
+        <Input
           type="number"
           value={(value as number) ?? ""}
           onChange={(e) => {
@@ -123,7 +123,7 @@ function FormFieldRenderer({
       );
     case "select":
       return (
-        <GlassSelect
+        <Select
           value={(value as string) ?? ""}
           onChange={(v) => {
             interact();
@@ -131,6 +131,7 @@ function FormFieldRenderer({
           }}
           disabled={disabled}
           className="w-full"
+          triggerClassName={cls}
           placeholder={field.placeholder || t("approvals.selectOption")}
           options={[
             ...(field.placeholder

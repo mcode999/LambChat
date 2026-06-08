@@ -5,6 +5,8 @@ import { ModelPanelSkeleton } from "../../../skeletons";
 import { RoleSelector } from "../../AgentPanel/shared/RoleSelector";
 import { ModelIconImg } from "../../../agent/modelIcon.tsx";
 import { Checkbox } from "../../../common/Checkbox";
+import { Button } from "../../../common";
+import { EmptyState } from "../../../common/EmptyState";
 import type { ModelOption } from "../../../../services/api/model";
 import type { Role } from "../../../../types";
 
@@ -61,15 +63,11 @@ export function RolesModelTab({
 
   if (availableModels.length === 0) {
     return (
-      <div className="skill-empty-state">
-        <Cpu size={28} className="skill-empty-state__icon" />
-        <p className="skill-empty-state__title">
-          {t("agentConfig.noModelsConfigured")}
-        </p>
-        <p className="skill-empty-state__description">
-          {t("agentConfig.noModelsConfiguredHint")}
-        </p>
-      </div>
+      <EmptyState
+        icon={<Cpu size={28} />}
+        title={t("agentConfig.noModelsConfigured")}
+        description={t("agentConfig.noModelsConfiguredHint")}
+      />
     );
   }
 
@@ -243,14 +241,15 @@ export function RolesModelTab({
 
           {hasChanges && (
             <div className="flex items-center justify-end">
-              <button
+              <Button
+                variant="primary"
                 onClick={handleSave}
-                disabled={isSaving}
-                className="btn-primary flex items-center gap-2 px-5 py-2.5 text-sm disabled:opacity-50"
+                loading={isSaving}
+                leftIcon={<Save size={16} />}
+                className="px-5 py-2.5 text-sm"
               >
-                <Save size={16} />
                 {t("common.save")}
-              </button>
+              </Button>
             </div>
           )}
         </>

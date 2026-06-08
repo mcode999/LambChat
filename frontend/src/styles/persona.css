@@ -547,7 +547,7 @@
   z-index: 20;
   border-radius: 0.75rem;
   border: 1px solid var(--theme-border);
-  background: color-mix(in srgb, var(--theme-bg-card) 85%, transparent);
+  background: var(--theme-bg-card);
   box-shadow:
     0 20px 25px -5px rgba(0, 0, 0, 0.1),
     0 8px 10px -6px rgba(0, 0, 0, 0.08);
@@ -556,7 +556,7 @@
 }
 
 .dark .ppe-skill-dropdown {
-  background: color-mix(in srgb, var(--theme-bg-card) 80%, transparent);
+  background: var(--theme-bg-card);
   box-shadow:
     0 20px 25px -5px rgba(0, 0, 0, 0.5),
     0 8px 10px -6px rgba(0, 0, 0, 0.35);
@@ -843,6 +843,59 @@
 
 .dark .ppe-skill-option:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Keyboard navigation active state --- */
+.ppe-skill-option--active {
+  background: color-mix(in srgb, var(--theme-primary) 8%, var(--theme-bg-card));
+  border-color: color-mix(
+    in srgb,
+    var(--theme-primary) 22%,
+    var(--theme-border)
+  );
+  box-shadow:
+    0 2px 8px -2px color-mix(in srgb, var(--theme-primary) 10%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--theme-primary) 8%, transparent);
+}
+
+.dark .ppe-skill-option--active {
+  background: color-mix(
+    in srgb,
+    var(--theme-primary) 12%,
+    var(--theme-bg-card)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--theme-primary) 28%,
+    var(--theme-border)
+  );
+  box-shadow:
+    0 2px 8px -2px color-mix(in srgb, var(--theme-primary) 15%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--theme-primary) 12%, transparent);
+}
+
+.ppe-skill-option--active:not(.ppe-skill-option--selected)
+  .ppe-skill-option__check-ring {
+  border-color: color-mix(
+    in srgb,
+    var(--theme-primary) 35%,
+    var(--theme-border)
+  );
+}
+
+.ppe-skill-option--active:not(.ppe-skill-option--selected)
+  .ppe-skill-option__plus-icon {
+  opacity: 0.9;
+  color: var(--theme-primary);
+}
+
+.ppe-skill-option--active .ppe-skill-option__accent {
+  opacity: 0.8;
+}
+
+.ppe-skill-option--selected.ppe-skill-option--active {
+  background: color-mix(in srgb, var(--theme-primary) 9%, var(--theme-bg-card));
+  border-color: color-mix(in srgb, var(--theme-primary) 26%, transparent);
 }
 
 .ppe-skill-option:active {

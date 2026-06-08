@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Cpu, AlertCircle, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import { Button } from "../../common";
 import { PanelHeader } from "../../common/PanelHeader";
 import { PanelLoadingState } from "../../common/PanelLoadingState";
 import { agentConfigApi, roleApi, modelApi } from "../../../services/api";
@@ -172,16 +173,15 @@ export function ModelPanel() {
         subtitle={t("agentConfig.modelConfigDescription")}
         icon={<Cpu size={24} className="text-stone-600 dark:text-stone-400" />}
         actions={
-          <button
+          <Button
             onClick={handleRefresh}
-            className="btn-secondary flex items-center gap-2 px-3 py-2 sm:px-3 sm:py-1.5"
+            leftIcon={<RefreshCw size={16} />}
             aria-label={t("common.refresh")}
           >
-            <RefreshCw size={16} />
             <span className="hidden sm:inline text-sm">
               {t("common.refresh")}
             </span>
-          </button>
+          </Button>
         }
       />
 

@@ -48,7 +48,7 @@ export function DeleteProjectDialog({
   return createPortal(
     <div
       data-yields-sidebar
-      className="fixed inset-0 z-[300] flex items-center justify-center"
+      className="safe-area-viewport-padding fixed inset-0 z-[300] flex items-center justify-center"
     >
       <div
         className="absolute inset-0 bg-black/50"

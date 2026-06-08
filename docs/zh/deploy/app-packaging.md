@@ -100,11 +100,12 @@ Android 构建需要 JDK 和 Android SDK。iOS 构建需要 macOS、Xcode 和 Co
 
 Release 里只上传有实际发布意义的文件：
 
-- Windows：`.msi`
-- macOS：`.dmg`
-- Linux：`.deb`
+- Windows：`.msi` 安装包、`-Portable.zip` 绿色版
+- macOS：`.dmg` 安装包、`.zip` 解压版
+- Linux x86_64：`.AppImage`、`.deb`、`.rpm`
+- Linux ARM64：`.AppImage`、`.deb`、`.rpm`
 - Android：配置签名后上传 signed `.apk`；未配置签名时上传 debug `.apk`
-- iOS：当前只在 workflow 里做工程构建检查，不上传 unsigned archive 或不可安装文件
+- iOS：上传一个新版 iOS unsigned `.xcarchive.zip` 供签名或后续导出使用，使用当前 Capacitor 7，最低 iOS 14
 
 Android 需要配置以下 Secrets 才会上传 signed APK：
 
@@ -117,14 +118,15 @@ ANDROID_KEY_PASSWORD
 
 如果未配置 Android 签名，Android job 会跳过签名验证，把 Gradle 生成的 debug APK 上传到 Release；不会上传 release unsigned APK。
 
-如需 iOS 可安装 `.ipa`，需要再配置 Apple 证书、provisioning profile 和导出参数；在此之前不会上传 unsigned `.xcarchive.zip`。
+如需 iOS 可安装 `.ipa`，需要再配置 Apple 证书、provisioning profile 和导出参数；当前上传的是 unsigned archive，不能直接安装。
 
 ## Windows 用户下载
 
 发布完成后进入 GitHub 仓库的 `Releases` 页面，下载名称类似下面的文件：
 
 ```text
-LambChat-windows-v2.5.0-app-*.msi
+LambChat-v2.5.0-app-Windows.msi
+LambChat-v2.5.0-app-Windows-Portable.zip
 ```
 
-这个 `.msi` 就是 Windows 安装包。其他平台文件无需下载。
+Windows 用户通常下载 `.msi` 安装包；如果想免安装使用，下载 `-Portable.zip`。

@@ -60,20 +60,24 @@ def _admin_user() -> TokenPayload:
     )
 
 
-def test_create_persona_preset_description_guides_team_role_creation() -> None:
+def test_save_persona_preset_description_guides_create_and_update() -> None:
     from src.infra.tool import persona_preset_tool
 
-    description = persona_preset_tool.create_persona_preset.description
-    create_fields = persona_preset_tool.create_persona_preset.args_schema.model_fields
+    tools = persona_preset_tool.get_persona_preset_tools()
+    description = persona_preset_tool.save_persona_preset.description
+    create_fields = persona_preset_tool.save_persona_preset.args_schema.model_fields
 
+    assert [tool.name for tool in tools] == ["save_persona_preset"]
+    assert "Create or update" in description
     assert "create_agent_team" in description
-    assert "no existing persona fits" in description.lower()
+    assert "preset_id" in description
+    assert "current_name" in description
     assert "emoji or avatar image URL" in create_fields["avatar"].description
-    assert "Always provide" in create_fields["avatar"].description
+    assert "Optional persona id to update" in create_fields["preset_id"].description
 
 
 @pytest.mark.asyncio
-async def test_create_persona_preset_offloads_result_json(
+async def test_save_persona_preset_creates_and_offloads_result_json(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from src.infra.tool import persona_preset_tool
@@ -102,7 +106,7 @@ async def test_create_persona_preset_offloads_result_json(
     )
 
     result = json.loads(
-        await persona_preset_tool.create_persona_preset.coroutine(
+        await persona_preset_tool.save_persona_preset.coroutine(
             name="动画师",
             system_prompt="Animate with care.",
             runtime=_Runtime("admin-1"),
@@ -114,7 +118,7 @@ async def test_create_persona_preset_offloads_result_json(
 
 
 @pytest.mark.asyncio
-async def test_create_persona_preset_offloads_error_result_json(
+async def test_save_persona_preset_offloads_error_result_json(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from src.infra.tool import persona_preset_tool
@@ -133,7 +137,7 @@ async def test_create_persona_preset_offloads_error_result_json(
     )
 
     result = json.loads(
-        await persona_preset_tool.create_persona_preset.coroutine(
+        await persona_preset_tool.save_persona_preset.coroutine(
             name="动画师",
             system_prompt="Animate with care.",
             runtime=_Runtime(None),
@@ -145,7 +149,7 @@ async def test_create_persona_preset_offloads_error_result_json(
 
 
 @pytest.mark.asyncio
-async def test_update_persona_preset_tool_promotes_named_user_preset_to_global(
+async def test_save_persona_preset_promotes_named_user_preset_to_global(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from src.infra.tool import persona_preset_tool
@@ -192,7 +196,7 @@ async def test_update_persona_preset_tool_promotes_named_user_preset_to_global(
     )
 
     result = json.loads(
-        await persona_preset_tool.update_persona_preset.coroutine(
+        await persona_preset_tool.save_persona_preset.coroutine(
             current_name="动画师",
             scope="global",
             runtime=_Runtime("admin-1"),

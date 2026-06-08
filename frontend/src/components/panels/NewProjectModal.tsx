@@ -23,7 +23,7 @@ export function NewProjectModal({
   return createPortal(
     <div
       data-yields-sidebar
-      className="fixed inset-0 z-[300] flex items-center justify-center"
+      className="safe-area-viewport-padding fixed inset-0 z-[300] flex items-center justify-center"
     >
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white dark:bg-stone-800 rounded-xl shadow-2xl p-5 w-[90vw] max-w-md space-y-3">

@@ -32,6 +32,7 @@ import {
 } from "./shareDialogState";
 import { getTimeMs } from "../../utils/datetime";
 import { copyToClipboard } from "../../utils/clipboard";
+import { getFullUrl } from "../../services/api/config";
 
 interface ShareDialogProps {
   isOpen: boolean;
@@ -150,7 +151,8 @@ export function ShareDialog({
       });
 
       // Copy link to clipboard
-      const shareUrl = `${window.location.origin}${response.url}`;
+      const shareUrl =
+        getFullUrl(response.url) || `${window.location.origin}${response.url}`;
       await copyToClipboard(shareUrl);
       toast.success(t("share.linkCopied"));
 
@@ -165,7 +167,9 @@ export function ShareDialog({
   };
 
   const handleCopyLink = async (shareId: string) => {
-    const shareUrl = `${window.location.origin}/shared/${shareId}`;
+    const shareUrl =
+      getFullUrl(`/shared/${shareId}`) ||
+      `${window.location.origin}/shared/${shareId}`;
     await copyToClipboard(shareUrl);
     setCopiedId(shareId);
     toast.success(t("share.linkCopied"));
@@ -232,7 +236,7 @@ export function ShareDialog({
       {/* Dialog - bottom sheet on mobile, centered on desktop */}
       <div
         data-yields-sidebar
-        className="fixed inset-0 z-[300] flex items-end sm:items-center sm:justify-center sm:pointer-events-none"
+        className="safe-area-viewport-padding fixed inset-0 z-[300] flex items-end sm:items-center sm:justify-center sm:pointer-events-none"
       >
         <div
           ref={swipeRef as React.RefObject<HTMLDivElement>}

@@ -188,6 +188,18 @@ async def list_sessions(
     }
 
 
+@router.post("/mark-all-read")
+async def mark_all_sessions_read(
+    project_id: Optional[str] = Query(None),
+    scheduled_task_id: Optional[str] = Query(None),
+    user: TokenPayload = Depends(get_current_user_required),
+):
+    """批量将会话标记为已读，支持按项目或定时任务过滤。"""
+    manager = SessionManager()
+    modified_count = await manager.mark_all_read(user.sub, project_id, scheduled_task_id)
+    return {"status": "ok", "modified_count": modified_count}
+
+
 @router.post("", response_model=Session)
 async def create_session(
     session_data: SessionCreate,

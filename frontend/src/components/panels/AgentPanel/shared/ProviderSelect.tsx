@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { Input, PickerTrigger } from "../../../common";
 import { ModelIconImg } from "../../../agent/modelIcon.tsx";
 import { modelApi } from "../../../../services/api/model";
 import { PROVIDER_LABELS } from "./providerLabels";
@@ -83,54 +84,39 @@ export const ProviderSelect = React.memo(function ProviderSelect({
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {/* Trigger */}
-      <button
-        type="button"
+      <PickerTrigger
         onClick={() => setOpen(!open)}
-        className="glass-input w-full flex items-center justify-between gap-2 px-3.5 py-2.5 text-sm text-left dark:text-stone-100 cursor-pointer"
+        open={open}
+        selected={!!selected}
       >
-        <span className="flex items-center gap-2 min-w-0">
-          {selected ? (
-            <ModelIconImg model={selected} provider={selected} size={18} />
-          ) : (
-            <div className="w-[18px] h-[18px] flex items-center justify-center rounded-full bg-stone-200 dark:bg-stone-600">
-              <span className="text-[10px] font-bold text-stone-500 dark:text-stone-300">
-                ?
-              </span>
-            </div>
-          )}
-          <span
-            className={selected ? "" : "text-stone-400 dark:text-stone-500"}
-          >
-            {selected ? label(selected) : placeholder}
-          </span>
+        {selected ? (
+          <ModelIconImg model={selected} provider={selected} size={18} />
+        ) : (
+          <div className="w-[18px] h-[18px] flex items-center justify-center rounded-full bg-stone-200 dark:bg-stone-600">
+            <span className="text-[10px] font-bold text-stone-500 dark:text-stone-300">
+              ?
+            </span>
+          </div>
+        )}
+        <span className="truncate">
+          {selected ? label(selected) : placeholder}
         </span>
-        <ChevronDown
-          size={14}
-          className={`text-stone-400 shrink-0 transition-transform duration-200 ${
-            open ? "rotate-180" : ""
-          }`}
-        />
-      </button>
+      </PickerTrigger>
 
       {/* Dropdown */}
       {open && (
         <div className="absolute left-0 top-full z-50 mt-1.5 w-full rounded-xl bg-white dark:bg-stone-800 shadow-lg border border-[var(--glass-border)] overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
           {/* Search input */}
           <div className="px-3 pt-2.5 pb-2">
-            <div className="relative">
-              <Search
-                size={14}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400"
-              />
-              <input
-                ref={searchRef}
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t("common.search", "搜索...")}
-                className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg bg-stone-50 dark:bg-stone-700/60 border border-stone-200/60 dark:border-stone-600/40 text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:border-stone-400 dark:focus:border-stone-500"
-              />
-            </div>
+            <Input
+              ref={searchRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("common.search", "搜索...")}
+              leadingIcon={<Search size={14} />}
+              className="py-1.5 text-sm"
+            />
           </div>
 
           {/* Provider list */}

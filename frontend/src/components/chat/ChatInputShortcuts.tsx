@@ -49,7 +49,7 @@ export function ShortcutDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className="safe-area-viewport-padding fixed inset-0 z-[100] flex items-center justify-center"
       onClick={onClose}
     >
       <div

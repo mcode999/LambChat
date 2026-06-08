@@ -176,7 +176,7 @@ export function ProfileModal({
   return createPortal(
     <div
       data-yields-sidebar
-      className="fixed inset-0 z-[300] flex items-end sm:items-center sm:justify-center"
+      className="safe-area-viewport-padding fixed inset-0 z-[300] flex items-end sm:items-center sm:justify-center"
       onClick={() => onCloseProfileModal()}
     >
       {/* Backdrop */}
@@ -247,9 +247,7 @@ export function ProfileModal({
         </div>
 
         {/* Footer */}
-        {renderFooter(
-          "safe-area-bottom [--safe-area-bottom-extra:0.625rem] sm:[--safe-area-bottom-extra:0.75rem]",
-        )}
+        {renderFooter()}
       </div>
 
       {/* ===== Desktop: centered with sidebar ===== */}

@@ -56,7 +56,7 @@ export function getWelcomePersonaCardClass(_index: number): string {
 export function getWelcomePersonaSkeletonCount(
   isLoading = false,
   visibleCount = 0,
-  skeletonCount = 4,
+  skeletonCount = 12,
 ): number {
   return isLoading && visibleCount === 0 ? skeletonCount : 0;
 }

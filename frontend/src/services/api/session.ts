@@ -388,6 +388,24 @@ export const sessionApi = {
     });
   },
 
+  /**
+   * Mark all sessions as read, optionally filtered by project or scheduled task.
+   */
+  async markAllRead(opts?: {
+    projectId?: string;
+    scheduledTaskId?: string;
+  }): Promise<{ status: string; modified_count: number }> {
+    const params = new URLSearchParams();
+    if (opts?.projectId) params.set("project_id", opts.projectId);
+    if (opts?.scheduledTaskId)
+      params.set("scheduled_task_id", opts.scheduledTaskId);
+    const qs = params.toString();
+    return authFetch(
+      `${API_BASE}/api/sessions/mark-all-read${qs ? `?${qs}` : ""}`,
+      { method: "POST" },
+    );
+  },
+
   async forkMessage(
     sessionId: string,
     messageId: string,

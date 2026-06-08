@@ -52,6 +52,32 @@ test("keeps asking Virtuoso to scroll until the scroller reaches the bottom", as
   });
 });
 
+test("forces the physical scroller during a preferred bottom lock even when Virtuoso is mounted", async () => {
+  const scroller = {
+    scrollTop: 0,
+    clientHeight: 100,
+    scrollHeight: 500,
+  };
+  const virtuoso = {
+    scrollTo: () => {
+      scroller.scrollTop = 0;
+    },
+  };
+
+  const stop = startVirtuosoScrollToBottom({
+    virtuoso,
+    scroller,
+    preferPhysicalBottom: true,
+    intervalMs: 1,
+    maxAttempts: 1,
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  stop();
+
+  assert.equal(scroller.scrollTop, scroller.scrollHeight);
+});
+
 test("initializes history at the bottom edge of the latest message", () => {
   assert.deepEqual(getInitialBottomItemLocation(3), {
     index: 2,
@@ -157,7 +183,7 @@ test("forces the physical bottom by scrolling the footer sentinel into view", ()
   assert.equal(scroller.scrollTop, scroller.scrollHeight);
 });
 
-test("keeps bottom-lock inside Virtuoso when a virtual list handle is available", async () => {
+test("keeps Virtuoso synced while physically pinning the scroller during a bottom lock", async () => {
   let scrollToIndexCalls = 0;
   let footerCalls = 0;
   const scroller = {
@@ -192,7 +218,7 @@ test("keeps bottom-lock inside Virtuoso when a virtual list handle is available"
 
   assert.ok(scrollToIndexCalls > 0);
   assert.equal(footerCalls, 0);
-  assert.equal(scroller.scrollTop, 0);
+  assert.equal(scroller.scrollTop, scroller.scrollHeight);
 });
 
 test("treats a top jump right after bottom-locking as recoverable", () => {

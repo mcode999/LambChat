@@ -6,8 +6,14 @@
 .welcome-root {
   overflow: hidden;
   justify-content: safe center;
-  padding-top: max(0.5rem, env(safe-area-inset-top));
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  padding-top: max(
+    0.5rem,
+    var(--app-safe-area-top-active, var(--app-safe-area-top, 0px))
+  );
+  padding-bottom: max(
+    0.75rem,
+    var(--app-safe-area-bottom-active, var(--app-safe-area-bottom, 0px))
+  );
   gap: clamp(0.25rem, 1vh, 0.75rem);
 }
 
@@ -474,7 +480,11 @@
     justify-content: safe center;
     gap: 0.25rem;
     overflow: hidden;
-    padding: 0.5rem 0.75rem max(0.5rem, env(safe-area-inset-bottom));
+    padding: 0.5rem 0.75rem
+      max(
+        0.5rem,
+        var(--app-safe-area-bottom-active, var(--app-safe-area-bottom, 0px))
+      );
   }
 
   html[data-mobile-keyboard="true"] .welcome-input {

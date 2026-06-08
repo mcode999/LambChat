@@ -81,3 +81,16 @@ test("explicit close button reports a user close before closing the panel", () =
     "keyboard and swipe close paths should use the same user-close handler",
   );
 });
+
+test("tool result overlay reserves vertical safe-area spacing", () => {
+  const componentSource = readFileSync(
+    new URL("../ToolResultPanel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    componentSource,
+    /className=\{`safe-area-viewport-padding fixed inset-0 z-\[200\] flex flex-col/,
+    "tool result overlay should keep sidebar, center, and fullscreen panels inside vertical safe areas",
+  );
+});

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { APP_NAME } from "../constants";
+import { getFullUrl } from "../services/api/config";
 
 const DEFAULT_DESCRIPTION_KEY = "seo.defaultDescription";
 
@@ -99,7 +100,7 @@ export function useSEO(config: SEOConfig) {
     setMetaContent('meta[name="twitter:description"]', desc);
 
     if (path) {
-      const url = `${window.location.origin}${path}`;
+      const url = getFullUrl(path) || `${window.location.origin}${path}`;
       setOrCreateMeta("property", "og:url", url);
       setOrCreateLink("canonical", url);
     }
