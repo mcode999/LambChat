@@ -31,6 +31,42 @@ interface ModelConfigTabProps {
 
 function renderModelTags(model: ModelConfig, compact: boolean) {
   const tags: React.ReactNode[] = [];
+  if (model.profile?.supports_vision) {
+    tags.push(
+      <span
+        key="vision"
+        className={`glass-tag glass-tag--accent ${
+          compact ? "text-[10px]" : "text-xs"
+        }`}
+      >
+        Vision
+      </span>,
+    );
+  }
+  if (model.profile?.image_generation?.supports_generation) {
+    tags.push(
+      <span
+        key="image"
+        className={`glass-tag glass-tag--accent ${
+          compact ? "text-[10px]" : "text-xs"
+        }`}
+      >
+        Image
+      </span>,
+    );
+  }
+  if (model.profile?.image_generation?.supports_edit) {
+    tags.push(
+      <span
+        key="edit"
+        className={`glass-tag glass-tag--accent ${
+          compact ? "text-[10px]" : "text-xs"
+        }`}
+      >
+        Edit
+      </span>,
+    );
+  }
   if (model.provider) {
     tags.push(
       <span
@@ -106,6 +142,20 @@ function renderModelTags(model: ModelConfig, compact: boolean) {
   return tags;
 }
 
+function renderModelCapabilityPills(model: ModelConfig) {
+  const labels = [
+    model.profile?.supports_vision ? "Vision" : null,
+    model.profile?.image_generation?.supports_generation ? "Image" : null,
+    model.profile?.image_generation?.supports_edit ? "Edit" : null,
+  ].filter((label): label is string => Boolean(label));
+
+  return labels.map((label) => (
+    <span key={label} className="glass-pill text-[10px] px-1.5 py-0.5">
+      {label}
+    </span>
+  ));
+}
+
 function modelHasTags(model: ModelConfig) {
   return !!(
     model.provider ||
@@ -113,7 +163,10 @@ function modelHasTags(model: ModelConfig) {
     model.api_base ||
     model.temperature != null ||
     model.max_tokens != null ||
-    model.profile?.max_input_tokens != null
+    model.profile?.max_input_tokens != null ||
+    model.profile?.supports_vision ||
+    model.profile?.image_generation?.supports_generation ||
+    model.profile?.image_generation?.supports_edit
   );
 }
 
@@ -172,6 +225,7 @@ const ModelCard = React.memo(function ModelCard({
 
   const hasTags = modelHasTags(model);
   const hasDetails = !!(model.description || hasTags);
+  const capabilityPills = renderModelCapabilityPills(model);
 
   const handleExpand = useCallback(() => {
     if (model.id) onToggleExpand(model.id);
@@ -212,6 +266,7 @@ const ModelCard = React.memo(function ModelCard({
             <h4 className="text-sm font-semibold text-stone-900 dark:text-stone-100 truncate">
               {model.label}
             </h4>
+            {capabilityPills}
             {!model.enabled && (
               <span className="glass-pill glass-pill--disabled text-[10px] px-2 py-0.5 flex-shrink-0">
                 {t("agentConfig.off")}
@@ -299,6 +354,7 @@ const ModelCard = React.memo(function ModelCard({
                     {t("agentConfig.disabled")}
                   </span>
                 )}
+                {capabilityPills}
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs font-mono text-stone-400 dark:text-stone-500 truncate">

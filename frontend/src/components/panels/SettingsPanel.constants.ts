@@ -40,5 +40,6 @@ export const TYPE_COLORS: Record<SettingType, string> = {
 
 export const MODEL_CONFIG_SETTING_KEYS = new Set([
   "DEFAULT_MODEL_ID",
+  "IMAGE_GENERATION_MODEL_ID",
   "NATIVE_MEMORY_COMPACTION_MODEL_ID",
 ]);

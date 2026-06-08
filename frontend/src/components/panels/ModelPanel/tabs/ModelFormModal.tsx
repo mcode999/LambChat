@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Eye, EyeOff, Save, Plus, Pencil } from "lucide-react";
+import { Eye, EyeOff, FileJson2, Save, Plus, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { Checkbox } from "../../../common/Checkbox";
@@ -10,16 +10,20 @@ import {
   Input,
   PanelFooterActions,
   Select,
+  Textarea,
 } from "../../../common";
 import { ProviderSelect } from "../../AgentPanel/shared";
 import { modelApi } from "../../../../services/api/model";
 import type {
+  ImageGenerationProfile,
   ModelConfig,
   ModelConfigCreate,
   ModelConfigUpdate,
   ModelProfile,
   ProviderType,
 } from "../../../../services/api/model";
+import { ImageGenerationProviderHint } from "../../ImageGenerationSettingsHelper";
+import { IMAGE_GENERATION_PROFILE_TEMPLATES } from "../../imageGenerationSettingsHelperUtils";
 import { ModelIconSelect } from "./ModelIconSelect";
 
 interface ModelFormModalProps {
@@ -27,6 +31,71 @@ interface ModelFormModalProps {
   models: ModelConfig[];
   onClose: () => void;
   onSaved: () => void;
+}
+
+const IMAGE_PROVIDER_OPTIONS = [
+  {
+    value: "openai_images",
+    labelKey: "settings.imageGeneration.provider.openai_images",
+  },
+  {
+    value: "generic_openai_images",
+    labelKey: "settings.imageGeneration.provider.generic_openai_images",
+  },
+  {
+    value: "siliconflow",
+    labelKey: "settings.imageGeneration.provider.siliconflow",
+  },
+  { value: "custom", labelKey: "settings.imageGeneration.provider.custom" },
+];
+
+type ImageProfileTemplate =
+  (typeof IMAGE_GENERATION_PROFILE_TEMPLATES)[keyof typeof IMAGE_GENERATION_PROFILE_TEMPLATES];
+
+function formatStringList(value?: readonly string[]): string {
+  return value?.join("\n") ?? "";
+}
+
+function parseStringList(value: string): string[] | undefined {
+  const items = value
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : undefined;
+}
+
+function formatParameterMap(value?: Readonly<Record<string, string>>): string {
+  if (!value || Object.keys(value).length === 0) {
+    return "";
+  }
+  return JSON.stringify(value, null, 2);
+}
+
+function parseParameterMap(value: string): Record<string, string> | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const parsed: unknown = JSON.parse(trimmed);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("invalid");
+  }
+  const result: Record<string, string> = {};
+  for (const [key, rawValue] of Object.entries(parsed)) {
+    if (typeof rawValue !== "string") {
+      throw new Error("invalid");
+    }
+    const normalizedKey = key.trim();
+    const normalizedValue = rawValue.trim();
+    if (normalizedKey && normalizedValue) {
+      result[normalizedKey] = normalizedValue;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+function asNumber(value: string): number | undefined {
+  return value.trim() ? parseInt(value, 10) : undefined;
 }
 
 export const ModelFormModal = ({
@@ -57,6 +126,36 @@ export const ModelFormModal = ({
   const [formSupportsVision, setFormSupportsVision] = useState(
     Boolean(model?.profile?.supports_vision),
   );
+  const existingImageProfile = model?.profile?.image_generation;
+  const [formSupportsImageGeneration, setFormSupportsImageGeneration] =
+    useState(Boolean(existingImageProfile?.supports_generation));
+  const [formSupportsImageEdit, setFormSupportsImageEdit] = useState(
+    Boolean(existingImageProfile?.supports_edit),
+  );
+  const [formImageProvider, setFormImageProvider] = useState(
+    existingImageProfile?.provider || "openai_images",
+  );
+  const [formGenerationEndpoint, setFormGenerationEndpoint] = useState(
+    existingImageProfile?.generation_endpoint || "",
+  );
+  const [formEditEndpoint, setFormEditEndpoint] = useState(
+    existingImageProfile?.edit_endpoint || "",
+  );
+  const [formGenerationParameters, setFormGenerationParameters] = useState(
+    formatStringList(existingImageProfile?.supported_generation_parameters),
+  );
+  const [formEditParameters, setFormEditParameters] = useState(
+    formatStringList(existingImageProfile?.supported_edit_parameters),
+  );
+  const [formParameterMap, setFormParameterMap] = useState(
+    formatParameterMap(existingImageProfile?.parameter_map),
+  );
+  const [formImageMaxN, setFormImageMaxN] = useState(
+    existingImageProfile?.max_n?.toString() || "",
+  );
+  const [formMaxInputImages, setFormMaxInputImages] = useState(
+    existingImageProfile?.max_input_images?.toString() || "",
+  );
   const [formProvider, setFormProvider] = useState(model?.provider || "");
   const [formIcon, setFormIcon] = useState(model?.icon || "");
   const [formFallbackModel, setFormFallbackModel] = useState(
@@ -66,6 +165,28 @@ export const ModelFormModal = ({
   const [isSaving, setIsSaving] = useState(false);
 
   const isMaskedApiKey = (key: string) => key.includes("...") || key === "****";
+
+  const applyImageTemplate = useCallback(
+    (template: ImageProfileTemplate) => {
+      setFormSupportsImageGeneration(Boolean(template.supports_generation));
+      setFormSupportsImageEdit(Boolean(template.supports_edit));
+      setFormImageProvider(String(template.provider || "openai_images"));
+      setFormGenerationEndpoint(String(template.generation_endpoint || ""));
+      setFormEditEndpoint(String(template.edit_endpoint || ""));
+      setFormGenerationParameters(
+        formatStringList(template.supported_generation_parameters),
+      );
+      setFormEditParameters(
+        formatStringList(template.supported_edit_parameters),
+      );
+      setFormParameterMap(formatParameterMap(template.parameter_map));
+      setFormImageMaxN(template.max_n ? String(template.max_n) : "");
+      setFormMaxInputImages(
+        template.max_input_images ? String(template.max_input_images) : "",
+      );
+    },
+    [],
+  );
 
   const handleSave = useCallback(async () => {
     if (!formValue.trim() || !formLabel.trim()) {
@@ -80,9 +201,38 @@ export const ModelFormModal = ({
     const maxInputTokens = formMaxInputTokens
       ? parseInt(formMaxInputTokens, 10)
       : undefined;
+    const imageMaxN = asNumber(formImageMaxN);
+    const maxInputImages = asNumber(formMaxInputImages);
+    let parameterMap: Record<string, string> | undefined;
+    try {
+      parameterMap = parseParameterMap(formParameterMap);
+    } catch {
+      toast.error(t("agentConfig.invalidImageParameterMap"));
+      return;
+    }
+    const imageGenerationProfile: ImageGenerationProfile | undefined =
+      formSupportsImageGeneration
+        ? {
+            supports_generation: true,
+            supports_edit: formSupportsImageEdit,
+            provider: formImageProvider || undefined,
+            generation_endpoint: formGenerationEndpoint.trim() || undefined,
+            edit_endpoint: formEditEndpoint.trim() || undefined,
+            supported_generation_parameters: parseStringList(
+              formGenerationParameters,
+            ),
+            supported_edit_parameters: parseStringList(formEditParameters),
+            parameter_map: parameterMap,
+            max_n: imageMaxN,
+            max_input_images: maxInputImages,
+          }
+        : undefined;
     const profile: ModelProfile = {
       ...(maxInputTokens ? { max_input_tokens: maxInputTokens } : {}),
       supports_vision: formSupportsVision,
+      ...(imageGenerationProfile
+        ? { image_generation: imageGenerationProfile }
+        : {}),
     };
 
     if (
@@ -98,6 +248,17 @@ export const ModelFormModal = ({
     }
     if (formMaxInputTokens && isNaN(maxInputTokens!)) {
       toast.error(t("agentConfig.invalidMaxInputTokens"));
+      return;
+    }
+    if (formImageMaxN && (imageMaxN == null || isNaN(imageMaxN))) {
+      toast.error(t("agentConfig.invalidImageMaxN"));
+      return;
+    }
+    if (
+      formMaxInputImages &&
+      (maxInputImages == null || isNaN(maxInputImages))
+    ) {
+      toast.error(t("agentConfig.invalidMaxInputImages"));
       return;
     }
 
@@ -154,6 +315,16 @@ export const ModelFormModal = ({
     formMaxTokens,
     formMaxInputTokens,
     formSupportsVision,
+    formSupportsImageGeneration,
+    formSupportsImageEdit,
+    formImageProvider,
+    formGenerationEndpoint,
+    formEditEndpoint,
+    formGenerationParameters,
+    formEditParameters,
+    formParameterMap,
+    formImageMaxN,
+    formMaxInputImages,
     formProvider,
     formIcon,
     formFallbackModel,
@@ -380,6 +551,179 @@ export const ModelFormModal = ({
                 </span>
               </label>
             </div>
+            <div className="es-field">
+              <label className="flex items-start gap-2 text-sm text-theme-text cursor-pointer">
+                <Checkbox
+                  checked={formSupportsImageGeneration}
+                  onChange={() =>
+                    setFormSupportsImageGeneration((checked) => !checked)
+                  }
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block font-medium">
+                    {t("agentConfig.supportsImageGeneration")}
+                  </span>
+                  <span className="es-hint block">
+                    {t("agentConfig.supportsImageGenerationHint")}
+                  </span>
+                </span>
+              </label>
+            </div>
+            {formSupportsImageGeneration && (
+              <div
+                className="space-y-3 rounded-lg border p-3"
+                style={{ borderColor: "var(--glass-border)" }}
+              >
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {(
+                    [
+                      ["openai_images", IMAGE_GENERATION_PROFILE_TEMPLATES.openai_images],
+                      [
+                        "generic_openai_images",
+                        IMAGE_GENERATION_PROFILE_TEMPLATES.generic_openai_images,
+                      ],
+                      ["siliconflow", IMAGE_GENERATION_PROFILE_TEMPLATES.siliconflow],
+                    ] as const
+                  ).map(([key, template]) => (
+                    <Button
+                      key={key}
+                      size="sm"
+                      onClick={() => applyImageTemplate(template)}
+                      leftIcon={<FileJson2 size={13} />}
+                      className="px-2 py-1 text-xs"
+                    >
+                      {t(`settings.imageGeneration.provider.${key}`)}
+                    </Button>
+                  ))}
+                </div>
+                <div className="es-field">
+                  <label className="flex items-start gap-2 text-sm text-theme-text cursor-pointer">
+                    <Checkbox
+                      checked={formSupportsImageEdit}
+                      onChange={() =>
+                        setFormSupportsImageEdit((checked) => !checked)
+                      }
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block font-medium">
+                        {t("agentConfig.supportsImageEdit")}
+                      </span>
+                      <span className="es-hint block">
+                        {t("agentConfig.supportsImageEditHint")}
+                      </span>
+                    </span>
+                  </label>
+                </div>
+                <div className="es-field">
+                  <label className="es-label">
+                    {t("agentConfig.imageProvider")}
+                  </label>
+                  <Select
+                    value={formImageProvider}
+                    onChange={setFormImageProvider}
+                    options={IMAGE_PROVIDER_OPTIONS.map((option) => ({
+                      value: option.value,
+                      label: t(option.labelKey, {
+                        provider: option.value,
+                      }),
+                    }))}
+                  />
+                  <ImageGenerationProviderHint provider={formImageProvider} />
+                </div>
+                <div className="es-row es-row-2">
+                  <div className="es-field">
+                    <label className="es-label">
+                      {t("agentConfig.imageGenerationEndpoint")}
+                    </label>
+                    <Input
+                      type="text"
+                      value={formGenerationEndpoint}
+                      onChange={(e) => setFormGenerationEndpoint(e.target.value)}
+                      placeholder="/images/generations"
+                      className="es-input"
+                    />
+                  </div>
+                  <div className="es-field">
+                    <label className="es-label">
+                      {t("agentConfig.imageEditEndpoint")}
+                    </label>
+                    <Input
+                      type="text"
+                      value={formEditEndpoint}
+                      onChange={(e) => setFormEditEndpoint(e.target.value)}
+                      placeholder="/images/edits"
+                      className="es-input"
+                    />
+                  </div>
+                </div>
+                <div className="es-row es-row-2">
+                  <div className="es-field">
+                    <label className="es-label">
+                      {t("agentConfig.imageGenerationParameters")}
+                    </label>
+                    <Textarea
+                      value={formGenerationParameters}
+                      onChange={(e) => setFormGenerationParameters(e.target.value)}
+                      rows={4}
+                      className="es-input font-mono text-xs"
+                    />
+                  </div>
+                  <div className="es-field">
+                    <label className="es-label">
+                      {t("agentConfig.imageEditParameters")}
+                    </label>
+                    <Textarea
+                      value={formEditParameters}
+                      onChange={(e) => setFormEditParameters(e.target.value)}
+                      rows={4}
+                      className="es-input font-mono text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="es-field">
+                  <label className="es-label">
+                    {t("agentConfig.imageParameterMap")}
+                  </label>
+                  <Textarea
+                    value={formParameterMap}
+                    onChange={(e) => setFormParameterMap(e.target.value)}
+                    rows={4}
+                    placeholder='{"n":"batch_size"}'
+                    className="es-input font-mono text-xs"
+                  />
+                </div>
+                <div className="es-row es-row-2">
+                  <div className="es-field">
+                    <label className="es-label">
+                      {t("agentConfig.imageMaxN")}
+                    </label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={formImageMaxN}
+                      onChange={(e) => setFormImageMaxN(e.target.value)}
+                      placeholder="10"
+                      className="es-input"
+                    />
+                  </div>
+                  <div className="es-field">
+                    <label className="es-label">
+                      {t("agentConfig.maxInputImages")}
+                    </label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={formMaxInputImages}
+                      onChange={(e) => setFormMaxInputImages(e.target.value)}
+                      placeholder="16"
+                      className="es-input"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </details>
       </div>

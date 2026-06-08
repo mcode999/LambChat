@@ -4,7 +4,7 @@ import pytest
 from fastapi import HTTPException
 
 from src.api.routes.agent import model as model_routes
-from src.kernel.schemas.model import ModelConfig, ModelProfile
+from src.kernel.schemas.model import ImageGenerationProfile, ModelConfig, ModelProfile
 from src.kernel.schemas.user import TokenPayload
 
 
@@ -18,7 +18,15 @@ class _ModelStorage:
                 icon="qwen",
                 label="Allowed",
                 description="Visible",
-                profile=ModelProfile(supports_vision=True),
+                profile=ModelProfile(
+                    supports_vision=True,
+                    image_generation=ImageGenerationProfile(
+                        supports_generation=True,
+                        supports_edit=True,
+                        provider="openai_images",
+                        max_n=4,
+                    ),
+                ),
                 api_key="sk-secret-allowed",
                 api_base="https://api.example.test",
                 temperature=0.2,
@@ -177,7 +185,22 @@ async def test_list_available_models_returns_public_fields_only(
             "icon": "qwen",
             "label": "Allowed",
             "description": "Visible",
-            "profile": {"max_input_tokens": None, "supports_vision": True},
+            "profile": {
+                "max_input_tokens": None,
+                "supports_vision": True,
+                "image_generation": {
+                    "supports_generation": True,
+                    "supports_edit": True,
+                    "provider": "openai_images",
+                    "generation_endpoint": None,
+                    "edit_endpoint": None,
+                    "supported_generation_parameters": None,
+                    "supported_edit_parameters": None,
+                    "parameter_map": None,
+                    "max_n": 4,
+                    "max_input_images": None,
+                },
+            },
         }
     ]
     assert payload["default_model_id"] == "allowed-model"

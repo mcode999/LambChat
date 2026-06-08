@@ -116,6 +116,17 @@ class PreparedImagePayload:
     dropped_parameters: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class ImageRuntimeConfig:
+    """Resolved image API connection and provider profile for one tool call."""
+
+    api_key: str
+    base_url: str
+    model: str
+    profile: ImageProviderProfile
+    timeout: int
+
+
 _OPENAI_GENERATION_PARAMETERS = frozenset(
     {
         "model",
@@ -245,6 +256,11 @@ def _resolve_base_url() -> str:
 def _resolve_model() -> str:
     model = getattr(settings, "IMAGE_GENERATION_MODEL", "") or DEFAULT_IMAGE_GENERATION_MODEL
     return str(model).strip() or DEFAULT_IMAGE_GENERATION_MODEL
+
+
+def _resolve_model_config_id() -> str:
+    model_id = getattr(settings, "IMAGE_GENERATION_MODEL_ID", "") or ""
+    return str(model_id).strip()
 
 
 def _resolve_provider_name(provider: str | None = None) -> str:
@@ -467,6 +483,151 @@ def _resolve_provider_profile(provider_name: str, model: str) -> ImageProviderPr
         _select_model_override(_coerce_mapping(capabilities.get("models")), model),
     )
     return profile
+
+
+async def _load_image_generation_model_config(model_id: str) -> Any:
+    from src.infra.agent.model_storage import get_model_storage
+
+    return await get_model_storage().get(model_id)
+
+
+def _image_generation_profile_to_override(image_profile: Any) -> dict[str, Any]:
+    if image_profile is None:
+        return {}
+    if hasattr(image_profile, "model_dump"):
+        raw = image_profile.model_dump(exclude_none=True)
+    elif isinstance(image_profile, Mapping):
+        raw = dict(image_profile)
+    else:
+        raw = {
+            key: getattr(image_profile, key)
+            for key in (
+                "supports_edit",
+                "generation_endpoint",
+                "edit_endpoint",
+                "supported_generation_parameters",
+                "supported_edit_parameters",
+                "parameter_map",
+                "max_n",
+                "max_input_images",
+            )
+            if getattr(image_profile, key, None) is not None
+        }
+    raw.pop("supports_generation", None)
+    raw.pop("provider", None)
+    return raw
+
+
+def _image_generation_profile_value(image_profile: Any, key: str, default: Any = None) -> Any:
+    if image_profile is None:
+        return default
+    if isinstance(image_profile, Mapping):
+        return image_profile.get(key, default)
+    return getattr(image_profile, key, default)
+
+
+def _legacy_runtime_config(
+    *,
+    model: str | None,
+    provider: str | None,
+) -> tuple[ImageRuntimeConfig | None, str | None]:
+    api_key = getattr(settings, "IMAGE_GENERATION_API_KEY", "") or ""
+    if not api_key:
+        return None, "IMAGE_GENERATION_API_KEY is not configured"
+
+    resolved_model = _resolve_model_override(model)
+    provider_name = _resolve_provider_name(provider)
+    profile = _resolve_provider_profile(provider_name, resolved_model)
+    timeout = getattr(settings, "IMAGE_GENERATION_TIMEOUT", 120) or 120
+    return (
+        ImageRuntimeConfig(
+            api_key=str(api_key),
+            base_url=_resolve_base_url(),
+            model=resolved_model,
+            profile=profile,
+            timeout=int(timeout),
+        ),
+        None,
+    )
+
+
+async def _model_config_runtime_config(
+    *,
+    model_config_id: str,
+    operation: str,
+    model: str | None,
+    provider: str | None,
+) -> tuple[ImageRuntimeConfig | None, str | None]:
+    model_config = await _load_image_generation_model_config(model_config_id)
+    if model_config is None:
+        return None, f"Image generation model '{model_config_id}' was not found"
+    if not getattr(model_config, "enabled", False):
+        return None, f"Image generation model '{model_config_id}' is disabled"
+
+    profile = getattr(model_config, "profile", None)
+    image_profile = getattr(profile, "image_generation", None) if profile is not None else None
+    if image_profile is None:
+        return None, f"Image generation model '{model_config_id}' is not configured for images"
+
+    supports_generation = _coerce_bool(
+        _image_generation_profile_value(image_profile, "supports_generation"),
+        False,
+    )
+    if not supports_generation:
+        return None, f"Image generation model '{model_config_id}' does not support image generation"
+
+    if operation == "edit":
+        supports_edit = _coerce_bool(
+            _image_generation_profile_value(image_profile, "supports_edit"),
+            False,
+        )
+        if not supports_edit:
+            return None, f"Image generation model '{model_config_id}' does not support image edits"
+
+    api_key = getattr(model_config, "api_key", "") or ""
+    if not api_key:
+        return None, f"Image generation model '{model_config_id}' API key is not configured"
+
+    resolved_model = (
+        str(model).strip() if model and str(model).strip() else str(model_config.value).strip()
+    )
+    provider_name = _resolve_provider_name(
+        provider or _image_generation_profile_value(image_profile, "provider")
+    )
+    provider_profile = _resolve_provider_profile(provider_name, resolved_model)
+    provider_profile = _merge_profile(
+        provider_profile,
+        _image_generation_profile_to_override(image_profile),
+    )
+    timeout = getattr(settings, "IMAGE_GENERATION_TIMEOUT", 120) or 120
+    base_url = str(getattr(model_config, "api_base", "") or _resolve_base_url()).rstrip("/")
+    return (
+        ImageRuntimeConfig(
+            api_key=str(api_key),
+            base_url=base_url,
+            model=resolved_model or DEFAULT_IMAGE_GENERATION_MODEL,
+            profile=provider_profile,
+            timeout=int(timeout),
+        ),
+        None,
+    )
+
+
+async def _resolve_image_runtime_config(
+    *,
+    operation: str,
+    model: str | None,
+    provider: str | None,
+) -> tuple[ImageRuntimeConfig | None, str | None]:
+    model_config_id = _resolve_model_config_id()
+    if model_config_id:
+        return await _model_config_runtime_config(
+            model_config_id=model_config_id,
+            operation=operation,
+            model=model,
+            provider=provider,
+        )
+    return _legacy_runtime_config(model=model, provider=provider)
 
 
 def _join_api_url(base_url: str, endpoint: str) -> str:
@@ -823,19 +984,22 @@ async def _call_generation_api(
     extra_options: Mapping[str, Any] | None,
     runtime: ToolRuntime | None,
 ) -> dict[str, Any]:
-    api_key = getattr(settings, "IMAGE_GENERATION_API_KEY", "") or ""
-    if not api_key:
-        return {"error": "IMAGE_GENERATION_API_KEY is not configured"}
+    runtime_config, error = await _resolve_image_runtime_config(
+        operation="generation",
+        model=model,
+        provider=provider,
+    )
+    if error:
+        return {"error": error}
+    if runtime_config is None:
+        return {"error": "Image generation runtime configuration could not be resolved"}
 
-    base_url = _resolve_base_url()
-    resolved_model = _resolve_model_override(model)
-    provider_name = _resolve_provider_name(provider)
-    profile = _resolve_provider_profile(provider_name, resolved_model)
-    timeout = getattr(settings, "IMAGE_GENERATION_TIMEOUT", 120) or 120
+    resolved_model = runtime_config.model
+    profile = runtime_config.profile
     user_id = get_user_id_from_runtime(runtime) or "anonymous"
 
     headers = {
-        "Authorization": f"Bearer {api_key}",
+        "Authorization": f"Bearer {runtime_config.api_key}",
     }
     canonical: dict[str, Any] = {
         "model": resolved_model,
@@ -858,10 +1022,10 @@ async def _call_generation_api(
         extra_options=extra_options,
     )
 
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    async with httpx.AsyncClient(timeout=runtime_config.timeout) as client:
         body = await _post_image_api_with_retries(
             client,
-            _join_api_url(base_url, profile.generation_endpoint),
+            _join_api_url(runtime_config.base_url, profile.generation_endpoint),
             operation="generation",
             headers=headers,
             json=prepared.payload,
@@ -918,18 +1082,21 @@ async def _call_edit_api(
     extra_options: Mapping[str, Any] | None,
     runtime: ToolRuntime | None,
 ) -> dict[str, Any]:
-    api_key = getattr(settings, "IMAGE_GENERATION_API_KEY", "") or ""
-    if not api_key:
-        return {"error": "IMAGE_GENERATION_API_KEY is not configured"}
+    runtime_config, error = await _resolve_image_runtime_config(
+        operation="edit",
+        model=model,
+        provider=provider,
+    )
+    if error:
+        return {"error": error}
+    if runtime_config is None:
+        return {"error": "Image generation runtime configuration could not be resolved"}
 
-    base_url = _resolve_base_url()
-    resolved_model = _resolve_model_override(model)
-    provider_name = _resolve_provider_name(provider)
-    profile = _resolve_provider_profile(provider_name, resolved_model)
+    resolved_model = runtime_config.model
+    profile = runtime_config.profile
     if not profile.supports_edit or not profile.edit_endpoint:
         return {"error": f"Image provider '{profile.name}' does not support image edits"}
 
-    timeout = getattr(settings, "IMAGE_GENERATION_TIMEOUT", 120) or 120
     user_id = get_user_id_from_runtime(runtime) or "anonymous"
 
     source_files = []
@@ -966,12 +1133,12 @@ async def _call_edit_api(
             extra_options=extra_options,
         )
 
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=runtime_config.timeout) as client:
             body = await _post_image_api_with_retries(
                 client,
-                _join_api_url(base_url, profile.edit_endpoint),
+                _join_api_url(runtime_config.base_url, profile.edit_endpoint),
                 operation="edit",
-                headers={"Authorization": f"Bearer {api_key}"},
+                headers={"Authorization": f"Bearer {runtime_config.api_key}"},
                 data=prepared.payload,
                 files=files,
             )

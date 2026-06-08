@@ -166,6 +166,14 @@ export function SettingsPanel() {
     fetchModels();
   }, [hasPermission]);
 
+  const imageGenerationModels = useMemo(
+    () =>
+      availableModels.filter(
+        (model) => model.profile?.image_generation?.supports_generation,
+      ),
+    [availableModels],
+  );
+
   const SUBCATEGORY_LABELS = useMemo<Record<string, string>>(
     () => ({
       display: t("subcategories.display"),
@@ -784,6 +792,22 @@ export function SettingsPanel() {
                                             })),
                                           ]
                                         : setting.key ===
+                                            "IMAGE_GENERATION_MODEL_ID"
+                                          ? [
+                                              {
+                                                value: "",
+                                                label: t(
+                                                  "settings.imageGeneration.compatibilityMode",
+                                                ),
+                                              },
+                                              ...imageGenerationModels.map(
+                                                (model) => ({
+                                                  value: model.id,
+                                                  label: `${model.label} (${model.value})`,
+                                                }),
+                                              ),
+                                            ]
+                                        : setting.key ===
                                             "NATIVE_MEMORY_COMPACTION_MODEL_ID"
                                           ? [
                                               {
@@ -840,6 +864,14 @@ export function SettingsPanel() {
                                 provider={getDisplayValue(setting)}
                               />
                             )}
+                            {setting.key === "IMAGE_GENERATION_MODEL_ID" &&
+                              imageGenerationModels.length === 0 && (
+                                <p className="mt-2 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+                                  {t(
+                                    "settings.imageGeneration.noConfiguredModels",
+                                  )}
+                                </p>
+                              )}
                             {setting.type === "text" && (
                               <Textarea
                                 value={getDisplayValue(setting)}

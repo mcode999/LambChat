@@ -6,6 +6,50 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ImageGenerationProfile(BaseModel):
+    """Per-model image generation capability and provider adapter settings."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    supports_generation: Optional[bool] = Field(
+        False,
+        description="Whether this model can generate images",
+    )
+    supports_edit: Optional[bool] = Field(
+        False,
+        description="Whether this model can edit input images",
+    )
+    provider: Optional[str] = Field(
+        None,
+        description="Image provider adapter slug, e.g. openai_images or siliconflow",
+    )
+    generation_endpoint: Optional[str] = Field(
+        None,
+        description="Image generation endpoint path or absolute URL",
+    )
+    edit_endpoint: Optional[str] = Field(
+        None,
+        description="Image edit endpoint path or absolute URL",
+    )
+    supported_generation_parameters: Optional[list[str]] = Field(
+        None,
+        description="Canonical image generation parameters supported by this model",
+    )
+    supported_edit_parameters: Optional[list[str]] = Field(
+        None,
+        description="Canonical image edit parameters supported by this model",
+    )
+    parameter_map: Optional[dict[str, str]] = Field(
+        None,
+        description="Canonical-to-provider image request parameter mapping",
+    )
+    max_n: Optional[int] = Field(None, description="Maximum generated image count")
+    max_input_images: Optional[int] = Field(
+        None,
+        description="Maximum input images accepted for edits",
+    )
+
+
 class ModelProfile(BaseModel):
     """Per-model profile configuration."""
 
@@ -15,6 +59,10 @@ class ModelProfile(BaseModel):
     supports_vision: Optional[bool] = Field(
         False,
         description="Whether this model accepts image input",
+    )
+    image_generation: Optional[ImageGenerationProfile] = Field(
+        None,
+        description="Image generation and edit capability profile",
     )
 
 

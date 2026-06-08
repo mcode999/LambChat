@@ -16,6 +16,13 @@ class _Runtime:
         self.config = {"configurable": {"context": context, "base_url": base_url}}
 
 
+@pytest.fixture(autouse=True)
+def _clear_image_generation_model_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.infra.tool import image_generation_tool
+
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_MODEL_ID", "")
+
+
 class _BlockingOnlySpooledFile:
     def __init__(self, *args, **kwargs) -> None:
         self.data = bytearray()
@@ -416,6 +423,177 @@ async def test_image_generate_uses_capability_json_provider_override(
         "batch_size": 2,
         "negative_prompt": "text",
     }
+
+
+@pytest.mark.asyncio
+async def test_image_generate_uses_configured_image_model_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.infra.tool import image_generation_tool
+    from src.kernel.schemas.model import ImageGenerationProfile, ModelConfig, ModelProfile
+
+    captured: dict[str, object] = {}
+    _patch_successful_generation(monkeypatch, image_generation_tool, captured)
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_MODEL_ID", "image-model")
+
+    model = ModelConfig(
+        id="image-model",
+        value="provider/image-model-value",
+        label="Image Model",
+        api_key="sk-model",
+        api_base="https://model-images.example/v1",
+        enabled=True,
+        profile=ModelProfile(
+            image_generation=ImageGenerationProfile(
+                supports_generation=True,
+                supports_edit=True,
+                provider="openai_images",
+                supported_generation_parameters=["model", "prompt", "n"],
+                max_n=2,
+            )
+        ),
+    )
+
+    async def fake_load_model_config(model_id: str):
+        assert model_id == "image-model"
+        return model
+
+    monkeypatch.setattr(
+        image_generation_tool,
+        "_load_image_generation_model_config",
+        fake_load_model_config,
+    )
+
+    result = json.loads(
+        await image_generation_tool.image_generate.coroutine(
+            prompt="draw a cat",
+            n=8,
+            runtime=_Runtime("user-1"),
+        )
+    )
+
+    assert result["success"] is True
+    assert captured["request_url"] == "https://model-images.example/v1/images/generations"
+    assert captured["kwargs"]["headers"]["Authorization"] == "Bearer sk-model"
+    assert captured["kwargs"]["json"] == {
+        "model": "provider/image-model-value",
+        "prompt": "draw a cat",
+        "n": 2,
+    }
+    assert result["metadata"]["provider"] == "openai_images"
+    assert set(result["metadata"]["dropped_parameters"]) == {
+        "background",
+        "output_format",
+        "quality",
+        "size",
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("model_config", "expected_error"),
+    [
+        (None, "Image generation model 'image-model' was not found"),
+        (
+            SimpleNamespace(enabled=False),
+            "Image generation model 'image-model' is disabled",
+        ),
+        (
+            SimpleNamespace(enabled=True, profile=None),
+            "Image generation model 'image-model' is not configured for images",
+        ),
+        (
+            SimpleNamespace(
+                enabled=True,
+                api_key="sk-model",
+                value="image-model-value",
+                api_base="https://model-images.example/v1",
+                profile=SimpleNamespace(
+                    image_generation=SimpleNamespace(supports_generation=False)
+                ),
+            ),
+            "Image generation model 'image-model' does not support image generation",
+        ),
+        (
+            SimpleNamespace(
+                enabled=True,
+                api_key="",
+                value="image-model-value",
+                api_base="https://model-images.example/v1",
+                profile=SimpleNamespace(image_generation=SimpleNamespace(supports_generation=True)),
+            ),
+            "Image generation model 'image-model' API key is not configured",
+        ),
+    ],
+)
+async def test_image_generate_returns_clear_errors_for_invalid_configured_image_model(
+    monkeypatch: pytest.MonkeyPatch,
+    model_config: object | None,
+    expected_error: str,
+) -> None:
+    from src.infra.tool import image_generation_tool
+
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_MODEL_ID", "image-model")
+
+    async def fake_load_model_config(model_id: str):
+        assert model_id == "image-model"
+        return model_config
+
+    monkeypatch.setattr(
+        image_generation_tool,
+        "_load_image_generation_model_config",
+        fake_load_model_config,
+    )
+
+    result = json.loads(
+        await image_generation_tool.image_generate.coroutine(
+            prompt="draw a cat",
+            runtime=_Runtime("user-1"),
+        )
+    )
+
+    assert result == {"error": expected_error}
+
+
+@pytest.mark.asyncio
+async def test_image_generate_returns_clear_error_when_configured_model_does_not_support_edit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.infra.tool import image_generation_tool
+
+    monkeypatch.setattr(image_generation_tool.settings, "IMAGE_GENERATION_MODEL_ID", "image-model")
+    model_config = SimpleNamespace(
+        enabled=True,
+        api_key="sk-model",
+        value="image-model-value",
+        api_base="https://model-images.example/v1",
+        profile=SimpleNamespace(
+            image_generation=SimpleNamespace(
+                supports_generation=True,
+                supports_edit=False,
+            )
+        ),
+    )
+
+    async def fake_load_model_config(model_id: str):
+        assert model_id == "image-model"
+        return model_config
+
+    monkeypatch.setattr(
+        image_generation_tool,
+        "_load_image_generation_model_config",
+        fake_load_model_config,
+    )
+
+    result = json.loads(
+        await image_generation_tool.image_generate.coroutine(
+            prompt="make it brighter",
+            input_images=["https://files.example.com/source.png"],
+            runtime=_Runtime("user-1"),
+        )
+    )
+
+    assert result == {"error": "Image generation model 'image-model' does not support image edits"}
 
 
 @pytest.mark.asyncio

@@ -337,6 +337,7 @@ class Settings(BaseSettings):
     IMAGE_GENERATION_API_KEY: str = ""
     IMAGE_GENERATION_BASE_URL: str = "https://api.openai.com/v1"
     IMAGE_GENERATION_MODEL: str = "gpt-image-2"
+    IMAGE_GENERATION_MODEL_ID: str = ""
     IMAGE_GENERATION_PROVIDER: str = "openai_images"
     IMAGE_GENERATION_CAPABILITIES_JSON: Any = Field(default_factory=dict)
     IMAGE_GENERATION_TIMEOUT: int = 120

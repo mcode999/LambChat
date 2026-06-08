@@ -1,6 +1,16 @@
 import { memo, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Check, Info, Pin, Eye, Star, Search } from "lucide-react";
+import {
+  ChevronDown,
+  Check,
+  Edit3,
+  Info,
+  Pin,
+  Eye,
+  ImageIcon,
+  Star,
+  Search,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { ModelIconImg } from "./modelIcon.tsx";
@@ -11,7 +21,13 @@ import { Tooltip } from "../common/Tooltip";
 import { PROVIDER_LABELS } from "../panels/AgentPanel/shared/providerLabels";
 
 const MAX_PINNED = 10;
-type ModelFilterKey = "all" | "pinned" | "vision" | `provider:${string}`;
+type ModelFilterKey =
+  | "all"
+  | "pinned"
+  | "vision"
+  | "image"
+  | "edit"
+  | `provider:${string}`;
 
 interface ModelFilterOption {
   key: ModelFilterKey;
@@ -152,6 +168,26 @@ const ModelItem = memo(function ModelItem({
               <Tooltip content="Vision">
                 <span className="inline-flex items-center shrink-0 ml-0.5">
                   <Eye
+                    size={13}
+                    className="text-stone-400 dark:text-stone-500"
+                  />
+                </span>
+              </Tooltip>
+            )}
+            {model.profile?.image_generation?.supports_generation && (
+              <Tooltip content="Image">
+                <span className="inline-flex items-center shrink-0 ml-0.5">
+                  <ImageIcon
+                    size={13}
+                    className="text-stone-400 dark:text-stone-500"
+                  />
+                </span>
+              </Tooltip>
+            )}
+            {model.profile?.image_generation?.supports_edit && (
+              <Tooltip content="Edit">
+                <span className="inline-flex items-center shrink-0 ml-0.5">
+                  <Edit3
                     size={13}
                     className="text-stone-400 dark:text-stone-500"
                   />
@@ -363,9 +399,13 @@ const ModelSelector = memo(function ModelSelector({
   const filterOptions = useMemo<ModelFilterOption[]>(() => {
     const providers = new Map<string, number>();
     let visionCount = 0;
+    let imageCount = 0;
+    let editCount = 0;
 
     models.forEach((model) => {
       if (model.profile?.supports_vision) visionCount += 1;
+      if (model.profile?.image_generation?.supports_generation) imageCount += 1;
+      if (model.profile?.image_generation?.supports_edit) editCount += 1;
       if (model.provider) {
         providers.set(model.provider, (providers.get(model.provider) ?? 0) + 1);
       }
@@ -395,6 +435,24 @@ const ModelSelector = memo(function ModelSelector({
             },
           ]
         : []),
+      ...(imageCount > 0
+        ? [
+            {
+              key: "image" as const,
+              label: "Image",
+              count: imageCount,
+            },
+          ]
+        : []),
+      ...(editCount > 0
+        ? [
+            {
+              key: "edit" as const,
+              label: "Edit",
+              count: editCount,
+            },
+          ]
+        : []),
       ...Array.from(providers.entries()).map(([provider, count]) => ({
         key: `provider:${provider}` as const,
         label: getProviderLabel(provider),
@@ -411,6 +469,10 @@ const ModelSelector = memo(function ModelSelector({
         activeFilter === "all" ||
         (activeFilter === "pinned" && pinnedSet.has(model.id)) ||
         (activeFilter === "vision" && model.profile?.supports_vision) ||
+        (activeFilter === "image" &&
+          model.profile?.image_generation?.supports_generation) ||
+        (activeFilter === "edit" &&
+          model.profile?.image_generation?.supports_edit) ||
         (activeFilter.startsWith("provider:") &&
           model.provider === activeFilter.slice("provider:".length));
 

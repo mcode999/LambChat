@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import {
   IMAGE_GENERATION_CAPABILITY_TEMPLATES,
+  IMAGE_GENERATION_PROFILE_TEMPLATES,
   getImageGenerationProviderHintKey,
   getImageGenerationProviderLabelKey,
   parseImageCapabilitiesStatus,
@@ -79,6 +80,27 @@ test("image generation capabilities status accepts only JSON objects", () => {
   assert.equal(parseImageCapabilitiesStatus("{"), "invalid");
 });
 
+test("image generation profile templates match model profile fields", () => {
+  const openai = IMAGE_GENERATION_PROFILE_TEMPLATES.openai_images;
+  assert.equal(openai.supports_generation, true);
+  assert.equal(openai.supports_edit, true);
+  assert.equal(openai.provider, "openai_images");
+  assert.equal(openai.generation_endpoint, "/images/generations");
+  assert.equal(openai.edit_endpoint, "/images/edits");
+  assert.equal(openai.max_n, 10);
+  assert.equal(openai.max_input_images, 16);
+
+  const siliconflow = IMAGE_GENERATION_PROFILE_TEMPLATES.siliconflow;
+  assert.equal(siliconflow.supports_generation, true);
+  assert.equal(siliconflow.supports_edit, false);
+  assert.equal(siliconflow.provider, "siliconflow");
+  assert.deepEqual(siliconflow.parameter_map, {
+    size: "image_size",
+    n: "batch_size",
+    steps: "num_inference_steps",
+  });
+});
+
 test("image generation provider label and hint keys fall back for custom profiles", () => {
   assert.equal(
     getImageGenerationProviderLabelKey("siliconflow"),
@@ -96,6 +118,18 @@ test("image generation provider label and hint keys fall back for custom profile
     getImageGenerationProviderHintKey("custom_provider"),
     "settings.imageGeneration.providerHint.custom",
   );
+});
+
+test("settings panel image model selector is filtered by image generation support", () => {
+  const source = readFileSync(
+    new URL("../SettingsPanel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /imageGenerationModels/);
+  assert.match(source, /profile\?\.image_generation\?\.supports_generation/);
+  assert.match(source, /setting\.key ===\s*"IMAGE_GENERATION_MODEL_ID"/);
+  assert.match(source, /settings\.imageGeneration\.compatibilityMode/);
 });
 
 test("image generation settings helper copy exists in every locale", () => {
@@ -124,8 +158,10 @@ test("image generation settings helper copy exists in every locale", () => {
       "applySiliconFlow",
       "capabilitiesDescription",
       "capabilitiesTitle",
+      "compatibilityMode",
       "jsonInvalid",
       "jsonValid",
+      "noConfiguredModels",
       "usingDefaults",
     ]) {
       assert.equal(typeof imageGeneration[key], "string");

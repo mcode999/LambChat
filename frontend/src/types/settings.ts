@@ -97,9 +97,23 @@ export interface SettingResetResponse {
 // Model Types
 // ============================================
 
+export interface ImageGenerationProfile {
+  supports_generation?: boolean;
+  supports_edit?: boolean;
+  provider?: string;
+  generation_endpoint?: string;
+  edit_endpoint?: string;
+  supported_generation_parameters?: string[];
+  supported_edit_parameters?: string[];
+  parameter_map?: Record<string, string>;
+  max_n?: number;
+  max_input_images?: number;
+}
+
 export interface ModelProfile {
   max_input_tokens?: number;
   supports_vision?: boolean;
+  image_generation?: ImageGenerationProfile;
 }
 
 export interface AvailableModelConfig {

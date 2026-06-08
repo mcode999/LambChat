@@ -65,9 +65,23 @@ function getCachedModelList<T>(url: string): Promise<T> {
 // API Types
 // ============================================
 
+export interface ImageGenerationProfile {
+  supports_generation?: boolean;
+  supports_edit?: boolean;
+  provider?: string;
+  generation_endpoint?: string;
+  edit_endpoint?: string;
+  supported_generation_parameters?: string[];
+  supported_edit_parameters?: string[];
+  parameter_map?: Record<string, string>;
+  max_n?: number;
+  max_input_images?: number;
+}
+
 export interface ModelProfile {
   max_input_tokens?: number;
   supports_vision?: boolean;
+  image_generation?: ImageGenerationProfile;
 }
 
 /** LLM API provider type (dynamic, from backend PROVIDER_REGISTRY) */

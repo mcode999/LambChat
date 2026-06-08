@@ -754,6 +754,14 @@ SETTING_DEFINITIONS: dict[str, dict] = {
         "default": "gpt-image-2",
         "depends_on": "ENABLE_IMAGE_GENERATION",
     },
+    "IMAGE_GENERATION_MODEL_ID": {
+        "type": SettingType.SELECT,
+        "category": SettingCategory.TOOLS,
+        "subcategory": "image_generation",
+        "description": "settingDesc.IMAGE_GENERATION_MODEL_ID",
+        "default": "",
+        "depends_on": "ENABLE_IMAGE_GENERATION",
+    },
     "IMAGE_GENERATION_PROVIDER": {
         "type": SettingType.SELECT,
         "category": SettingCategory.TOOLS,
